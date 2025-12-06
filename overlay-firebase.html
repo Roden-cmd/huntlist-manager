@@ -325,10 +325,9 @@
                 document.getElementById('huntDescription').style.display = 'none';
             }
 
-            // Calculate current balance
-            const currentBalance = games.length > 0 
-                ? games[games.length - 1].balance 
-                : hunt.startingBalance;
+            // Calculate current balance (starting balance minus total bets)
+            const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
+            const currentBalance = hunt.startingBalance - totalBet;
             
             document.getElementById('balanceValue').textContent = hunt.currency + currentBalance.toFixed(2);
             document.getElementById('totalGames').textContent = games.length;

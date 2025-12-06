@@ -407,7 +407,7 @@ function updateActiveHuntPage() {
     } else {
         console.log('Current hunt exists, showing management');
         // Show hunt management
-        if (title) title.textContent = currentHunt.name;
+        if (title) title.style.display = 'none'; // Hide the page header title
         content.innerHTML = createHuntManagementView();
         setupHuntManagementListeners();
     }

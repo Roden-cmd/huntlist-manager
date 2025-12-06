@@ -566,3 +566,52 @@ body {
     background: rgba(74, 158, 255, 0.2);
     border-color: #4a9eff;
 }
+/* Better sidebar collapse */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 260px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-260px);
+}
+
+.sidebar-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 1.5rem;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    right: auto;
+    background: #4a9eff;
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+}
+
+.sidebar-toggle:hover {
+    background: rgba(74, 158, 255, 0.3);
+    border-color: #4a9eff;
+}
+
+.sidebar.collapsed .sidebar-toggle:hover {
+    background: #5eb3ff;
+}
