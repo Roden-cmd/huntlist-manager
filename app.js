@@ -404,7 +404,8 @@ function updateActiveHuntPage() {
         console.log('Current hunt exists, showing management');
         // Show hunt management
         if (title) title.textContent = currentHunt.name;
-        content.innerHTML = '<div style="padding: 2rem; text-align: center;"><p style="color: #888;">Hunt management coming in next update!</p><p style="color: #4a9eff; margin-top: 1rem;">Hunt: ' + currentHunt.name + '</p><p style="color: #888;">Starting Balance: ' + currentHunt.currency + currentHunt.startingBalance + '</p></div>';
+        content.innerHTML = createHuntManagementView();
+        setupHuntManagementListeners();
     }
 }
 
@@ -492,6 +493,224 @@ function saveActiveHunt() {
         console.log('✅ Hunt saved to Firebase');
     }).catch(function(error) {
         console.error('❌ Save error:', error);
+    });
+}
+
+function createHuntManagementView() {
+    const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
+    const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
+    const profit = totalWin - totalBet;
+    const remaining = currentHunt.startingBalance - totalBet;
+    
+    return `
+        <div style="padding: 2rem;">
+            <!-- Hunt Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="color: #888; font-size: 0.9rem;">Starting Balance</div>
+                    <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
+                </div>
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="color: #888; font-size: 0.9rem;">Total Bet</div>
+                    <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
+                </div>
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="color: #888; font-size: 0.9rem;">Total Win</div>
+                    <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
+                </div>
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="color: #888; font-size: 0.9rem;">Profit/Loss</div>
+                    <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
+                </div>
+            </div>
+            
+            <!-- Add Game Button -->
+            <button id="addGameBtn" style="width: 100%; padding: 1rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-bottom: 2rem;">
+                ➕ Add Game
+            </button>
+            
+            <!-- Games List -->
+            <div id="gamesList" style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h3 style="color: #fff; margin-bottom: 1.5rem;">Games (${games.length})</h3>
+                ${games.length === 0 ? '<p style="color: #888; text-align: center;">No games added yet. Click "Add Game" to start!</p>' : createGamesListHTML()}
+            </div>
+            
+            <!-- Finish Hunt Button -->
+            <button id="finishHuntBtn" style="width: 100%; padding: 1rem; background: #28a745; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 2rem;">
+                ✓ Finish Hunt
+            </button>
+            
+            <button id="deleteHuntBtn" style="width: 100%; padding: 1rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 1rem;">
+                🗑️ Delete Hunt
+            </button>
+        </div>
+        
+        <!-- Add Game Modal (hidden by default) -->
+        <div id="addGameModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: #1a1a2e; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;">
+                <h2 style="color: #fff; margin-bottom: 1.5rem;">Add Game</h2>
+                <form id="addGameForm">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Game Name *</label>
+                        <input type="text" id="gameName" required
+                               style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;"
+                               placeholder="e.g., Book of Dead">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Bet Amount * (${currentHunt.currency})</label>
+                        <input type="number" id="gameBet" required step="0.01" min="0"
+                               style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;"
+                               placeholder="20.00">
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Win Amount (${currentHunt.currency}) - Leave empty if not played yet</label>
+                        <input type="number" id="gameWin" step="0.01" min="0"
+                               style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;"
+                               placeholder="0.00">
+                    </div>
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="display: flex; align-items: center; color: #b0b0b0; cursor: pointer;">
+                            <input type="checkbox" id="superBonus" style="margin-right: 0.5rem;">
+                            Super Bonus
+                        </label>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <button type="button" id="cancelGameBtn" style="padding: 0.75rem; background: #6c757d; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
+                        <button type="submit" style="padding: 0.75rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Add Game</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+function createGamesListHTML() {
+    return games.map((game, index) => {
+        const multiplier = game.win && game.bet ? (game.win / game.bet).toFixed(2) : '0.00';
+        const profit = (game.win || 0) - game.bet;
+        
+        return `
+            <div style="background: rgba(40, 40, 60, 0.5); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid ${game.superBonus ? '#ffd700' : '#4a9eff'};">
+                <div style="display: flex; justify-content: space-between; align-items: start;">
+                    <div style="flex: 1;">
+                        <h4 style="color: #fff; margin-bottom: 0.5rem;">
+                            ${game.name} ${game.superBonus ? '⭐' : ''}
+                        </h4>
+                        <div style="color: #888; font-size: 0.9rem;">
+                            Bet: ${currentHunt.currency}${game.bet.toFixed(2)} | 
+                            Win: ${currentHunt.currency}${(game.win || 0).toFixed(2)} | 
+                            ${multiplier}x
+                        </div>
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 0.9rem; margin-top: 0.25rem;">
+                            ${profit >= 0 ? '+' : ''}${currentHunt.currency}${profit.toFixed(2)}
+                        </div>
+                    </div>
+                    <button class="deleteGameBtn" data-index="${index}" style="padding: 0.5rem 1rem; background: #dc3545; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function setupHuntManagementListeners() {
+    const addGameBtn = document.getElementById('addGameBtn');
+    const addGameModal = document.getElementById('addGameModal');
+    const addGameForm = document.getElementById('addGameForm');
+    const cancelGameBtn = document.getElementById('cancelGameBtn');
+    const finishHuntBtn = document.getElementById('finishHuntBtn');
+    const deleteHuntBtn = document.getElementById('deleteHuntBtn');
+    
+    if (addGameBtn) {
+        addGameBtn.addEventListener('click', function() {
+            addGameModal.style.display = 'flex';
+        });
+    }
+    
+    if (cancelGameBtn) {
+        cancelGameBtn.addEventListener('click', function() {
+            addGameModal.style.display = 'none';
+            addGameForm.reset();
+        });
+    }
+    
+    if (addGameForm) {
+        addGameForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const game = {
+                name: document.getElementById('gameName').value,
+                bet: parseFloat(document.getElementById('gameBet').value),
+                win: parseFloat(document.getElementById('gameWin').value) || 0,
+                superBonus: document.getElementById('superBonus').checked
+            };
+            
+            games.push(game);
+            saveActiveHunt();
+            
+            addGameModal.style.display = 'none';
+            addGameForm.reset();
+            updateActiveHuntPage();
+            
+            console.log('✅ Game added:', game.name);
+        });
+    }
+    
+    // Delete game buttons
+    document.querySelectorAll('.deleteGameBtn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            if (confirm('Delete this game?')) {
+                games.splice(index, 1);
+                saveActiveHunt();
+                updateActiveHuntPage();
+            }
+        });
+    });
+    
+    if (finishHuntBtn) {
+        finishHuntBtn.addEventListener('click', function() {
+            if (confirm('Finish this hunt? It will be moved to history.')) {
+                finishHunt();
+            }
+        });
+    }
+    
+    if (deleteHuntBtn) {
+        deleteHuntBtn.addEventListener('click', function() {
+            if (confirm('Delete this hunt? This cannot be undone!')) {
+                clearActiveHunt();
+                navigateTo('dashboard');
+            }
+        });
+    }
+}
+
+function finishHunt() {
+    if (!currentUser || !currentHunt) return;
+    
+    const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
+    const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
+    const profit = totalWin - totalBet;
+    
+    // Save to history
+    firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+        hunt: currentHunt,
+        games: games,
+        savedAt: new Date().toISOString(),
+        totalWin: totalWin,
+        totalBet: totalBet,
+        profit: profit
+    }).then(function() {
+        console.log('✅ Hunt saved to history');
+        // Clear active hunt
+        clearActiveHunt();
+        // Go to dashboard
+        navigateTo('dashboard');
+        alert('Hunt completed and saved to history!');
+    }).catch(function(error) {
+        console.error('❌ Error finishing hunt:', error);
     });
 }
 
