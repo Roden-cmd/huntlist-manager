@@ -503,46 +503,70 @@ function createHuntManagementView() {
     const remaining = currentHunt.startingBalance - totalBet;
     
     return `
-        <div style="padding: 2rem;">
-            <!-- Hunt Stats -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <div style="color: #888; font-size: 0.9rem;">Starting Balance</div>
-                    <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
+        <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; padding: 2rem; min-height: 600px;">
+            <!-- Left side: Hunt Management -->
+            <div style="overflow-y: auto;">
+                <!-- Hunt Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <div style="color: #888; font-size: 0.9rem;">Starting Balance</div>
+                        <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <div style="color: #888; font-size: 0.9rem;">Total Bet</div>
+                        <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <div style="color: #888; font-size: 0.9rem;">Total Win</div>
+                        <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <div style="color: #888; font-size: 0.9rem;">Profit/Loss</div>
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
+                    </div>
                 </div>
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <div style="color: #888; font-size: 0.9rem;">Total Bet</div>
-                    <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
+                
+                <!-- Save & Add Game Buttons -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                    <button id="saveHuntBtn" style="padding: 1rem; background: #28a745; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
+                        💾 Save Changes
+                    </button>
+                    <button id="addGameBtn" style="padding: 1rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
+                        ➕ Add Game
+                    </button>
                 </div>
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <div style="color: #888; font-size: 0.9rem;">Total Win</div>
-                    <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
+                
+                <!-- Games List -->
+                <div id="gamesList" style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); margin-bottom: 2rem;">
+                    <h3 style="color: #fff; margin-bottom: 1.5rem;">Games (${games.length})</h3>
+                    ${games.length === 0 ? '<p style="color: #888; text-align: center;">No games added yet. Click "Add Game" to start!</p>' : createGamesListHTML()}
                 </div>
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <div style="color: #888; font-size: 0.9rem;">Profit/Loss</div>
-                    <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
-                </div>
+                
+                <!-- Finish Hunt Button -->
+                <button id="finishHuntBtn" style="width: 100%; padding: 1rem; background: #ffc107; color: #000; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-bottom: 1rem; font-weight: bold;">
+                    ✓ Finish Hunt & Save to History
+                </button>
+                
+                <button id="deleteHuntBtn" style="width: 100%; padding: 1rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
+                    🗑️ Delete Hunt
+                </button>
             </div>
             
-            <!-- Add Game Button -->
-            <button id="addGameBtn" style="width: 100%; padding: 1rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-bottom: 2rem;">
-                ➕ Add Game
-            </button>
-            
-            <!-- Games List -->
-            <div id="gamesList" style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                <h3 style="color: #fff; margin-bottom: 1.5rem;">Games (${games.length})</h3>
-                ${games.length === 0 ? '<p style="color: #888; text-align: center;">No games added yet. Click "Add Game" to start!</p>' : createGamesListHTML()}
+            <!-- Right side: OBS Preview -->
+            <div style="position: sticky; top: 2rem; height: fit-content;">
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <h3 style="color: #fff; margin-bottom: 1rem; text-align: center;">Live OBS Preview</h3>
+                    <div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">
+                        <iframe id="obsPreviewFrame" 
+                                src="${window.location.origin}/overlay-firebase.html?userId=${currentUser.uid}"
+                                style="width: 100%; height: 600px; border: none; display: block;">
+                        </iframe>
+                    </div>
+                    <p style="color: #888; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;">
+                        This is how it looks in OBS. Click "Save Changes" to update.
+                    </p>
+                </div>
             </div>
-            
-            <!-- Finish Hunt Button -->
-            <button id="finishHuntBtn" style="width: 100%; padding: 1rem; background: #28a745; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 2rem;">
-                ✓ Finish Hunt
-            </button>
-            
-            <button id="deleteHuntBtn" style="width: 100%; padding: 1rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; margin-top: 1rem;">
-                🗑️ Delete Hunt
-            </button>
         </div>
         
         <!-- Add Game Modal (hidden by default) -->
@@ -615,12 +639,35 @@ function createGamesListHTML() {
 }
 
 function setupHuntManagementListeners() {
+    const saveHuntBtn = document.getElementById('saveHuntBtn');
     const addGameBtn = document.getElementById('addGameBtn');
     const addGameModal = document.getElementById('addGameModal');
     const addGameForm = document.getElementById('addGameForm');
     const cancelGameBtn = document.getElementById('cancelGameBtn');
     const finishHuntBtn = document.getElementById('finishHuntBtn');
     const deleteHuntBtn = document.getElementById('deleteHuntBtn');
+    
+    if (saveHuntBtn) {
+        saveHuntBtn.addEventListener('click', function() {
+            saveActiveHunt();
+            
+            // Show success feedback
+            const originalText = saveHuntBtn.textContent;
+            saveHuntBtn.textContent = '✓ Saved!';
+            saveHuntBtn.style.background = '#28a745';
+            
+            // Refresh OBS preview
+            const iframe = document.getElementById('obsPreviewFrame');
+            if (iframe) {
+                iframe.src = iframe.src;
+            }
+            
+            setTimeout(function() {
+                saveHuntBtn.textContent = originalText;
+                saveHuntBtn.style.background = '#28a745';
+            }, 2000);
+        });
+    }
     
     if (addGameBtn) {
         addGameBtn.addEventListener('click', function() {
@@ -647,13 +694,16 @@ function setupHuntManagementListeners() {
             };
             
             games.push(game);
-            saveActiveHunt();
+            // DON'T auto-save here anymore
             
             addGameModal.style.display = 'none';
             addGameForm.reset();
             updateActiveHuntPage();
             
-            console.log('✅ Game added:', game.name);
+            console.log('✅ Game added (not saved yet):', game.name);
+            
+            // Show reminder to save
+            alert('Game added! Click "Save Changes" to update the OBS overlay.');
         });
     }
     
@@ -663,8 +713,10 @@ function setupHuntManagementListeners() {
             const index = parseInt(this.dataset.index);
             if (confirm('Delete this game?')) {
                 games.splice(index, 1);
-                saveActiveHunt();
+                // DON'T auto-save
                 updateActiveHuntPage();
+                
+                alert('Game deleted! Click "Save Changes" to update.');
             }
         });
     });
