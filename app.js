@@ -47,7 +47,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
             sidebar.classList.toggle('collapsed');
+            
+            // Change icon based on state
+            if (sidebar.classList.contains('collapsed')) {
+                sidebarToggle.textContent = '☰'; // Hamburger when collapsed
+            } else {
+                sidebarToggle.textContent = '✕'; // X when expanded
+            }
         });
+        
+        // Initialize with correct icon
+        if (!sidebar.classList.contains('collapsed')) {
+            sidebarToggle.textContent = '✕';
+        }
     }
     
     menuItems.forEach(function(item) {
@@ -60,7 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Dashboard buttons
     const startNewHuntBtn = document.getElementById('startNewHunt');
     const continueHuntBtn = document.getElementById('continueHunt');
-    const backToDashboardBtn = document.getElementById('backToDashboard');
     
     if (startNewHuntBtn) {
         startNewHuntBtn.addEventListener('click', function() {
@@ -73,13 +84,6 @@ document.addEventListener('DOMContentLoaded', function() {
         continueHuntBtn.addEventListener('click', function() {
             console.log('Continue Hunt clicked');
             navigateTo('active-hunt');
-        });
-    }
-    
-    if (backToDashboardBtn) {
-        backToDashboardBtn.addEventListener('click', function() {
-            console.log('Back to Dashboard clicked');
-            navigateTo('dashboard');
         });
     }
     
@@ -558,7 +562,7 @@ function createHuntManagementView() {
                     <h3 style="color: #fff; margin-bottom: 1rem; text-align: center;">Live OBS Preview</h3>
                     <div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">
                         <iframe id="obsPreviewFrame" 
-                                src="${window.location.origin}/overlay-firebase.html?userId=${currentUser.uid}"
+                                src="overlay-firebase.html?userId=${currentUser.uid}"
                                 style="width: 100%; height: 600px; border: none; display: block;">
                         </iframe>
                     </div>

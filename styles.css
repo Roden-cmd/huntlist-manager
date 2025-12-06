@@ -525,3 +525,44 @@ body {
         flex-direction: column;
     }
 }
+
+/* Sidebar collapsed state improvements */
+.sidebar {
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed {
+    transform: translateX(-260px);
+}
+
+/* Floating toggle button when sidebar is collapsed */
+.sidebar.collapsed .sidebar-toggle {
+    position: fixed;
+    left: 1rem;
+    top: 1rem;
+    z-index: 1001;
+    background: #4a9eff;
+    transform: translateX(260px);
+}
+
+/* Main content adjustment */
+.sidebar.collapsed ~ .main-content {
+    margin-left: 0;
+}
+
+/* Sidebar toggle button styling */
+.sidebar-toggle {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    transition: all 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(74, 158, 255, 0.2);
+    border-color: #4a9eff;
+}
