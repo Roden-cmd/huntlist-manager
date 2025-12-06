@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huntlist Manager - Casino Bonus Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase UI CSS -->
+    <link type="text/css" rel="stylesheet" href="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.css" />
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-logo">🎰</div>
+            <h1>Huntlist Manager</h1>
+            <p class="login-subtitle">Track your casino bonus hunts like a pro</p>
+            
+            <!-- Firebase UI will render here -->
+            <div id="firebaseui-auth-container"></div>
+            
+            <div class="login-features">
+                <div class="feature">✓ Track multiple bonus hunts</div>
+                <div class="feature">✓ OBS overlay integration</div>
+                <div class="feature">✓ Sync across devices</div>
+                <div class="feature">✓ Complete hunt history</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (same as before) -->
+    <div id="mainApp" class="main-app" style="display: none;">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">🎰</div>
+                <h2 class="sidebar-title">Huntlist</h2>
+                <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+            </div>
+
+            <div class="sidebar-user">
+                <img id="userPhoto" class="user-photo" src="" alt="User">
+                <div class="user-info">
+                    <div id="userName" class="user-name">Loading...</div>
+                    <div id="userEmail" class="user-email">user@example.com</div>
+                </div>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-item active" data-page="dashboard">
+                    <span class="menu-icon">🏠</span>
+                    <span class="menu-label">Dashboard</span>
+                </li>
+                <li class="menu-item" data-page="active-hunt">
+                    <span class="menu-icon">🎰</span>
+                    <span class="menu-label">Active Hunt</span>
+                </li>
+                <li class="menu-item" data-page="history">
+                    <span class="menu-icon">📚</span>
+                    <span class="menu-label">Hunt History</span>
+                </li>
+                <li class="menu-item" data-page="settings">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-label">Settings</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button id="signOutBtn" class="btn-signout">
+                    <span class="menu-icon">🚪</span>
+                    <span class="menu-label">Sign Out</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Welcome back! Here's your hunting overview.</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🎯</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Hunts</div>
+                            <div class="stat-value" id="totalHunts">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Total Profit</div>
+                            <div class="stat-value" id="totalProfit">€0.00</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🎮</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Games Played</div>
+                            <div class="stat-value" id="totalGames">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⭐</div>
+                        <div class="stat-info">
+                            <div class="stat-label">Best Multiplier</div>
+                            <div class="stat-value" id="bestMultiplier">0x</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button id="startNewHunt" class="btn btn-primary btn-large">
+                        ➕ Start New Bonus Hunt
+                    </button>
+                    <button id="continueHunt" class="btn btn-secondary btn-large" style="display: none;">
+                        ▶️ Continue Current Hunt
+                    </button>
+                </div>
+
+                <div class="recent-hunts">
+                    <h2>Recent Hunts</h2>
+                    <div id="recentHuntsList" class="hunt-cards">
+                        <!-- Recent hunts will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Hunt Page -->
+            <div id="active-huntPage" class="page">
+                <div class="page-header">
+                    <h1 id="active-huntTitle">No Active Hunt</h1>
+                    <button id="backToDashboard" class="btn btn-secondary">⬅️ Back to Dashboard</button>
+                </div>
+                <div id="active-huntContent"></div>
+            </div>
+
+            <!-- History Page -->
+            <div id="historyPage" class="page">
+                <div class="page-header">
+                    <h1>Hunt History</h1>
+                    <p>View all your past bonus hunts</p>
+                </div>
+                <div id="historyContent" class="hunt-cards"></div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page">
+                <div class="page-header">
+                    <h1>Settings</h1>
+                    <p>Configure your OBS overlay and preferences</p>
+                </div>
+
+                <div class="settings-section">
+                    <h2>OBS Overlay</h2>
+                    <p>Use this URL in OBS as a Browser Source:</p>
+                    <div class="obs-link-container">
+                        <input type="text" id="obsLinkInput" readonly class="obs-link-input">
+                        <button id="copyObsLink" class="btn btn-primary">📋 Copy Link</button>
+                    </div>
+                    
+                    <div class="obs-instructions">
+                        <h3>Setup Instructions:</h3>
+                        <ol>
+                            <li>In OBS, add a new <strong>Browser Source</strong></li>
+                            <li>Paste the URL above</li>
+                            <li>Set Width: <strong>400px</strong>, Height: <strong>600px</strong></li>
+                            <li>Check "Refresh browser when scene becomes active"</li>
+                            <li>Your overlay will auto-update when you add/edit games!</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2>Preferences</h2>
+                    <div class="setting-item">
+                        <label for="defaultCurrency">Default Currency:</label>
+                        <select id="defaultCurrency">
+                            <option value="€">€ Euro</option>
+                            <option value="$">$ Dollar</option>
+                            <option value="£">£ Pound</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/ui/6.1.0/firebase-ui-auth.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
+            authDomain: "huntlist-manager.firebaseapp.com",
+            databaseURL: "https://huntlist-manager-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "huntlist-manager",
+            storageBucket: "huntlist-manager.firebasestorage.app",
+            messagingSenderId: "380684782952",
+            appId: "1:380684782952:web:814627bb865c3aff33dadd"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        
+        console.log('✅ Firebase initialized (compat mode)');
+    </script>
+
+    <script defer src="app.js"></script>
+</body>
+</html>

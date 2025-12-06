@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bonus Hunt Overlay - Firebase v3.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .huntlist-container {
+            background: rgba(26, 26, 46, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 400px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .huntlist-header {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .huntlist-title-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .huntlist-icon {
+            font-size: 20px;
+            margin-right: 8px;
+        }
+
+        .huntlist-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .huntlist-description {
+            color: #999;
+            font-size: 11px;
+            line-height: 1.3;
+            padding-left: 28px;
+        }
+
+        .huntlist-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin-bottom: 12px;
+            gap: 8px;
+        }
+
+        .stat-box {
+            background: rgba(40, 40, 60, 0.6);
+            padding: 8px 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 9px;
+            color: #888;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 15px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .stat-value.currency {
+            color: #4a9eff;
+        }
+
+        .stat-value.multiplier {
+            color: #ffd700;
+        }
+
+        .stat-value.win {
+            color: #51cf66;
+        }
+
+        .stat-game-name {
+            font-size: 9px;
+            color: #888;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .games-list {
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 8px;
+            padding: 8px;
+            max-height: 270px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes infiniteScroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+
+        .games-list-wrapper {
+            animation: infiniteScroll 40s linear infinite;
+        }
+
+        .games-list-wrapper:hover {
+            animation-play-state: paused;
+        }
+
+        .game-item {
+            background: rgba(40, 40, 60, 0.7);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .game-item:hover {
+            background: rgba(50, 50, 70, 0.8);
+        }
+
+        .game-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .game-number {
+            font-size: 11px;
+            color: #666;
+            margin-right: 6px;
+            min-width: 20px;
+        }
+
+        .game-name {
+            flex: 1;
+            font-size: 13px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .game-name.super-bonus {
+            color: #ffd700;
+        }
+
+        .game-name.super-bonus::before {
+            content: '⭐ ';
+        }
+
+        .game-bet {
+            font-size: 12px;
+            color: #b0b0b0;
+            margin: 0 12px;
+            min-width: 55px;
+            text-align: right;
+        }
+
+        .game-win {
+            font-size: 13px;
+            font-weight: bold;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .game-win.pending {
+            color: #888;
+            font-size: 11px;
+        }
+
+        .game-win.won {
+            color: #51cf66;
+        }
+
+        .no-games {
+            text-align: center;
+            color: #666;
+            padding: 30px;
+            font-size: 13px;
+        }
+
+        .version {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #4a9eff;
+            background: rgba(0,0,0,0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="huntlist-container" id="huntlistContainer">
+        <div class="version">v3.0 FB ✓</div>
+        
+        <div class="huntlist-header">
+            <div class="huntlist-title-row">
+                <span class="huntlist-icon">🎰</span>
+                <span class="huntlist-title" id="huntTitle">Huntlist</span>
+            </div>
+            <div class="huntlist-description" id="huntDescription" style="display: none;"></div>
+        </div>
+
+        <div class="huntlist-stats">
+            <div class="stat-box">
+                <div class="stat-label">Balance</div>
+                <div class="stat-value currency" id="balanceValue">0$</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Total Games</div>
+                <div class="stat-value" id="totalGames">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Avg Multiplier</div>
+                <div class="stat-value multiplier" id="avgMultiplier">0x</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Biggest Win</div>
+                <div class="stat-value win" id="biggestWinValue">$0.00</div>
+                <div class="stat-game-name" id="biggestWinGame">No wins yet</div>
+            </div>
+        </div>
+
+        <div class="games-list">
+            <div class="games-list-wrapper" id="gamesListWrapper">
+                <div id="gamesList">
+                    <div class="no-games">Connecting to Firebase...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        console.log('🔥 Firebase Overlay v3.0 - Loading...');
+        console.log('Page URL:', window.location.href);
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
+            authDomain: "huntlist-manager.firebaseapp.com",
+            databaseURL: "https://huntlist-manager-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "huntlist-manager",
+            storageBucket: "huntlist-manager.firebasestorage.app",
+            messagingSenderId: "380684782952",
+            appId: "1:380684782952:web:814627bb865c3aff33dadd",
+            measurementId: "G-LLBBTHN6BK"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Get userId from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+
+        console.log('User ID:', userId);
+
+        if (!userId) {
+            console.error('❌ No userId provided in URL');
+            document.getElementById('gamesList').innerHTML = '<div class="no-games">Error: No user ID provided</div>';
+        } else {
+            // Listen to user's active hunt in real-time
+            const activeHuntRef = ref(db, `users/${userId}/activeHunt`);
+            
+            onValue(activeHuntRef, (snapshot) => {
+                console.log('📡 Received data update from Firebase');
+                
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const hunt = data.hunt;
+                    const games = data.games || [];
+                    
+                    console.log('✅ Hunt loaded:', hunt.name, '- Games:', games.length);
+                    renderHuntData(hunt, games);
+                } else {
+                    console.log('ℹ️ No active hunt');
+                    showNoHunt();
+                }
+            }, (error) => {
+                console.error('❌ Firebase error:', error);
+                document.getElementById('gamesList').innerHTML = '<div class="no-games">Connection error</div>';
+            });
+        }
+
+        function renderHuntData(hunt, games) {
+            // Update title and description
+            document.getElementById('huntTitle').textContent = hunt.name;
+            
+            if (hunt.description) {
+                document.getElementById('huntDescription').textContent = hunt.description;
+                document.getElementById('huntDescription').style.display = 'block';
+            } else {
+                document.getElementById('huntDescription').style.display = 'none';
+            }
+
+            // Calculate current balance
+            const currentBalance = games.length > 0 
+                ? games[games.length - 1].balance 
+                : hunt.startingBalance;
+            
+            document.getElementById('balanceValue').textContent = hunt.currency + currentBalance.toFixed(2);
+            document.getElementById('totalGames').textContent = games.length;
+
+            // Calculate average multiplier
+            const completedGames = games.filter(g => g.win !== null);
+            let avgMultiplier = 0;
+            
+            if (completedGames.length > 0) {
+                const totalMultiplier = completedGames.reduce((sum, game) => {
+                    return sum + (game.win / game.bet);
+                }, 0);
+                avgMultiplier = (totalMultiplier / completedGames.length).toFixed(2);
+            }
+            
+            document.getElementById('avgMultiplier').textContent = avgMultiplier + 'x';
+
+            // Calculate biggest win
+            let biggestWin = null;
+            let biggestWinGame = null;
+            
+            if (completedGames.length > 0) {
+                completedGames.forEach(game => {
+                    if (biggestWin === null || game.win > biggestWin) {
+                        biggestWin = game.win;
+                        biggestWinGame = game;
+                    }
+                });
+            }
+
+            if (biggestWinGame) {
+                document.getElementById('biggestWinValue').textContent = hunt.currency + biggestWin.toFixed(2);
+                document.getElementById('biggestWinGame').textContent = biggestWinGame.name;
+            } else {
+                document.getElementById('biggestWinValue').textContent = hunt.currency + '0.00';
+                document.getElementById('biggestWinGame').textContent = 'No wins yet';
+            }
+
+            // Render games list
+            renderGamesList(hunt, games);
+        }
+
+        function renderGamesList(hunt, games) {
+            const gamesList = document.getElementById('gamesList');
+            const gamesListWrapper = document.getElementById('gamesListWrapper');
+            
+            if (games.length === 0) {
+                gamesList.innerHTML = '<div class="no-games">No games added yet</div>';
+                gamesListWrapper.style.animation = 'none';
+                return;
+            }
+
+            const createGameItems = () => {
+                return games.map((game, index) => {
+                    const gameItem = document.createElement('div');
+                    gameItem.className = 'game-item';
+                    
+                    const number = document.createElement('span');
+                    number.className = 'game-number';
+                    number.textContent = (index + 1) + '.';
+                    
+                    const name = document.createElement('span');
+                    name.className = 'game-name' + (game.superBonus ? ' super-bonus' : '');
+                    name.textContent = game.name;
+                    
+                    const bet = document.createElement('span');
+                    bet.className = 'game-bet';
+                    bet.textContent = hunt.currency + game.bet.toFixed(2);
+                    
+                    const win = document.createElement('span');
+                    if (game.win !== null) {
+                        win.className = 'game-win won';
+                        win.textContent = hunt.currency + game.win.toFixed(2);
+                    } else {
+                        win.className = 'game-win pending';
+                        win.textContent = 'Pending';
+                    }
+                    
+                    gameItem.appendChild(number);
+                    gameItem.appendChild(name);
+                    gameItem.appendChild(bet);
+                    gameItem.appendChild(win);
+                    
+                    return gameItem;
+                });
+            };
+
+            // Clear existing content
+            gamesList.innerHTML = '';
+
+            // Create games
+            const firstSet = createGameItems();
+            firstSet.forEach(item => gamesList.appendChild(item));
+
+            // Enable auto-scroll only if there are more than 6 games
+            if (games.length > 6) {
+                // Duplicate for seamless scroll
+                const secondSet = createGameItems();
+                secondSet.forEach(item => gamesList.appendChild(item));
+                
+                // Calculate scroll duration based on number of games
+                const scrollDuration = games.length * 2;
+                gamesListWrapper.style.animation = `infiniteScroll ${scrollDuration}s linear infinite`;
+            } else {
+                // No animation for 6 or fewer games
+                gamesListWrapper.style.animation = 'none';
+            }
+        }
+
+        function showNoHunt() {
+            document.getElementById('huntTitle').textContent = 'Huntlist';
+            document.getElementById('huntDescription').style.display = 'none';
+            document.getElementById('balanceValue').textContent = '0$';
+            document.getElementById('totalGames').textContent = '0';
+            document.getElementById('avgMultiplier').textContent = '0x';
+            document.getElementById('biggestWinValue').textContent = '$0.00';
+            document.getElementById('biggestWinGame').textContent = 'No wins yet';
+            document.getElementById('gamesList').innerHTML = '<div class="no-games">No active hunt</div>';
+            document.getElementById('gamesListWrapper').style.animation = 'none';
+        }
+
+        console.log('✅ Overlay initialized and listening for changes');
+    </script>
+</body>
+</html>
