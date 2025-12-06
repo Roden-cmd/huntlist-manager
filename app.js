@@ -510,23 +510,27 @@ function createHuntManagementView() {
         <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; padding: 2rem; min-height: 600px;">
             <!-- Left side: Hunt Management -->
             <div style="overflow-y: auto;">
-                <!-- Hunt Stats -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <!-- Hunt Stats with Title -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); grid-column: span 2;">
+                        <div style="color: #888; font-size: 0.9rem;">Hunt Name</div>
+                        <div style="color: #4a9eff; font-size: 1.3rem; font-weight: bold;">${currentHunt.name}</div>
+                    </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Starting Balance</div>
-                        <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
+                        <div style="color: #fff; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Total Bet</div>
-                        <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
+                        <div style="color: #ff6b6b; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Total Win</div>
-                        <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
+                        <div style="color: #51cf66; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Profit/Loss</div>
-                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
                     </div>
                 </div>
                 
