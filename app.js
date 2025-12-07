@@ -428,13 +428,6 @@ function updateRecentHunts() {
         container.appendChild(card);
     });
 }
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'none';
-        });
-        
-        container.appendChild(card);
-    });
-}
 
 // ============================================================================
 // BONUS HUNTS PAGE (Combined Active Hunt + History)
