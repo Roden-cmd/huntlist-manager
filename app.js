@@ -509,7 +509,7 @@ function createHuntManagementView() {
     const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay-firebase.html?userId=' + currentUser.uid;
     
     return `
-        <div style="display: grid; grid-template-columns: 1fr 600px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
+        <div style="display: grid; grid-template-columns: 1fr 500px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
             <!-- Left side: Hunt Management -->
             <div style="overflow-y: auto;">
                 <!-- Hunt Stats with Title -->
