@@ -247,6 +247,9 @@ function loadUserData() {
         updateDashboard();
     });
     
+    // Load tournament data
+    loadTournamentData();
+    
     // Listen to changes
     firebase.database().ref('users/' + userId + '/activeHunt').on('value', function(snap) {
         if (snap.exists()) {
@@ -328,6 +331,7 @@ function navigateTo(pageName) {
     // Update content
     if (pageName === 'dashboard') updateDashboard();
     if (pageName === 'bonus-hunts') updateBonusHuntsPage();
+    if (pageName === 'tournaments') updateTournamentsPage();
     if (pageName === 'settings') updateSettings();
     
     console.log('✅ Navigation complete');
@@ -1297,6 +1301,385 @@ function updateSettings() {
             }, 2000);
         };
     }
+}
+
+// ============================================================================
+// TOURNAMENTS
+// ============================================================================
+
+// Random emojis for player avatars
+const playerEmojis = ['😀', '😎', '🤓', '😈', '👻', '🤖', '👾', '🦸', '🧙', '🧚', '🦹', '🥷', '👨‍🚀', '🧑‍🎤', '👩‍🎨', '🧑‍💻'];
+
+let activeTournament = null;
+let tournamentHistory = [];
+
+function updateTournamentsPage() {
+    const content = document.getElementById('tournamentsContent');
+    if (!content) return;
+    
+    let html = '<div style="padding: 1rem 2rem;">';
+    
+    if (!activeTournament) {
+        // No active tournament - show creation form
+        html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Create Tournament</h1>';
+        html += createTournamentForm();
+    } else {
+        // Show active tournament bracket
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">';
+        html += '<div>';
+        html += '<h1 style="color: #fff; margin: 0;">' + activeTournament.name + '</h1>';
+        html += '<p style="color: #888; margin-top: 0.5rem;">' + new Date(activeTournament.date).toLocaleDateString() + '</p>';
+        html += '</div>';
+        html += '<button onclick="finishTournament()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">✓ Finish Tournament</button>';
+        html += '</div>';
+        html += createTournamentBracket(activeTournament);
+    }
+    
+    // Tournament History
+    html += '<div style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem; margin-top: 3rem;">';
+    html += '<h2 style="color: #fff; margin-bottom: 1.5rem;">Previous Tournaments (' + tournamentHistory.length + ')</h2>';
+    
+    if (tournamentHistory.length === 0) {
+        html += '<p style="color: #888; text-align: center; padding: 2rem;">No previous tournaments yet.</p>';
+    } else {
+        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">';
+        html += createTournamentHistoryCards();
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    
+    content.innerHTML = html;
+    
+    if (!activeTournament) {
+        setupTournamentFormListener();
+    }
+}
+
+function createTournamentForm() {
+    return `
+        <div style="max-width: 600px; background: rgba(26, 26, 46, 0.6); padding: 2rem; border-radius: 12px;">
+            <form id="tournamentForm">
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">Tournament Name *</label>
+                    <input type="text" id="tournamentName" required style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">Number of Players *</label>
+                    <select id="tournamentSize" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                        <option value="8">8 Players</option>
+                        <option value="16">16 Players</option>
+                    </select>
+                </div>
+                
+                <div id="playersContainer"></div>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">🏆 Create Tournament</button>
+            </form>
+        </div>
+    `;
+}
+
+function setupTournamentFormListener() {
+    const form = document.getElementById('tournamentForm');
+    const sizeSelect = document.getElementById('tournamentSize');
+    const playersContainer = document.getElementById('playersContainer');
+    
+    if (!form || !sizeSelect || !playersContainer) return;
+    
+    // Generate player input fields when size changes
+    function generatePlayerInputs() {
+        const size = parseInt(sizeSelect.value);
+        let html = '<h3 style="color: #fff; margin: 1.5rem 0 1rem 0;">Players</h3>';
+        
+        for (let i = 0; i < size; i++) {
+            html += `
+                <div style="background: rgba(40, 40, 60, 0.4); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h4 style="color: #4a9eff; margin: 0 0 1rem 0;">Player ${i + 1}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.75rem;">
+                        <div>
+                            <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Name *</label>
+                            <input type="text" id="player${i}Name" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Game *</label>
+                            <input type="text" id="player${i}Game" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Bet Amount *</label>
+                            <input type="number" step="0.01" id="player${i}Bet" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                        </div>
+                        <div>
+                            <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Win Amount *</label>
+                            <input type="number" step="0.01" id="player${i}Win" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        playersContainer.innerHTML = html;
+    }
+    
+    sizeSelect.addEventListener('change', generatePlayerInputs);
+    generatePlayerInputs(); // Initial load
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const size = parseInt(sizeSelect.value);
+        const players = [];
+        
+        // Collect player data
+        for (let i = 0; i < size; i++) {
+            const name = document.getElementById('player' + i + 'Name').value;
+            const game = document.getElementById('player' + i + 'Game').value;
+            const bet = parseFloat(document.getElementById('player' + i + 'Bet').value);
+            const win = parseFloat(document.getElementById('player' + i + 'Win').value);
+            const multiplier = bet > 0 ? (win / bet) : 0;
+            
+            players.push({
+                name: name,
+                game: game,
+                bet: bet,
+                win: win,
+                multiplier: multiplier,
+                emoji: playerEmojis[Math.floor(Math.random() * playerEmojis.length)]
+            });
+        }
+        
+        // Create tournament
+        activeTournament = {
+            name: document.getElementById('tournamentName').value,
+            date: new Date().toISOString(),
+            size: size,
+            players: players,
+            bracket: generateBracket(players)
+        };
+        
+        // Save to Firebase
+        saveTournament();
+        
+        // Refresh page
+        updateTournamentsPage();
+    });
+}
+
+function generateBracket(players) {
+    // Round 1: Create initial matchups
+    const rounds = [];
+    const round1 = [];
+    
+    for (let i = 0; i < players.length; i += 2) {
+        const p1 = players[i];
+        const p2 = players[i + 1];
+        const winner = p1.multiplier >= p2.multiplier ? p1 : p2;
+        
+        round1.push({
+            player1: p1,
+            player2: p2,
+            winner: winner
+        });
+    }
+    
+    rounds.push(round1);
+    
+    // Generate subsequent rounds
+    let currentRound = round1;
+    while (currentRound.length > 1) {
+        const nextRound = [];
+        
+        for (let i = 0; i < currentRound.length; i += 2) {
+            const p1 = currentRound[i].winner;
+            const p2 = currentRound[i + 1].winner;
+            const winner = p1.multiplier >= p2.multiplier ? p1 : p2;
+            
+            nextRound.push({
+                player1: p1,
+                player2: p2,
+                winner: winner
+            });
+        }
+        
+        rounds.push(nextRound);
+        currentRound = nextRound;
+    }
+    
+    return rounds;
+}
+
+function createTournamentBracket(tournament) {
+    const rounds = tournament.bracket;
+    const roundNames = tournament.size === 8 
+        ? ['Quarter Finals', 'Semi Finals', 'Finals']
+        : ['Round of 16', 'Quarter Finals', 'Semi Finals', 'Finals'];
+    
+    let html = '<div style="overflow-x: auto; padding: 2rem 0;">';
+    html += '<div style="display: flex; gap: 4rem; min-width: max-content;">';
+    
+    rounds.forEach((round, roundIndex) => {
+        html += '<div style="display: flex; flex-direction: column; gap: 2rem;">';
+        html += '<h3 style="color: #4a9eff; text-align: center; margin-bottom: 1rem;">' + roundNames[roundIndex] + '</h3>';
+        
+        round.forEach((matchup, matchIndex) => {
+            const isP1Winner = matchup.winner.name === matchup.player1.name;
+            const isP2Winner = matchup.winner.name === matchup.player2.name;
+            
+            html += '<div style="background: rgba(26, 26, 46, 0.6); border-radius: 12px; padding: 1rem; min-width: 280px;">';
+            
+            // Player 1
+            html += '<div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: ' + (isP1Winner ? 'rgba(74, 158, 255, 0.2)' : 'rgba(40, 40, 60, 0.3)') + '; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid ' + (isP1Winner ? '#4a9eff' : 'transparent') + ';">';
+            html += '<div style="font-size: 2rem;">' + matchup.player1.emoji + '</div>';
+            html += '<div style="flex: 1;">';
+            html += '<div style="color: #fff; font-weight: bold;">' + matchup.player1.name + '</div>';
+            html += '<div style="color: #888; font-size: 0.85rem;">' + matchup.player1.game + '</div>';
+            html += '</div>';
+            html += '<div style="background: #ff6b6b; color: #fff; padding: 0.4rem 0.8rem; border-radius: 12px; font-weight: bold; font-size: 0.9rem;">' + matchup.player1.multiplier.toFixed(0) + 'x</div>';
+            html += '</div>';
+            
+            // VS
+            html += '<div style="text-align: center; color: #666; font-size: 0.8rem; margin: 0.25rem 0;">VS</div>';
+            
+            // Player 2
+            html += '<div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: ' + (isP2Winner ? 'rgba(74, 158, 255, 0.2)' : 'rgba(40, 40, 60, 0.3)') + '; border-radius: 8px; border-left: 4px solid ' + (isP2Winner ? '#4a9eff' : 'transparent') + ';">';
+            html += '<div style="font-size: 2rem;">' + matchup.player2.emoji + '</div>';
+            html += '<div style="flex: 1;">';
+            html += '<div style="color: #fff; font-weight: bold;">' + matchup.player2.name + '</div>';
+            html += '<div style="color: #888; font-size: 0.85rem;">' + matchup.player2.game + '</div>';
+            html += '</div>';
+            html += '<div style="background: #ff6b6b; color: #fff; padding: 0.4rem 0.8rem; border-radius: 12px; font-weight: bold; font-size: 0.9rem;">' + matchup.player2.multiplier.toFixed(0) + 'x</div>';
+            html += '</div>';
+            
+            html += '</div>';
+        });
+        
+        html += '</div>';
+    });
+    
+    // Winner
+    const finalWinner = rounds[rounds.length - 1][0].winner;
+    html += '<div style="display: flex; align-items: center; justify-content: center;">';
+    html += '<div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 2rem; min-width: 250px;">';
+    html += '<div style="font-size: 4rem; margin-bottom: 1rem;">' + finalWinner.emoji + '</div>';
+    html += '<div style="font-size: 2rem; margin-bottom: 0.5rem;">🏆</div>';
+    html += '<div style="color: #fff; font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">' + finalWinner.name + '</div>';
+    html += '<div style="color: rgba(255,255,255,0.7); margin-bottom: 1rem;">' + finalWinner.game + '</div>';
+    html += '<div style="background: #ffd700; color: #1a1a2e; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: bold; font-size: 1.2rem; display: inline-block;">' + finalWinner.multiplier.toFixed(0) + 'x</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    html += '</div></div>';
+    
+    return html;
+}
+
+function createTournamentHistoryCards() {
+    return tournamentHistory.slice().reverse().map((tournament, index) => {
+        const actualIndex = tournamentHistory.length - 1 - index;
+        const date = new Date(tournament.date).toLocaleDateString();
+        const winner = tournament.bracket[tournament.bracket.length - 1][0].winner;
+        
+        return `
+            <div onclick="viewTournamentHistory(${actualIndex})" style="background: rgba(26, 26, 46, 0.6); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(74, 158, 255, 0.3)';" onmouseleave="this.style.borderColor='rgba(74, 158, 255, 0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                <h3 style="color: #4a9eff; margin-bottom: 0.5rem;">${tournament.name}</h3>
+                <p style="color: #888; font-size: 0.9rem; margin-bottom: 1rem;">${date} • ${tournament.size} players</p>
+                
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; border-left: 4px solid #ffd700;">
+                    <div style="font-size: 2rem;">${winner.emoji}</div>
+                    <div style="flex: 1;">
+                        <div style="color: #fff; font-weight: bold;">🏆 ${winner.name}</div>
+                        <div style="color: #888; font-size: 0.85rem;">${winner.game}</div>
+                    </div>
+                    <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 12px; font-weight: bold;">${winner.multiplier.toFixed(0)}x</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function viewTournamentHistory(index) {
+    const tournament = tournamentHistory[index];
+    if (!tournament) return;
+    
+    // Create modal with tournament bracket
+    const modalHTML = `
+        <div id="tournamentHistoryModal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1001; align-items: center; justify-content: center; padding: 2rem;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 95vw; width: 100%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+                <button id="closeTournamentHistory" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">✕</button>
+                
+                <h2 style="color: #4a9eff; margin-bottom: 0.5rem;">${tournament.name}</h2>
+                <p style="color: #888; margin-bottom: 2rem;">${new Date(tournament.date).toLocaleDateString()}</p>
+                
+                ${createTournamentBracket(tournament)}
+            </div>
+        </div>
+    `;
+    
+    const modalDiv = document.createElement('div');
+    modalDiv.innerHTML = modalHTML;
+    document.body.appendChild(modalDiv);
+    
+    document.getElementById('closeTournamentHistory').addEventListener('click', function() {
+        modalDiv.remove();
+    });
+    
+    document.getElementById('tournamentHistoryModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            modalDiv.remove();
+        }
+    });
+}
+
+function finishTournament() {
+    if (!activeTournament) return;
+    
+    // Save to history
+    tournamentHistory.push(activeTournament);
+    
+    // Save to Firebase
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').set(tournamentHistory);
+    }
+    
+    // Clear active tournament
+    activeTournament = null;
+    
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/activeTournament').remove();
+    }
+    
+    // Refresh page
+    updateTournamentsPage();
+    
+    alert('Tournament finished and saved to history! 🏆');
+}
+
+function saveTournament() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/activeTournament').set(activeTournament);
+}
+
+function loadTournamentData() {
+    if (!currentUser) return;
+    
+    // Load active tournament
+    firebase.database().ref('users/' + currentUser.uid + '/activeTournament').once('value').then(function(snapshot) {
+        if (snapshot.exists()) {
+            activeTournament = snapshot.val();
+        }
+    });
+    
+    // Load tournament history
+    firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').once('value').then(function(snapshot) {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            tournamentHistory = Array.isArray(data) ? data : Object.values(data);
+        }
+    });
 }
 
 console.log('✅ Script loaded');
