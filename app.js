@@ -1095,8 +1095,6 @@ function setupHuntManagementListeners() {
             
             // Refresh the Bonus Hunts page to show the new/edited game
             updateBonusHuntsPage();
-            
-            alert('Game saved! Click "Save Changes" to update the OBS overlay.');
         });
     }
     
@@ -1176,33 +1174,29 @@ function finishHunt() {
     // Set isFinished flag to trigger confetti in OBS overlay
     currentHunt.isFinished = true;
     
-    // Save to Firebase active hunt to trigger confetti (temporary)
+    // Save to Firebase active hunt to trigger confetti (will stay visible until new hunt)
     firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set({
         hunt: currentHunt,
         games: games,
         updatedAt: new Date().toISOString()
     }).then(function() {
-        // Wait 5 seconds for confetti to show, then save to history
-        setTimeout(function() {
-            // Save to history
-            firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
-                hunt: currentHunt,
-                games: games,
-                savedAt: new Date().toISOString(),
-                totalWin: totalWin,
-                totalBet: totalBet,
-                profit: profit
-            }).then(function() {
-                console.log('✅ Hunt saved to history');
-                // Clear active hunt
-                clearActiveHunt();
-                // Go to bonus-hunts to see the completed hunt
-                navigateTo('bonus-hunts');
-                alert('Hunt completed and saved to history!');
-            }).catch(function(error) {
-                console.error('❌ Error finishing hunt:', error);
-            });
-        }, 5000); // 5 seconds for confetti animation
+        // Save to history immediately (active hunt stays in Firebase for OBS)
+        firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+            hunt: currentHunt,
+            games: games,
+            savedAt: new Date().toISOString(),
+            totalWin: totalWin,
+            totalBet: totalBet,
+            profit: profit
+        }).then(function() {
+            console.log('✅ Hunt saved to history');
+            // Go to bonus-hunts to see the completed hunt
+            // DON'T clear active hunt - it stays in OBS until new hunt starts
+            navigateTo('bonus-hunts');
+            alert('Hunt completed! The overlay will show this hunt until you start a new one.');
+        }).catch(function(error) {
+            console.error('❌ Error finishing hunt:', error);
+        });
     }).catch(function(error) {
         console.error('❌ Error setting finished flag:', error);
     });

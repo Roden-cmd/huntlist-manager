@@ -364,6 +364,11 @@
                     const hunt = data.hunt;
                     const games = data.games || [];
                     
+                    // Reset confetti flag if this is a new hunt (not finished)
+                    if (!hunt.isFinished) {
+                        window.confettiShown = false;
+                    }
+                    
                     console.log('✅ Hunt loaded:', hunt.name, '- Games:', games.length);
                     renderHuntData(hunt, games);
                 } else {
