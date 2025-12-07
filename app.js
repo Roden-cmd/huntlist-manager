@@ -466,10 +466,15 @@ function createHistoryCardsHTML() {
         const date = new Date(hunt.savedAt).toLocaleDateString();
         
         return `
-            <div class="history-card" data-hunt-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+            <div class="history-card" data-hunt-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s; position: relative;">
+                <!-- Delete Button -->
+                <button class="deleteHistoryBtn" data-hunt-index="${actualIndex}" style="position: absolute; top: 1rem; right: 1rem; background: #dc3545; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; z-index: 10;">
+                    🗑️
+                </button>
+                
+                <div class="history-card-content" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <div>
-                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem;">${hunt.hunt.name}</h3>
+                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem; padding-right: 2rem;">${hunt.hunt.name}</h3>
                         <p style="color: #888; font-size: 0.9rem;">${date} • ${hunt.games.length} games</p>
                     </div>
                     <div style="text-align: right;">
@@ -502,13 +507,35 @@ function createHistoryCardsHTML() {
 }
 
 function setupHistoryCardListeners() {
-    document.querySelectorAll('.history-card').forEach(function(card) {
-        card.addEventListener('click', function() {
-            const index = parseInt(this.dataset.huntIndex);
+    // Click to view details (on card content, not delete button)
+    document.querySelectorAll('.history-card-content').forEach(function(content) {
+        content.addEventListener('click', function() {
+            const card = this.closest('.history-card');
+            const index = parseInt(card.dataset.huntIndex);
             showHuntDetails(index);
         });
+    });
+    
+    // Delete button listeners
+    document.querySelectorAll('.deleteHistoryBtn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent card click
+            const index = parseInt(this.dataset.huntIndex);
+            deleteHistoryHunt(index);
+        });
         
-        // Hover effect
+        // Hover effect for delete button
+        btn.addEventListener('mouseenter', function() {
+            this.style.background = '#ff4757';
+        });
+        
+        btn.addEventListener('mouseleave', function() {
+            this.style.background = '#dc3545';
+        });
+    });
+    
+    // Card hover effects
+    document.querySelectorAll('.history-card').forEach(function(card) {
         card.addEventListener('mouseenter', function() {
             this.style.borderColor = '#4a9eff';
             this.style.transform = 'translateY(-4px)';
@@ -521,6 +548,36 @@ function setupHistoryCardListeners() {
             this.style.boxShadow = 'none';
         });
     });
+}
+
+function deleteHistoryHunt(huntIndex) {
+    if (!currentUser) return;
+    
+    const hunt = huntHistory[huntIndex];
+    if (!hunt) return;
+    
+    if (confirm('Delete "' + hunt.hunt.name + '" from history? This cannot be undone!')) {
+        // Remove from local array
+        huntHistory.splice(huntIndex, 1);
+        
+        // Update Firebase - rewrite entire history
+        firebase.database().ref('users/' + currentUser.uid + '/huntHistory').set(
+            huntHistory.reduce(function(obj, h, i) {
+                obj[i] = h;
+                return obj;
+            }, {})
+        ).then(function() {
+            console.log('✅ Hunt deleted from history');
+            // Refresh the page
+            updateBonusHuntsPage();
+            // Also update dashboard if we're on it
+            if (document.getElementById('dashboardPage').classList.contains('active')) {
+                updateDashboard();
+            }
+        }).catch(function(error) {
+            console.error('❌ Error deleting hunt:', error);
+        });
+    }
 }
 
 function showHuntDetails(huntIndex) {
@@ -715,8 +772,8 @@ function setupHuntFormListener() {
         // Save to Firebase
         saveActiveHunt();
         
-        // Update display
-        updateActiveHuntPage();
+        // Update the Bonus Hunts page to show the new hunt
+        updateBonusHuntsPage();
         
         console.log('✅ Hunt created:', currentHunt.name);
     });
