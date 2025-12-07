@@ -76,6 +76,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (startNewHuntBtn) {
         startNewHuntBtn.addEventListener('click', function() {
             console.log('Start New Hunt clicked');
+            // Clear any existing hunt first
+            clearActiveHunt();
+            // Go to bonus hunts page (will show creation form)
             navigateTo('bonus-hunts');
         });
     }
@@ -359,9 +362,13 @@ function updateRecentHunts() {
         return;
     }
     
-    huntHistory.slice(0, 5).forEach(function(hunt) {
+    huntHistory.slice(0, 5).reverse().forEach(function(hunt, reverseIndex) {
+        const actualIndex = huntHistory.length - 1 - reverseIndex;
+        
         const card = document.createElement('div');
         card.className = 'hunt-card';
+        card.style.cursor = 'pointer';
+        card.dataset.huntIndex = actualIndex;
         
         const h3 = document.createElement('h3');
         h3.textContent = hunt.hunt.name;
@@ -372,6 +379,23 @@ function updateRecentHunts() {
         
         card.appendChild(h3);
         card.appendChild(p);
+        
+        // Add click listener
+        card.addEventListener('click', function() {
+            showHuntDetails(parseInt(this.dataset.huntIndex));
+        });
+        
+        // Add hover effect
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+            this.style.boxShadow = '0 8px 24px rgba(74, 158, 255, 0.3)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+        
         container.appendChild(card);
     });
 }
@@ -1014,10 +1038,30 @@ function setupHuntManagementListeners() {
         deleteHuntBtn.addEventListener('click', function() {
             if (confirm('Delete this hunt? This cannot be undone!')) {
                 clearActiveHunt();
-                navigateTo('dashboard');
+                // Refresh the bonus hunts page to show the creation form
+                updateBonusHuntsPage();
             }
         });
     }
+}
+
+function clearActiveHunt() {
+    if (!currentUser) return;
+    
+    // Clear from Firebase
+    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').remove()
+        .then(function() {
+            console.log('✅ Active hunt cleared from Firebase');
+        })
+        .catch(function(error) {
+            console.error('❌ Error clearing hunt:', error);
+        });
+    
+    // Clear from memory
+    currentHunt = null;
+    games = [];
+    
+    console.log('✅ Active hunt cleared locally');
 }
 
 function finishHunt() {
@@ -1039,8 +1083,8 @@ function finishHunt() {
         console.log('✅ Hunt saved to history');
         // Clear active hunt
         clearActiveHunt();
-        // Go to dashboard
-        navigateTo('dashboard');
+        // Go to bonus-hunts to see the completed hunt
+        navigateTo('bonus-hunts');
         alert('Hunt completed and saved to history!');
     }).catch(function(error) {
         console.error('❌ Error finishing hunt:', error);
