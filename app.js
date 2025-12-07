@@ -384,6 +384,12 @@ function updateRecentHunts() {
     }
     
     huntHistory.slice(0, 5).reverse().forEach(function(hunt, reverseIndex) {
+        // Safety checks
+        if (!hunt || !hunt.hunt) {
+            console.warn('Invalid hunt data:', hunt);
+            return;
+        }
+        
         const actualIndex = huntHistory.length - 1 - reverseIndex;
         
         const card = document.createElement('div');
@@ -392,11 +398,13 @@ function updateRecentHunts() {
         card.dataset.huntIndex = actualIndex;
         
         const h3 = document.createElement('h3');
-        h3.textContent = hunt.hunt.name;
+        h3.textContent = hunt.hunt.name || 'Unnamed Hunt';
         
         const p = document.createElement('p');
         p.style.color = '#888';
-        p.textContent = 'Games: ' + hunt.games.length + ' | Profit: €' + (hunt.profit || 0).toFixed(2);
+        const gamesCount = hunt.games ? hunt.games.length : 0;
+        const profit = hunt.profit || 0;
+        p.textContent = 'Games: ' + gamesCount + ' | Profit: €' + profit.toFixed(2);
         
         card.appendChild(h3);
         card.appendChild(p);
@@ -413,6 +421,13 @@ function updateRecentHunts() {
         });
         
         card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+        
+        container.appendChild(card);
+    });
+}
             this.style.transform = 'translateY(0)';
             this.style.boxShadow = 'none';
         });
@@ -489,11 +504,21 @@ function updateBonusHuntsPage() {
 
 function createHistoryCardsHTML() {
     return huntHistory.slice().reverse().map(function(hunt, index) {
+        // Safety checks
+        if (!hunt || !hunt.hunt) {
+            console.warn('Invalid hunt in history:', hunt);
+            return '';
+        }
+        
         const actualIndex = huntHistory.length - 1 - index;
         const totalBet = hunt.totalBet || 0;
         const totalWin = hunt.totalWin || 0;
         const profit = hunt.profit || 0;
-        const date = new Date(hunt.savedAt).toLocaleDateString();
+        const date = hunt.savedAt ? new Date(hunt.savedAt).toLocaleDateString() : 'Unknown date';
+        const gamesCount = hunt.games ? hunt.games.length : 0;
+        const huntName = hunt.hunt.name || 'Unnamed Hunt';
+        const currency = hunt.hunt.currency || '€';
+        const startingBalance = hunt.hunt.startingBalance || 0;
         
         return `
             <div class="history-card" data-hunt-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s; position: relative;">
@@ -504,12 +529,12 @@ function createHistoryCardsHTML() {
                 
                 <div class="history-card-content" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <div>
-                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem; padding-right: 2rem;">${hunt.hunt.name}</h3>
-                        <p style="color: #888; font-size: 0.9rem;">${date} • ${hunt.games.length} games</p>
+                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem; padding-right: 2rem;">${huntName}</h3>
+                        <p style="color: #888; font-size: 0.9rem;">${date} • ${gamesCount} games</p>
                     </div>
                     <div style="text-align: right;">
                         <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.3rem; font-weight: bold;">
-                            ${profit >= 0 ? '+' : ''}${hunt.hunt.currency}${profit.toFixed(2)}
+                            ${profit >= 0 ? '+' : ''}${currency}${profit.toFixed(2)}
                         </div>
                         <div style="color: #888; font-size: 0.85rem;">
                             ${profit >= 0 ? 'Profit' : 'Loss'}
@@ -520,11 +545,11 @@ function createHistoryCardsHTML() {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
                     <div>
                         <div style="color: #888; font-size: 0.85rem;">Starting</div>
-                        <div style="color: #fff; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
+                        <div style="color: #fff; font-weight: bold;">${currency}${startingBalance.toFixed(2)}</div>
                     </div>
                     <div>
                         <div style="color: #888; font-size: 0.85rem;">Total Bet</div>
-                        <div style="color: #ff6b6b; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
+                        <div style="color: #ff6b6b; font-weight: bold;">${currency}${totalBet.toFixed(2)}</div>
                     </div>
                 </div>
                 
@@ -533,7 +558,7 @@ function createHistoryCardsHTML() {
                 </div>
             </div>
         `;
-    }).join('');
+    }).filter(Boolean).join(''); // Remove empty strings from invalid hunts
 }
 
 function setupHistoryCardListeners() {
