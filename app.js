@@ -1092,7 +1092,9 @@ function setupHuntManagementListeners() {
             }
             
             gameModal.style.display = 'none';
-            updateActiveHuntPage();
+            
+            // Refresh the Bonus Hunts page to show the new/edited game
+            updateBonusHuntsPage();
             
             alert('Game saved! Click "Save Changes" to update the OBS overlay.');
         });
