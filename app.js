@@ -1173,23 +1173,38 @@ function finishHunt() {
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - totalBet;
     
-    // Save to history
-    firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+    // Set isFinished flag to trigger confetti in OBS overlay
+    currentHunt.isFinished = true;
+    
+    // Save to Firebase active hunt to trigger confetti (temporary)
+    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set({
         hunt: currentHunt,
         games: games,
-        savedAt: new Date().toISOString(),
-        totalWin: totalWin,
-        totalBet: totalBet,
-        profit: profit
+        updatedAt: new Date().toISOString()
     }).then(function() {
-        console.log('✅ Hunt saved to history');
-        // Clear active hunt
-        clearActiveHunt();
-        // Go to bonus-hunts to see the completed hunt
-        navigateTo('bonus-hunts');
-        alert('Hunt completed and saved to history!');
+        // Wait 5 seconds for confetti to show, then save to history
+        setTimeout(function() {
+            // Save to history
+            firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+                hunt: currentHunt,
+                games: games,
+                savedAt: new Date().toISOString(),
+                totalWin: totalWin,
+                totalBet: totalBet,
+                profit: profit
+            }).then(function() {
+                console.log('✅ Hunt saved to history');
+                // Clear active hunt
+                clearActiveHunt();
+                // Go to bonus-hunts to see the completed hunt
+                navigateTo('bonus-hunts');
+                alert('Hunt completed and saved to history!');
+            }).catch(function(error) {
+                console.error('❌ Error finishing hunt:', error);
+            });
+        }, 5000); // 5 seconds for confetti animation
     }).catch(function(error) {
-        console.error('❌ Error finishing hunt:', error);
+        console.error('❌ Error setting finished flag:', error);
     });
 }
 

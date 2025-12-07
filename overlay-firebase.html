@@ -207,6 +207,59 @@
             color: #51cf66;
         }
 
+        /* Biggest Win Highlight */
+        .game-item.biggest-win {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 193, 7, 0.2)) !important;
+            border: 2px solid #FFD700 !important;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            animation: goldPulse 2s ease-in-out infinite;
+        }
+
+        .game-item.biggest-win .game-name {
+            color: #FFD700 !important;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .game-item.biggest-win .game-win {
+            color: #FFD700 !important;
+            font-weight: bold;
+            font-size: 30px !important;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+
+        @keyframes goldPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ffd700;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            to {
+                transform: translateY(600px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .confetti:nth-child(2n) { background: #ff6b6b; }
+        .confetti:nth-child(3n) { background: #4a9eff; }
+        .confetti:nth-child(4n) { background: #51cf66; }
+        .confetti:nth-child(5n) { background: #ffd700; animation-duration: 2.5s; }
+        .confetti:nth-child(6n) { background: #ff6b6b; animation-duration: 3.5s; }
+
         .no-games {
             text-align: center;
             color: #666;
@@ -389,10 +442,25 @@
                 return;
             }
 
+            // Find biggest win
+            let biggestWinIndex = -1;
+            let biggestWinAmount = 0;
+            games.forEach((game, index) => {
+                if (game.win && game.win > biggestWinAmount) {
+                    biggestWinAmount = game.win;
+                    biggestWinIndex = index;
+                }
+            });
+
             const createGameItems = () => {
                 return games.map((game, index) => {
                     const gameItem = document.createElement('div');
                     gameItem.className = 'game-item';
+                    
+                    // Highlight biggest win if hunt is finished
+                    if (hunt.isFinished && index === biggestWinIndex && biggestWinAmount > 0) {
+                        gameItem.classList.add('biggest-win');
+                    }
                     
                     const number = document.createElement('span');
                     number.className = 'game-number';
@@ -443,6 +511,30 @@
             } else {
                 // No animation for 6 or fewer games
                 gamesListWrapper.style.animation = 'none';
+            }
+
+            // Trigger confetti if hunt just finished
+            if (hunt.isFinished && !window.confettiShown) {
+                window.confettiShown = true;
+                createConfetti();
+            }
+        }
+
+        function createConfetti() {
+            const container = document.querySelector('.huntlist-container');
+            const colors = ['#ffd700', '#ff6b6b', '#4a9eff', '#51cf66', '#ffc107'];
+            
+            for (let i = 0; i < 50; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                    container.appendChild(confetti);
+                    
+                    setTimeout(() => confetti.remove(), 3000);
+                }, i * 30);
             }
         }
 
