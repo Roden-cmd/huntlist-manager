@@ -515,14 +515,9 @@ function createHistoryCardsHTML() {
         
         return `
             <div class="history-card" data-hunt-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s; position: relative;">
-                <!-- Delete Button -->
-                <button class="deleteHistoryBtn" data-hunt-index="${actualIndex}" style="position: absolute; top: 1rem; right: 1rem; background: #dc3545; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; z-index: 10;">
-                    🗑️
-                </button>
-                
                 <div class="history-card-content" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
                     <div>
-                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem; padding-right: 2rem;">${huntName}</h3>
+                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem;">${huntName}</h3>
                         <p style="color: #888; font-size: 0.9rem;">${date} • ${gamesCount} games</p>
                     </div>
                     <div style="text-align: right;">
@@ -546,16 +541,16 @@ function createHistoryCardsHTML() {
                     </div>
                 </div>
                 
-                <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; text-align: center; color: #4a9eff; font-size: 0.9rem;">
-                    👁️ Click to view details
-                </div>
+                <button class="deleteHistoryBtn" data-hunt-index="${actualIndex}" style="width: 100%; margin-top: 0.75rem; padding: 0.75rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                    🗑️ Delete Hunt
+                </button>
             </div>
         `;
     }).filter(Boolean).join(''); // Remove empty strings from invalid hunts
 }
 
 function setupHistoryCardListeners() {
-    // Click to view details (on card content, not delete button)
+    // Click on card content to view details
     document.querySelectorAll('.history-card-content').forEach(function(content) {
         content.addEventListener('click', function() {
             const card = this.closest('.history-card');
@@ -582,7 +577,7 @@ function setupHistoryCardListeners() {
         });
     });
     
-    // Card hover effects
+    // Card hover effects (for the card content, not the whole card)
     document.querySelectorAll('.history-card').forEach(function(card) {
         card.addEventListener('mouseenter', function() {
             this.style.borderColor = '#4a9eff';
