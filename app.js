@@ -1171,34 +1171,46 @@ function finishHunt() {
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - totalBet;
     
+    console.log('🏁 Finishing hunt with isFinished flag...');
+    
     // Set isFinished flag to trigger confetti in OBS overlay
     currentHunt.isFinished = true;
     
     // Save to Firebase active hunt to trigger confetti (will stay visible until new hunt)
-    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set({
+    const huntData = {
         hunt: currentHunt,
         games: games,
         updatedAt: new Date().toISOString()
-    }).then(function() {
+    };
+    
+    console.log('💾 Saving finished hunt to Firebase:', huntData.hunt.name);
+    
+    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set(huntData)
+    .then(function() {
+        console.log('✅ Active hunt updated with isFinished flag');
+        
         // Save to history immediately (active hunt stays in Firebase for OBS)
-        firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+        return firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
             hunt: currentHunt,
             games: games,
             savedAt: new Date().toISOString(),
             totalWin: totalWin,
             totalBet: totalBet,
             profit: profit
-        }).then(function() {
-            console.log('✅ Hunt saved to history');
-            // Go to bonus-hunts to see the completed hunt
-            // DON'T clear active hunt - it stays in OBS until new hunt starts
-            navigateTo('bonus-hunts');
-            alert('Hunt completed! The overlay will show this hunt until you start a new one.');
-        }).catch(function(error) {
-            console.error('❌ Error finishing hunt:', error);
         });
-    }).catch(function(error) {
-        console.error('❌ Error setting finished flag:', error);
+    })
+    .then(function() {
+        console.log('✅ Hunt saved to history');
+        console.log('🎊 Confetti should now show in OBS overlay!');
+        
+        // Go to bonus-hunts to see the completed hunt
+        // DON'T clear active hunt - it stays in OBS until new hunt starts
+        navigateTo('bonus-hunts');
+        alert('Hunt completed! Check your OBS overlay for confetti and gold highlight! 🎉');
+    })
+    .catch(function(error) {
+        console.error('❌ Error finishing hunt:', error);
+        alert('Error finishing hunt: ' + error.message);
     });
 }
 

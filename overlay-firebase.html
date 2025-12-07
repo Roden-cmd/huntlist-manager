@@ -520,8 +520,14 @@
 
             // Trigger confetti if hunt just finished
             if (hunt.isFinished && !window.confettiShown) {
+                console.log('🎊 HUNT IS FINISHED! Triggering confetti...');
+                console.log('🏆 Biggest win index:', biggestWinIndex, 'Amount:', biggestWinAmount);
                 window.confettiShown = true;
                 createConfetti();
+            } else if (hunt.isFinished) {
+                console.log('ℹ️ Hunt is finished but confetti already shown');
+            } else {
+                console.log('ℹ️ Hunt not finished yet (isFinished:', hunt.isFinished, ')');
             }
         }
 
