@@ -76,14 +76,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (startNewHuntBtn) {
         startNewHuntBtn.addEventListener('click', function() {
             console.log('Start New Hunt clicked');
-            navigateTo('active-hunt');
+            navigateTo('bonus-hunts');
         });
     }
     
     if (continueHuntBtn) {
         continueHuntBtn.addEventListener('click', function() {
             console.log('Continue Hunt clicked');
-            navigateTo('active-hunt');
+            navigateTo('bonus-hunts');
         });
     }
     
@@ -303,8 +303,7 @@ function navigateTo(pageName) {
     
     // Update content
     if (pageName === 'dashboard') updateDashboard();
-    if (pageName === 'active-hunt') updateActiveHuntPage();
-    if (pageName === 'history') updateHistoryPage();
+    if (pageName === 'bonus-hunts') updateBonusHuntsPage();
     if (pageName === 'settings') updateSettings();
     
     console.log('✅ Navigation complete');
@@ -374,6 +373,219 @@ function updateRecentHunts() {
         card.appendChild(h3);
         card.appendChild(p);
         container.appendChild(card);
+    });
+}
+
+// ============================================================================
+// BONUS HUNTS PAGE (Combined Active Hunt + History)
+// ============================================================================
+
+function updateBonusHuntsPage() {
+    console.log('📝 updateBonusHuntsPage called');
+    
+    const content = document.getElementById('bonusHuntsContent');
+    if (!content) {
+        console.error('❌ bonusHuntsContent element not found!');
+        return;
+    }
+    
+    let html = '<div style="padding: 1rem 2rem;">';
+    
+    // Current Active Hunt Section
+    if (currentHunt) {
+        html += '<div style="margin-bottom: 3rem;">';
+        html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Current Hunt</h1>';
+        html += createHuntManagementView();
+        html += '</div>';
+    } else {
+        // No active hunt - show creation form
+        html += '<div style="margin-bottom: 3rem;">';
+        html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Start a New Bonus Hunt</h1>';
+        html += '<div style="max-width: 600px;">';
+        html += createHuntForm();
+        html += '</div>';
+        html += '</div>';
+    }
+    
+    // Hunt History Section
+    html += '<div style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem;">';
+    html += '<h2 style="color: #fff; margin-bottom: 1.5rem;">Previous Hunts (' + huntHistory.length + ')</h2>';
+    
+    if (huntHistory.length === 0) {
+        html += '<p style="color: #888; text-align: center; padding: 2rem;">No previous hunts yet. Complete your first hunt to see it here!</p>';
+    } else {
+        html += '<div class="hunt-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">';
+        html += createHistoryCardsHTML();
+        html += '</div>';
+    }
+    
+    html += '</div></div>';
+    
+    content.innerHTML = html;
+    
+    // Setup listeners based on what's showing
+    if (currentHunt) {
+        setupHuntManagementListeners();
+    } else {
+        setupHuntFormListener();
+    }
+    
+    setupHistoryCardListeners();
+}
+
+function createHistoryCardsHTML() {
+    return huntHistory.slice().reverse().map(function(hunt, index) {
+        const actualIndex = huntHistory.length - 1 - index;
+        const totalBet = hunt.totalBet || 0;
+        const totalWin = hunt.totalWin || 0;
+        const profit = hunt.profit || 0;
+        const date = new Date(hunt.savedAt).toLocaleDateString();
+        
+        return `
+            <div class="history-card" data-hunt-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem;">${hunt.hunt.name}</h3>
+                        <p style="color: #888; font-size: 0.9rem;">${date} • ${hunt.games.length} games</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.3rem; font-weight: bold;">
+                            ${profit >= 0 ? '+' : ''}${hunt.hunt.currency}${profit.toFixed(2)}
+                        </div>
+                        <div style="color: #888; font-size: 0.85rem;">
+                            ${profit >= 0 ? 'Profit' : 'Loss'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Starting</div>
+                        <div style="color: #fff; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Total Bet</div>
+                        <div style="color: #ff6b6b; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; text-align: center; color: #4a9eff; font-size: 0.9rem;">
+                    👁️ Click to view details
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function setupHistoryCardListeners() {
+    document.querySelectorAll('.history-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            const index = parseInt(this.dataset.huntIndex);
+            showHuntDetails(index);
+        });
+        
+        // Hover effect
+        card.addEventListener('mouseenter', function() {
+            this.style.borderColor = '#4a9eff';
+            this.style.transform = 'translateY(-4px)';
+            this.style.boxShadow = '0 8px 24px rgba(74, 158, 255, 0.3)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.borderColor = 'rgba(74, 158, 255, 0.2)';
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = 'none';
+        });
+    });
+}
+
+function showHuntDetails(huntIndex) {
+    const hunt = huntHistory[huntIndex];
+    if (!hunt) return;
+    
+    const totalBet = hunt.totalBet || 0;
+    const totalWin = hunt.totalWin || 0;
+    const profit = hunt.profit || 0;
+    const date = new Date(hunt.savedAt).toLocaleDateString();
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div id="huntDetailsModal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1001; align-items: center; justify-content: center; padding: 2rem;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+                <button id="closeHuntDetails" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">✕</button>
+                
+                <h2 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.8rem;">${hunt.hunt.name}</h2>
+                <p style="color: #888; margin-bottom: 2rem;">${date}</p>
+                
+                <!-- Stats Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
+                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Starting Balance</div>
+                        <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
+                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Total Bet</div>
+                        <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
+                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Total Win</div>
+                        <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${totalWin.toFixed(2)}</div>
+                    </div>
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
+                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Profit/Loss</div>
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${profit >= 0 ? '+' : ''}${hunt.hunt.currency}${profit.toFixed(2)}</div>
+                    </div>
+                </div>
+                
+                <!-- Games List -->
+                <h3 style="color: #fff; margin-bottom: 1rem;">Games (${hunt.games.length})</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${hunt.games.map(function(game, i) {
+                        const multiplier = game.win && game.bet ? (game.win / game.bet).toFixed(2) : '0.00';
+                        const gameProfit = (game.win || 0) - game.bet;
+                        
+                        return `
+                            <div style="background: rgba(40, 40, 60, 0.5); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; border-left: 4px solid ${game.superBonus ? '#ffd700' : '#4a9eff'};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="flex: 1;">
+                                        <h4 style="color: #fff; margin-bottom: 0.5rem;">
+                                            ${i + 1}. ${game.name} ${game.superBonus ? '⭐' : ''}
+                                        </h4>
+                                        <div style="color: #888; font-size: 0.9rem;">
+                                            Bet: ${hunt.hunt.currency}${game.bet.toFixed(2)} | 
+                                            Win: ${hunt.hunt.currency}${(game.win || 0).toFixed(2)} | 
+                                            ${multiplier}x
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${gameProfit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.1rem; font-weight: bold;">
+                                            ${gameProfit >= 0 ? '+' : ''}${hunt.hunt.currency}${gameProfit.toFixed(2)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body
+    const modalDiv = document.createElement('div');
+    modalDiv.innerHTML = modalHTML;
+    document.body.appendChild(modalDiv);
+    
+    // Close button listener
+    document.getElementById('closeHuntDetails').addEventListener('click', function() {
+        modalDiv.remove();
+    });
+    
+    // Click outside to close
+    document.getElementById('huntDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            modalDiv.remove();
+        }
     });
 }
 

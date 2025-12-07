@@ -51,13 +51,9 @@
                     <span class="menu-icon">🏠</span>
                     <span class="menu-label">Dashboard</span>
                 </li>
-                <li class="menu-item" data-page="active-hunt">
+                <li class="menu-item" data-page="bonus-hunts">
                     <span class="menu-icon">🎰</span>
-                    <span class="menu-label">Active Hunt</span>
-                </li>
-                <li class="menu-item" data-page="history">
-                    <span class="menu-icon">📚</span>
-                    <span class="menu-label">Hunt History</span>
+                    <span class="menu-label">Bonus Hunts</span>
                 </li>
                 <li class="menu-item" data-page="settings">
                     <span class="menu-icon">⚙️</span>
@@ -130,21 +126,9 @@
                 </div>
             </div>
 
-            <!-- Active Hunt Page -->
-            <div id="active-huntPage" class="page">
-                <div class="page-header">
-                    <h1 id="active-huntTitle">No Active Hunt</h1>
-                </div>
-                <div id="active-huntContent"></div>
-            </div>
-
-            <!-- History Page -->
-            <div id="historyPage" class="page">
-                <div class="page-header">
-                    <h1>Hunt History</h1>
-                    <p>View all your past bonus hunts</p>
-                </div>
-                <div id="historyContent" class="hunt-cards"></div>
+            <!-- Bonus Hunts Page (Combined Active + History) -->
+            <div id="bonus-huntsPage" class="page">
+                <div id="bonusHuntsContent"></div>
             </div>
 
             <!-- Settings Page -->
