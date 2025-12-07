@@ -553,17 +553,29 @@ function createHistoryCardsHTML() {
 }
 
 function setupHistoryCardListeners() {
+    console.log('🔗 Setting up history card listeners...');
+    
     // Click on card content to view details
-    document.querySelectorAll('.history-card-content').forEach(function(content) {
+    const cardContents = document.querySelectorAll('.history-card-content');
+    console.log('Found', cardContents.length, 'history card contents');
+    
+    cardContents.forEach(function(content) {
         content.addEventListener('click', function() {
             const card = this.closest('.history-card');
             const index = parseInt(card.dataset.huntIndex);
+            console.log('📖 Opening hunt details for index:', index);
             showHuntDetails(index);
         });
+        
+        // Make it clear it's clickable
+        content.style.cursor = 'pointer';
     });
     
     // Delete button listeners
-    document.querySelectorAll('.deleteHistoryBtn').forEach(function(btn) {
+    const deleteButtons = document.querySelectorAll('.deleteHistoryBtn');
+    console.log('Found', deleteButtons.length, 'delete buttons');
+    
+    deleteButtons.forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation(); // Prevent card click
             const index = parseInt(this.dataset.huntIndex);
@@ -581,7 +593,10 @@ function setupHistoryCardListeners() {
     });
     
     // Card hover effects (for the card content, not the whole card)
-    document.querySelectorAll('.history-card').forEach(function(card) {
+    const cards = document.querySelectorAll('.history-card');
+    console.log('Found', cards.length, 'history cards');
+    
+    cards.forEach(function(card) {
         card.addEventListener('mouseenter', function() {
             this.style.borderColor = '#4a9eff';
             this.style.transform = 'translateY(-4px)';
@@ -594,6 +609,8 @@ function setupHistoryCardListeners() {
             this.style.boxShadow = 'none';
         });
     });
+    
+    console.log('✅ History card listeners set up complete');
 }
 
 function deleteHistoryHunt(huntIndex) {
@@ -627,8 +644,18 @@ function deleteHistoryHunt(huntIndex) {
 }
 
 function showHuntDetails(huntIndex) {
+    console.log('📖 showHuntDetails called with index:', huntIndex);
+    console.log('📊 Total hunts in history:', huntHistory.length);
+    
     const hunt = huntHistory[huntIndex];
-    if (!hunt) return;
+    
+    if (!hunt) {
+        console.error('❌ No hunt found at index:', huntIndex);
+        console.log('Available indices: 0 to', huntHistory.length - 1);
+        return;
+    }
+    
+    console.log('✅ Hunt found:', hunt.hunt ? hunt.hunt.name : 'Unknown name');
     
     const totalBet = hunt.totalBet || 0;
     const totalWin = hunt.totalWin || 0;
