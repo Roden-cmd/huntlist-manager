@@ -504,14 +504,13 @@ function createHuntManagementView() {
     const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - totalBet;
-    const remaining = currentHunt.startingBalance - totalBet;
     
     return `
-        <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem; padding: 2rem; min-height: 600px;">
+        <div style="display: grid; grid-template-columns: 1fr 450px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
             <!-- Left side: Hunt Management -->
             <div style="overflow-y: auto;">
                 <!-- Hunt Stats with Title -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); grid-column: span 2;">
                         <div style="color: #888; font-size: 0.9rem;">Hunt Name</div>
                         <div style="color: #4a9eff; font-size: 1.3rem; font-weight: bold;">${currentHunt.name}</div>
@@ -535,7 +534,7 @@ function createHuntManagementView() {
                 </div>
                 
                 <!-- Save & Add Game Buttons -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
                     <button id="saveHuntBtn" style="padding: 1rem; background: #28a745; color: #fff; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
                         💾 Save Changes
                     </button>
@@ -545,8 +544,8 @@ function createHuntManagementView() {
                 </div>
                 
                 <!-- Games List -->
-                <div id="gamesList" style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); margin-bottom: 2rem;">
-                    <h3 style="color: #fff; margin-bottom: 1.5rem;">Games (${games.length})</h3>
+                <div id="gamesList" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); margin-bottom: 1.5rem;">
+                    <h3 style="color: #fff; margin-bottom: 1rem;">Games (${games.length})</h3>
                     ${games.length === 0 ? '<p style="color: #888; text-align: center;">No games added yet. Click "Add Game" to start!</p>' : createGamesListHTML()}
                 </div>
                 
@@ -561,27 +560,42 @@ function createHuntManagementView() {
             </div>
             
             <!-- Right side: OBS Preview -->
-            <div style="position: sticky; top: 2rem; height: fit-content;">
+            <div style="position: sticky; top: 1rem; height: fit-content;">
                 <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                     <h3 style="color: #fff; margin-bottom: 1rem; text-align: center;">Live OBS Preview</h3>
+                    
+                    <!-- OBS Link -->
+                    <div style="margin-bottom: 1rem; background: rgba(40, 40, 60, 0.5); padding: 1rem; border-radius: 8px;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;">OBS Browser Source URL:</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="obsLinkInput" readonly value="${window.location.origin}/overlay-firebase.html?userId=${currentUser.uid}"
+                                   style="flex: 1; padding: 0.5rem; background: rgba(20, 20, 30, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.85rem;">
+                            <button id="copyObsLinkBtn" style="padding: 0.5rem 1rem; background: #4a9eff; color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap;">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview -->
                     <div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">
                         <iframe id="obsPreviewFrame" 
                                 src="overlay-firebase.html?userId=${currentUser.uid}"
-                                style="width: 100%; height: 600px; border: none; display: block;">
+                                style="width: 100%; height: 750px; border: none; display: block; transform: scale(1.1); transform-origin: top left;">
                         </iframe>
                     </div>
                     <p style="color: #888; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;">
-                        This is how it looks in OBS. Click "Save Changes" to update.
+                        Size: 400x600. Click "Save Changes" to update overlay.
                     </p>
                 </div>
             </div>
         </div>
         
-        <!-- Add Game Modal (hidden by default) -->
-        <div id="addGameModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
+        <!-- Add/Edit Game Modal -->
+        <div id="gameModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center;">
             <div style="background: #1a1a2e; padding: 2rem; border-radius: 12px; max-width: 500px; width: 90%;">
-                <h2 style="color: #fff; margin-bottom: 1.5rem;">Add Game</h2>
-                <form id="addGameForm">
+                <h2 id="gameModalTitle" style="color: #fff; margin-bottom: 1.5rem;">Add Game</h2>
+                <form id="gameForm">
+                    <input type="hidden" id="editingGameIndex" value="">
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Game Name *</label>
                         <input type="text" id="gameName" required
@@ -595,7 +609,7 @@ function createHuntManagementView() {
                                placeholder="20.00">
                     </div>
                     <div style="margin-bottom: 1rem;">
-                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Win Amount (${currentHunt.currency}) - Leave empty if not played yet</label>
+                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Win Amount (${currentHunt.currency})</label>
                         <input type="number" id="gameWin" step="0.01" min="0"
                                style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;"
                                placeholder="0.00">
@@ -608,7 +622,7 @@ function createHuntManagementView() {
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                         <button type="button" id="cancelGameBtn" style="padding: 0.75rem; background: #6c757d; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
-                        <button type="submit" style="padding: 0.75rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Add Game</button>
+                        <button type="submit" style="padding: 0.75rem; background: #4a9eff; color: #fff; border: none; border-radius: 8px; cursor: pointer;">Save Game</button>
                     </div>
                 </form>
             </div>
@@ -637,9 +651,14 @@ function createGamesListHTML() {
                             ${profit >= 0 ? '+' : ''}${currentHunt.currency}${profit.toFixed(2)}
                         </div>
                     </div>
-                    <button class="deleteGameBtn" data-index="${index}" style="padding: 0.5rem 1rem; background: #dc3545; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
-                        Delete
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="editGameBtn" data-index="${index}" style="padding: 0.5rem 1rem; background: #ffc107; color: #000; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                            Edit
+                        </button>
+                        <button class="deleteGameBtn" data-index="${index}" style="padding: 0.5rem 1rem; background: #dc3545; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">
+                            Delete
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -649,20 +668,36 @@ function createGamesListHTML() {
 function setupHuntManagementListeners() {
     const saveHuntBtn = document.getElementById('saveHuntBtn');
     const addGameBtn = document.getElementById('addGameBtn');
-    const addGameModal = document.getElementById('addGameModal');
-    const addGameForm = document.getElementById('addGameForm');
+    const gameModal = document.getElementById('gameModal');
+    const gameForm = document.getElementById('gameForm');
     const cancelGameBtn = document.getElementById('cancelGameBtn');
     const finishHuntBtn = document.getElementById('finishHuntBtn');
     const deleteHuntBtn = document.getElementById('deleteHuntBtn');
+    const copyObsLinkBtn = document.getElementById('copyObsLinkBtn');
+    
+    if (copyObsLinkBtn) {
+        copyObsLinkBtn.addEventListener('click', function() {
+            const input = document.getElementById('obsLinkInput');
+            input.select();
+            document.execCommand('copy');
+            
+            const originalText = copyObsLinkBtn.textContent;
+            copyObsLinkBtn.textContent = '✓ Copied!';
+            copyObsLinkBtn.style.background = '#28a745';
+            
+            setTimeout(function() {
+                copyObsLinkBtn.textContent = originalText;
+                copyObsLinkBtn.style.background = '#4a9eff';
+            }, 2000);
+        });
+    }
     
     if (saveHuntBtn) {
         saveHuntBtn.addEventListener('click', function() {
             saveActiveHunt();
             
-            // Show success feedback
             const originalText = saveHuntBtn.textContent;
             saveHuntBtn.textContent = '✓ Saved!';
-            saveHuntBtn.style.background = '#28a745';
             
             // Refresh OBS preview
             const iframe = document.getElementById('obsPreviewFrame');
@@ -672,28 +707,34 @@ function setupHuntManagementListeners() {
             
             setTimeout(function() {
                 saveHuntBtn.textContent = originalText;
-                saveHuntBtn.style.background = '#28a745';
             }, 2000);
         });
     }
     
     if (addGameBtn) {
         addGameBtn.addEventListener('click', function() {
-            addGameModal.style.display = 'flex';
+            // Clear form and show for adding
+            document.getElementById('gameModalTitle').textContent = 'Add Game';
+            document.getElementById('editingGameIndex').value = '';
+            document.getElementById('gameName').value = '';
+            document.getElementById('gameBet').value = '';
+            document.getElementById('gameWin').value = '';
+            document.getElementById('superBonus').checked = false;
+            gameModal.style.display = 'flex';
         });
     }
     
     if (cancelGameBtn) {
         cancelGameBtn.addEventListener('click', function() {
-            addGameModal.style.display = 'none';
-            addGameForm.reset();
+            gameModal.style.display = 'none';
         });
     }
     
-    if (addGameForm) {
-        addGameForm.addEventListener('submit', function(e) {
+    if (gameForm) {
+        gameForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            const editIndex = document.getElementById('editingGameIndex').value;
             const game = {
                 name: document.getElementById('gameName').value,
                 bet: parseFloat(document.getElementById('gameBet').value),
@@ -701,19 +742,38 @@ function setupHuntManagementListeners() {
                 superBonus: document.getElementById('superBonus').checked
             };
             
-            games.push(game);
-            // DON'T auto-save here anymore
+            if (editIndex === '') {
+                // Add new game
+                games.push(game);
+                console.log('✅ Game added:', game.name);
+            } else {
+                // Edit existing game
+                games[parseInt(editIndex)] = game;
+                console.log('✅ Game updated:', game.name);
+            }
             
-            addGameModal.style.display = 'none';
-            addGameForm.reset();
+            gameModal.style.display = 'none';
             updateActiveHuntPage();
             
-            console.log('✅ Game added (not saved yet):', game.name);
-            
-            // Show reminder to save
-            alert('Game added! Click "Save Changes" to update the OBS overlay.');
+            alert('Game saved! Click "Save Changes" to update the OBS overlay.');
         });
     }
+    
+    // Edit game buttons
+    document.querySelectorAll('.editGameBtn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            const game = games[index];
+            
+            document.getElementById('gameModalTitle').textContent = 'Edit Game';
+            document.getElementById('editingGameIndex').value = index;
+            document.getElementById('gameName').value = game.name;
+            document.getElementById('gameBet').value = game.bet;
+            document.getElementById('gameWin').value = game.win || '';
+            document.getElementById('superBonus').checked = game.superBonus;
+            gameModal.style.display = 'flex';
+        });
+    });
     
     // Delete game buttons
     document.querySelectorAll('.deleteGameBtn').forEach(function(btn) {
@@ -721,9 +781,7 @@ function setupHuntManagementListeners() {
             const index = parseInt(this.dataset.index);
             if (confirm('Delete this game?')) {
                 games.splice(index, 1);
-                // DON'T auto-save
                 updateActiveHuntPage();
-                
                 alert('Game deleted! Click "Save Changes" to update.');
             }
         });
