@@ -452,7 +452,10 @@ function updateBonusHuntsPage() {
     if (currentHunt) {
         console.log('Showing current hunt:', currentHunt.name);
         html += '<div style="margin-bottom: 3rem;">';
-        html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Current Hunt</h1>';
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">';
+        html += '<h1 style="color: #fff; margin: 0;">Current Hunt</h1>';
+        html += '<button onclick="clearActiveHunt(); navigateTo(\'bonus-hunts\');" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 0.75rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem;">+ Create New Hunt</button>';
+        html += '</div>';
         html += createHuntManagementView();
         html += '</div>';
     } else {

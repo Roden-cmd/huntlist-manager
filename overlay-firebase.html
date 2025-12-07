@@ -239,17 +239,21 @@
 
         /* Confetti */
         .confetti {
-            position: fixed;
+            position: absolute;
             width: 10px;
             height: 10px;
             background: #ffd700;
-            position: absolute;
+            top: -20px;
             animation: confetti-fall 3s linear forwards;
         }
 
         @keyframes confetti-fall {
+            from {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
             to {
-                transform: translateY(600px) rotate(360deg);
+                transform: translateY(650px) rotate(360deg);
                 opacity: 0;
             }
         }
@@ -292,7 +296,7 @@
 
         <div class="huntlist-stats">
             <div class="stat-box">
-                <div class="stat-label">Balance</div>
+                <div class="stat-label">Starting Balance</div>
                 <div class="stat-value currency" id="balanceValue">0$</div>
             </div>
             <div class="stat-box">
@@ -392,11 +396,8 @@
                 document.getElementById('huntDescription').style.display = 'none';
             }
 
-            // Calculate current balance (starting balance minus total bets)
-            const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
-            const currentBalance = hunt.startingBalance - totalBet;
-            
-            document.getElementById('balanceValue').textContent = hunt.currency + currentBalance.toFixed(2);
+            // Show starting balance (doesn't change when adding bets)
+            document.getElementById('balanceValue').textContent = hunt.currency + hunt.startingBalance.toFixed(2);
             document.getElementById('totalGames').textContent = games.length;
 
             // Calculate average multiplier
