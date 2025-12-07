@@ -505,8 +505,11 @@ function createHuntManagementView() {
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - totalBet;
     
+    // Get the correct OBS URL
+    const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay-firebase.html?userId=' + currentUser.uid;
+    
     return `
-        <div style="display: grid; grid-template-columns: 1fr 450px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
+        <div style="display: grid; grid-template-columns: 1fr 600px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
             <!-- Left side: Hunt Management -->
             <div style="overflow-y: auto;">
                 <!-- Hunt Stats with Title -->
@@ -568,7 +571,7 @@ function createHuntManagementView() {
                     <div style="margin-bottom: 1rem; background: rgba(40, 40, 60, 0.5); padding: 1rem; border-radius: 8px;">
                         <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;">OBS Browser Source URL:</div>
                         <div style="display: flex; gap: 0.5rem;">
-                            <input type="text" id="obsLinkInput" readonly value="${window.location.origin}/overlay-firebase.html?userId=${currentUser.uid}"
+                            <input type="text" id="obsLinkInput" readonly value="${obsUrl}"
                                    style="flex: 1; padding: 0.5rem; background: rgba(20, 20, 30, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.85rem;">
                             <button id="copyObsLinkBtn" style="padding: 0.5rem 1rem; background: #4a9eff; color: #fff; border: none; border-radius: 6px; cursor: pointer; white-space: nowrap;">
                                 📋 Copy
@@ -580,7 +583,7 @@ function createHuntManagementView() {
                     <div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">
                         <iframe id="obsPreviewFrame" 
                                 src="overlay-firebase.html?userId=${currentUser.uid}"
-                                style="width: 100%; height: 750px; border: none; display: block; transform: scale(1.1); transform-origin: top left;">
+                                style="width: 100%; height: 750px; border: none; display: block;">
                         </iframe>
                     </div>
                     <p style="color: #888; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;">
