@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Bracket Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: transparent;
+            font-family: Arial, sans-serif;
+            color: #fff;
+            padding: 0;
+            margin: 0;
+            width: 800px;
+            height: 1200px;
+            overflow: hidden;
+        }
+
+        .tournament-container {
+            background: rgba(26, 26, 46, 0.95);
+            border-radius: 24px;
+            padding: 40px;
+            width: 1600px;
+            height: 2400px;
+            transform: scale(0.5);
+            transform-origin: top left;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .tournament-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(74, 158, 255, 0.3);
+        }
+
+        .tournament-title {
+            font-size: 48px;
+            color: #4a9eff;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .tournament-date {
+            font-size: 24px;
+            color: #888;
+        }
+
+        .bracket-container {
+            display: flex;
+            gap: 80px;
+            justify-content: center;
+        }
+
+        .round-column {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        .round-title {
+            font-size: 32px;
+            color: #4a9eff;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .matchup {
+            background: rgba(40, 40, 60, 0.6);
+            border-radius: 16px;
+            padding: 20px;
+            min-width: 350px;
+            border: 2px solid rgba(74, 158, 255, 0.2);
+        }
+
+        .player-card {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(30, 30, 50, 0.5);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .player-card.winner {
+            background: rgba(74, 158, 255, 0.2);
+            border-left-color: #4a9eff;
+            box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);
+        }
+
+        .player-emoji {
+            font-size: 40px;
+        }
+
+        .player-info {
+            flex: 1;
+        }
+
+        .player-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .player-game {
+            font-size: 18px;
+            color: #888;
+        }
+
+        .player-multiplier {
+            background: #ff6b6b;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-weight: bold;
+            font-size: 20px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .player-multiplier.pending {
+            background: #666;
+            color: #aaa;
+        }
+
+        .vs-divider {
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+            margin: 5px 0;
+        }
+
+        .champion-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 100px;
+        }
+
+        .champion-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 60px;
+            text-align: center;
+            min-width: 400px;
+            box-shadow: 0 12px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .champion-emoji {
+            font-size: 120px;
+            margin-bottom: 20px;
+        }
+
+        .champion-trophy {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .champion-name {
+            font-size: 48px;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .champion-game {
+            font-size: 28px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 30px;
+        }
+
+        .champion-multiplier {
+            background: #ffd700;
+            color: #1a1a2e;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 40px;
+            display: inline-block;
+        }
+
+        .no-tournament {
+            text-align: center;
+            padding: 100px;
+            color: #666;
+            font-size: 32px;
+        }
+
+        .current-round-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #667eea;
+            color: #fff;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="tournament-container" id="tournamentContainer">
+        <div class="no-tournament">No Active Tournament</div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
+            authDomain: "huntlist-manager.firebaseapp.com",
+            databaseURL: "https://huntlist-manager-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "huntlist-manager",
+            storageBucket: "huntlist-manager.firebasestorage.app",
+            messagingSenderId: "380684782952",
+            appId: "1:380684782952:web:814627bb865c3aff33dadd",
+            measurementId: "G-LLBBTHN6BK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+
+        if (!userId) {
+            console.error('❌ No userId provided in URL');
+        } else {
+            const tournamentRef = ref(db, `users/${userId}/activeTournament`);
+            
+            onValue(tournamentRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const tournament = snapshot.val();
+                    renderTournament(tournament);
+                } else {
+                    showNoTournament();
+                }
+            });
+        }
+
+        function renderTournament(tournament) {
+            const container = document.getElementById('tournamentContainer');
+            
+            let html = `
+                <div class="current-round-indicator">
+                    Round ${tournament.currentRound || 1}: ${getRoundName(tournament.currentRound || 1, tournament.size)}
+                </div>
+                <div class="tournament-header">
+                    <div class="tournament-title">${tournament.name}</div>
+                    <div class="tournament-date">${new Date(tournament.date).toLocaleDateString()}</div>
+                </div>
+            `;
+
+            if (tournament.bracket && tournament.bracket.length > 0) {
+                html += '<div class="bracket-container">';
+                
+                const roundNames = tournament.size === 8 
+                    ? ['Quarter Finals', 'Semi Finals', 'Finals']
+                    : ['Round of 16', 'Quarter Finals', 'Semi Finals', 'Finals'];
+
+                tournament.bracket.forEach((round, roundIndex) => {
+                    html += `
+                        <div class="round-column">
+                            <div class="round-title">${roundNames[roundIndex]}</div>
+                    `;
+
+                    round.forEach(matchup => {
+                        html += createMatchupHTML(matchup, tournament.currentRound > roundIndex + 1);
+                    });
+
+                    html += '</div>';
+                });
+
+                html += '</div>';
+
+                // Show champion if tournament is complete
+                if (tournament.champion) {
+                    html += `
+                        <div class="champion-container">
+                            <div class="champion-card">
+                                <div class="champion-emoji">${tournament.champion.emoji}</div>
+                                <div class="champion-trophy">🏆</div>
+                                <div class="champion-name">${tournament.champion.name}</div>
+                                <div class="champion-game">${tournament.champion.game}</div>
+                                <div class="champion-multiplier">${tournament.champion.multiplier ? tournament.champion.multiplier.toFixed(0) + 'x' : 'TBD'}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        function createMatchupHTML(matchup, isComplete) {
+            const p1HasMultiplier = matchup.player1 && matchup.player1.multiplier > 0;
+            const p2HasMultiplier = matchup.player2 && matchup.player2.multiplier > 0;
+            const showWinner = isComplete && p1HasMultiplier && p2HasMultiplier;
+
+            return `
+                <div class="matchup">
+                    ${matchup.player1 ? `
+                        <div class="player-card ${showWinner && matchup.winner && matchup.winner.name === matchup.player1.name ? 'winner' : ''}">
+                            <div class="player-emoji">${matchup.player1.emoji}</div>
+                            <div class="player-info">
+                                <div class="player-name">${matchup.player1.name}</div>
+                                <div class="player-game">${matchup.player1.game || 'TBD'}</div>
+                            </div>
+                            <div class="player-multiplier ${!p1HasMultiplier ? 'pending' : ''}">
+                                ${p1HasMultiplier ? matchup.player1.multiplier.toFixed(0) + 'x' : '---'}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="vs-divider">VS</div>
+                    
+                    ${matchup.player2 ? `
+                        <div class="player-card ${showWinner && matchup.winner && matchup.winner.name === matchup.player2.name ? 'winner' : ''}">
+                            <div class="player-emoji">${matchup.player2.emoji}</div>
+                            <div class="player-info">
+                                <div class="player-name">${matchup.player2.name}</div>
+                                <div class="player-game">${matchup.player2.game || 'TBD'}</div>
+                            </div>
+                            <div class="player-multiplier ${!p2HasMultiplier ? 'pending' : ''}">
+                                ${p2HasMultiplier ? matchup.player2.multiplier.toFixed(0) + 'x' : '---'}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function getRoundName(round, size) {
+            const names = size === 8 
+                ? ['Quarter Finals', 'Semi Finals', 'Finals']
+                : ['Round of 16', 'Quarter Finals', 'Semi Finals', 'Finals'];
+            return names[round - 1] || 'Round ' + round;
+        }
+
+        function showNoTournament() {
+            document.getElementById('tournamentContainer').innerHTML = 
+                '<div class="no-tournament">No Active Tournament</div>';
+        }
+    </script>
+</body>
+</html>

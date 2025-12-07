@@ -153,8 +153,8 @@
                 </div>
 
                 <div class="settings-section">
-                    <h2>OBS Overlay</h2>
-                    <p>Use this URL in OBS as a Browser Source:</p>
+                    <h2>Bonus Hunt Overlay</h2>
+                    <p>Use this URL in OBS as a Browser Source for bonus hunts:</p>
                     <div class="obs-link-container">
                         <input type="text" id="obsLinkInput" readonly class="obs-link-input">
                         <button id="copyObsLink" class="btn btn-primary">📋 Copy Link</button>
@@ -168,6 +168,26 @@
                             <li>Set Width: <strong>400px</strong>, Height: <strong>600px</strong></li>
                             <li>Check "Refresh browser when scene becomes active"</li>
                             <li>Your overlay will auto-update when you add/edit games!</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h2>Tournament Overlay</h2>
+                    <p>Use this URL in OBS as a Browser Source for tournaments:</p>
+                    <div class="obs-link-container">
+                        <input type="text" id="tournamentLinkInput" readonly class="obs-link-input">
+                        <button id="copyTournamentLink" class="btn btn-primary">📋 Copy Link</button>
+                    </div>
+                    
+                    <div class="obs-instructions">
+                        <h3>Setup Instructions:</h3>
+                        <ol>
+                            <li>In OBS, add a new <strong>Browser Source</strong></li>
+                            <li>Paste the URL above</li>
+                            <li>Set Width: <strong>800px</strong>, Height: <strong>1200px</strong></li>
+                            <li>Check "Refresh browser when scene becomes active"</li>
+                            <li>Your tournament bracket will update live!</li>
                         </ol>
                     </div>
                 </div>
