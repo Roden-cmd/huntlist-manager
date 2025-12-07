@@ -253,19 +253,40 @@ function loadUserData() {
             const data = snap.val();
             currentHunt = data.hunt;
             games = data.games || [];
+        } else {
+            currentHunt = null;
+            games = [];
+        }
+        
+        // Update current page if we're on bonus hunts
+        const bonusHuntsPage = document.getElementById('bonus-huntsPage');
+        if (bonusHuntsPage && bonusHuntsPage.classList.contains('active')) {
+            updateBonusHuntsPage();
         }
     });
     
     firebase.database().ref('users/' + userId + '/huntHistory').on('value', function(snap) {
+        huntHistory = [];
         if (snap.exists()) {
-            huntHistory = [];
             snap.forEach(function(child) {
                 huntHistory.push({
                     id: child.key,
                     ...child.val()
                 });
             });
+        }
+        console.log('📊 History updated:', huntHistory.length, 'hunts');
+        
+        // Update dashboard
+        const dashboardPage = document.getElementById('dashboardPage');
+        if (dashboardPage && dashboardPage.classList.contains('active')) {
             updateDashboard();
+        }
+        
+        // Update bonus hunts page if active
+        const bonusHuntsPage = document.getElementById('bonus-huntsPage');
+        if (bonusHuntsPage && bonusHuntsPage.classList.contains('active')) {
+            updateBonusHuntsPage();
         }
     });
 }
@@ -406,6 +427,8 @@ function updateRecentHunts() {
 
 function updateBonusHuntsPage() {
     console.log('📝 updateBonusHuntsPage called');
+    console.log('Current hunt:', currentHunt);
+    console.log('Hunt history:', huntHistory.length, 'hunts');
     
     const content = document.getElementById('bonusHuntsContent');
     if (!content) {
@@ -413,16 +436,20 @@ function updateBonusHuntsPage() {
         return;
     }
     
+    console.log('✅ bonusHuntsContent found');
+    
     let html = '<div style="padding: 1rem 2rem;">';
     
     // Current Active Hunt Section
     if (currentHunt) {
+        console.log('Showing current hunt:', currentHunt.name);
         html += '<div style="margin-bottom: 3rem;">';
         html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Current Hunt</h1>';
         html += createHuntManagementView();
         html += '</div>';
     } else {
         // No active hunt - show creation form
+        console.log('No active hunt, showing creation form');
         html += '<div style="margin-bottom: 3rem;">';
         html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Start a New Bonus Hunt</h1>';
         html += '<div style="max-width: 600px;">';
@@ -438,6 +465,7 @@ function updateBonusHuntsPage() {
     if (huntHistory.length === 0) {
         html += '<p style="color: #888; text-align: center; padding: 2rem;">No previous hunts yet. Complete your first hunt to see it here!</p>';
     } else {
+        console.log('Creating history cards for', huntHistory.length, 'hunts');
         html += '<div class="hunt-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">';
         html += createHistoryCardsHTML();
         html += '</div>';
@@ -446,6 +474,7 @@ function updateBonusHuntsPage() {
     html += '</div></div>';
     
     content.innerHTML = html;
+    console.log('✅ HTML set in bonusHuntsContent');
     
     // Setup listeners based on what's showing
     if (currentHunt) {
@@ -455,6 +484,7 @@ function updateBonusHuntsPage() {
     }
     
     setupHistoryCardListeners();
+    console.log('✅ Listeners set up');
 }
 
 function createHistoryCardsHTML() {
