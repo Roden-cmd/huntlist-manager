@@ -669,61 +669,76 @@ function showHuntDetails(huntIndex) {
     // Create modal HTML
     const modalHTML = `
         <div id="huntDetailsModal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1001; align-items: center; justify-content: center; padding: 2rem;">
-            <div style="background: #1a1a2e; border-radius: 16px; max-width: 900px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 900px; width: 90%; padding: 2rem; position: relative;">
                 <button id="closeHuntDetails" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255, 255, 255, 0.1); border: none; color: #fff; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.5rem;">✕</button>
                 
                 <h2 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.8rem;">${hunt.hunt.name}</h2>
                 <p style="color: #888; margin-bottom: 2rem;">${date}</p>
                 
                 <!-- Stats Grid -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
-                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Starting Balance</div>
-                        <div style="color: #fff; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Starting Balance</div>
+                        <div style="color: #fff; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
                     </div>
-                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
-                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Total Bet</div>
-                        <div style="color: #ff6b6b; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Total Bet</div>
+                        <div style="color: #ff6b6b; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
                     </div>
-                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
-                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Total Win</div>
-                        <div style="color: #51cf66; font-size: 1.5rem; font-weight: bold;">${hunt.hunt.currency}${totalWin.toFixed(2)}</div>
+                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Total Win</div>
+                        <div style="color: #51cf66; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${totalWin.toFixed(2)}</div>
                     </div>
-                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1.5rem; border-radius: 12px;">
-                        <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.5rem;">Profit/Loss</div>
-                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${profit >= 0 ? '+' : ''}${hunt.hunt.currency}${profit.toFixed(2)}</div>
-                    </div>
+                </div>
+                <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center; margin-bottom: 1.5rem;">
+                    <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Profit/Loss</div>
+                    <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.5rem; font-weight: bold;">${profit >= 0 ? '+' : ''}${hunt.hunt.currency}${profit.toFixed(2)}</div>
                 </div>
                 
                 <!-- Games List -->
                 <h3 style="color: #fff; margin-bottom: 1rem;">Games (${hunt.games.length})</h3>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${hunt.games.map(function(game, i) {
-                        const multiplier = game.win && game.bet ? (game.win / game.bet).toFixed(2) : '0.00';
-                        const gameProfit = (game.win || 0) - game.bet;
+                <div style="max-height: 350px; overflow-y: auto;">
+                    ${(function() {
+                        // Find the biggest win
+                        let biggestWinIndex = -1;
+                        let biggestWinAmount = 0;
+                        hunt.games.forEach(function(game, i) {
+                            if (game.win && game.win > biggestWinAmount) {
+                                biggestWinAmount = game.win;
+                                biggestWinIndex = i;
+                            }
+                        });
                         
-                        return `
-                            <div style="background: rgba(40, 40, 60, 0.5); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; border-left: 4px solid ${game.superBonus ? '#ffd700' : '#4a9eff'};">
-                                <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <div style="flex: 1;">
-                                        <h4 style="color: #fff; margin-bottom: 0.5rem;">
-                                            ${i + 1}. ${game.name} ${game.superBonus ? '⭐' : ''}
-                                        </h4>
-                                        <div style="color: #888; font-size: 0.9rem;">
-                                            Bet: ${hunt.hunt.currency}${game.bet.toFixed(2)} | 
-                                            Win: ${hunt.hunt.currency}${(game.win || 0).toFixed(2)} | 
-                                            ${multiplier}x
-                                        </div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="color: ${gameProfit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.1rem; font-weight: bold;">
-                                            ${gameProfit >= 0 ? '+' : ''}${hunt.hunt.currency}${gameProfit.toFixed(2)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                        return hunt.games.map(function(game, i) {
+                            const multiplier = game.win && game.bet ? (game.win / game.bet).toFixed(2) : '0.00';
+                            const gameProfit = (game.win || 0) - game.bet;
+                            const isBiggestWin = i === biggestWinIndex && biggestWinAmount > 0;
+                            
+                            const bgStyle = isBiggestWin 
+                                ? 'background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%); border-left: 4px solid #ffd700;'
+                                : 'background: rgba(40, 40, 60, 0.5); border-left: 4px solid ' + (game.superBonus ? '#ffd700' : '#4a9eff') + ';';
+                            
+                            return '<div style="' + bgStyle + ' padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem;">' +
+                                '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                                    '<div style="flex: 1;">' +
+                                        '<h4 style="color: ' + (isBiggestWin ? '#ffd700' : '#fff') + '; margin-bottom: 0.5rem;">' +
+                                            (i + 1) + '. ' + game.name + ' ' + (game.superBonus ? '⭐' : '') + (isBiggestWin ? ' 🏆' : '') +
+                                        '</h4>' +
+                                        '<div style="color: #888; font-size: 0.9rem;">' +
+                                            'Bet: ' + hunt.hunt.currency + game.bet.toFixed(2) + ' | ' +
+                                            'Win: ' + hunt.hunt.currency + (game.win || 0).toFixed(2) + ' | ' +
+                                            multiplier + 'x' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div style="text-align: right;">' +
+                                        '<div style="color: ' + (isBiggestWin ? '#ffd700' : (gameProfit >= 0 ? '#51cf66' : '#ff6b6b')) + '; font-size: 1.1rem; font-weight: bold;">' +
+                                            (gameProfit >= 0 ? '+' : '') + hunt.hunt.currency + gameProfit.toFixed(2) +
+                                        '</div>' +
+                                    '</div>' +
+                                '</div>' +
+                            '</div>';
+                        }).join('');
+                    })()}
                 </div>
             </div>
         </div>
@@ -1223,12 +1238,12 @@ function finishHunt() {
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - totalBet;
     
-    console.log('🏁 Finishing hunt with isFinished flag...');
+    console.log('🏁 Finishing hunt...');
     
-    // Set isFinished flag to trigger confetti in OBS overlay
+    // Set isFinished flag
     currentHunt.isFinished = true;
     
-    // Save to Firebase active hunt to trigger confetti (will stay visible until new hunt)
+    // Save to Firebase active hunt
     const huntData = {
         hunt: currentHunt,
         games: games,
@@ -1253,12 +1268,11 @@ function finishHunt() {
     })
     .then(function() {
         console.log('✅ Hunt saved to history');
-        console.log('🎊 Confetti should now show in OBS overlay!');
         
         // Go to bonus-hunts to see the completed hunt
         // DON'T clear active hunt - it stays in OBS until new hunt starts
         navigateTo('bonus-hunts');
-        alert('Hunt completed! Check your OBS overlay for confetti and gold highlight! 🎉');
+        alert('Hunt completed and saved to history! 🎉');
     })
     .catch(function(error) {
         console.error('❌ Error finishing hunt:', error);
