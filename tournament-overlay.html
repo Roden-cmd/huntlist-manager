@@ -239,14 +239,20 @@
 
         if (!userId) {
             console.error('❌ No userId provided in URL');
+            document.getElementById('tournamentContainer').innerHTML = '<div class="no-tournament">No userId in URL</div>';
         } else {
+            console.log('📡 Connecting to Firebase for user:', userId);
             const tournamentRef = ref(db, `users/${userId}/activeTournament`);
             
             onValue(tournamentRef, (snapshot) => {
+                console.log('📡 Firebase data received:', snapshot.exists());
                 if (snapshot.exists()) {
                     const tournament = snapshot.val();
+                    console.log('🏆 Tournament data:', tournament);
+                    console.log('📊 Bracket:', tournament.bracket);
                     renderTournament(tournament);
                 } else {
+                    console.log('❌ No active tournament');
                     showNoTournament();
                 }
             });

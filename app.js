@@ -1347,10 +1347,16 @@ function updateTournamentsPage() {
     const content = document.getElementById('tournamentsContent');
     if (!content) return;
     
-    let html = '<div style="display: grid; grid-template-columns: 1fr 450px; gap: 2rem; padding: 1rem 2rem; height: calc(100vh - 100px);">';
+    let html = '<div style="padding: 1rem 2rem;">';
     
-    // Left side - Tournament management
-    html += '<div style="overflow-y: auto;">';
+    // Header with OBS URL
+    if (currentUser) {
+        const overlayUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'tournament-overlay.html?userId=' + currentUser.uid;
+        html += '<div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem;">';
+        html += '<input type="text" id="tournamentOverlayUrl" value="' + overlayUrl + '" readonly style="width: 400px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.85rem;">';
+        html += '<button onclick="copyTournamentOverlayUrl()" class="btn btn-primary" style="padding: 0.5rem 1rem;">📋 Copy OBS URL</button>';
+        html += '</div>';
+    }
     
     if (!activeTournament) {
         // Phase 1: Create tournament
@@ -1358,9 +1364,12 @@ function updateTournamentsPage() {
         html += createTournamentSetupForm();
     } else if (activeTournament.currentRound <= getTotalRounds(activeTournament.size)) {
         // Active tournament - show current round
-        html += '<div style="margin-bottom: 2rem;">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">';
+        html += '<div>';
         html += '<h1 style="color: #fff; margin: 0;">' + activeTournament.name + '</h1>';
-        html += '<p style="color: #888; margin-top: 0.5rem;">' + new Date(activeTournament.date).toLocaleDateString() + '</p>';
+        html += '<p style="color: #888; margin-top: 0.5rem;">' + new Date(activeTournament.date).toLocaleDateString() + ' • Round ' + activeTournament.currentRound + ': ' + getRoundName(activeTournament.currentRound, activeTournament.size) + '</p>';
+        html += '</div>';
+        html += '<button onclick="cancelTournament()" style="background: #dc3545; color: #fff; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer;">🗑️ Cancel Tournament</button>';
         html += '</div>';
         
         html += createRoundManagementView();
@@ -1369,28 +1378,19 @@ function updateTournamentsPage() {
         html += createTournamentCompleteView();
     }
     
-    html += '</div>';
+    // Tournament History
+    html += '<div style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem; margin-top: 3rem;">';
+    html += '<h2 style="color: #fff; margin-bottom: 1.5rem;">Previous Tournaments (' + tournamentHistory.length + ')</h2>';
     
-    // Right side - OBS Preview
-    html += '<div style="background: rgba(26, 26, 46, 0.6); border-radius: 12px; padding: 1.5rem; position: sticky; top: 0; height: fit-content;">';
-    html += '<h2 style="color: #fff; margin-bottom: 1rem;">Live OBS Preview</h2>';
-    
-    if (currentUser) {
-        const overlayUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'tournament-overlay.html?userId=' + currentUser.uid;
-        html += '<div style="margin-bottom: 1rem;">';
-        html += '<input type="text" value="' + overlayUrl + '" readonly style="width: 100%; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.85rem; margin-bottom: 0.5rem;">';
-        html += '<button onclick="copyTournamentOverlayUrl()" class="btn btn-primary" style="width: 100%; padding: 0.5rem;">📋 Copy OBS URL</button>';
+    if (tournamentHistory.length === 0) {
+        html += '<p style="color: #888; text-align: center; padding: 2rem;">No previous tournaments yet.</p>';
+    } else {
+        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">';
+        html += createTournamentHistoryCards();
         html += '</div>';
-        
-        // Live preview iframe
-        html += '<div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">';
-        html += '<iframe src="' + overlayUrl + '" style="width: 400px; height: 600px; border: none; transform-origin: top left; display: block;"></iframe>';
-        html += '</div>';
-        html += '<p style="color: #888; font-size: 0.85rem; margin-top: 0.5rem; text-align: center;">Size: 400x600 (use in OBS Browser Source)</p>';
     }
     
-    html += '</div>';
-    html += '</div>';
+    html += '</div></div>';
     
     content.innerHTML = html;
     
@@ -1781,6 +1781,43 @@ function saveTournament() {
     if (!currentUser || !activeTournament) return;
     
     firebase.database().ref('users/' + currentUser.uid + '/activeTournament').set(activeTournament);
+}
+
+function cancelTournament() {
+    if (!confirm('Are you sure you want to cancel this tournament? All progress will be lost.')) return;
+    
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/activeTournament').remove();
+    }
+    
+    activeTournament = null;
+    updateTournamentsPage();
+}
+
+function createTournamentHistoryCards() {
+    return tournamentHistory.slice().reverse().map((tournament, index) => {
+        const actualIndex = tournamentHistory.length - 1 - index;
+        const date = new Date(tournament.date).toLocaleDateString();
+        const winner = tournament.champion;
+        
+        if (!winner) return '';
+        
+        return `
+            <div style="background: rgba(26, 26, 46, 0.6); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(74, 158, 255, 0.3)';" onmouseleave="this.style.borderColor='rgba(74, 158, 255, 0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
+                <h3 style="color: #4a9eff; margin-bottom: 0.5rem;">${tournament.name}</h3>
+                <p style="color: #888; font-size: 0.9rem; margin-bottom: 1rem;">${date} • ${tournament.size} players</p>
+                
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; border-left: 4px solid #ffd700;">
+                    <div style="font-size: 2rem;">${winner.emoji}</div>
+                    <div style="flex: 1;">
+                        <div style="color: #fff; font-weight: bold;">🏆 ${winner.name}</div>
+                        <div style="color: #888; font-size: 0.85rem;">${winner.game}</div>
+                    </div>
+                    <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 12px; font-weight: bold;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                </div>
+            </div>
+        `;
+    }).filter(Boolean).join('');
 }
 
 function loadTournamentData() {
