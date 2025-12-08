@@ -2551,6 +2551,14 @@ function loadTournamentData() {
                 tournamentHistory = Array.isArray(data) ? data : Object.values(data);
             }
             
+            console.log('📊 Tournament history loaded:', tournamentHistory.length, 'tournaments');
+            
+            // Update dashboard if we're on it (to show tournament data)
+            const dashboardPage = document.getElementById('dashboardPage');
+            if (dashboardPage && dashboardPage.classList.contains('active')) {
+                updateDashboard();
+            }
+            
             // Refresh the page if we're on tournaments
             if (document.querySelector('.nav-link.active')?.textContent.includes('Tournaments')) {
                 updateTournamentsPage();
