@@ -1720,6 +1720,14 @@ function getRoundName(round, size) {
 }
 
 function createTournamentSetupForm() {
+    // Build dropdown options from tournament history
+    let historyOptions = '<option value="">-- Select a tournament --</option>';
+    tournamentHistory.slice().reverse().forEach((t, idx) => {
+        const actualIdx = tournamentHistory.length - 1 - idx;
+        const date = new Date(t.date).toLocaleDateString();
+        historyOptions += `<option value="${actualIdx}">${t.name} (${date})</option>`;
+    });
+    
     return `
         <div style="background: rgba(26, 26, 46, 0.6); padding: 2rem; border-radius: 12px;">
             <form id="tournamentSetupForm">
@@ -1734,6 +1742,19 @@ function createTournamentSetupForm() {
                         <input type="hidden" id="tournamentSize" value="8">
                     </div>
                 </div>
+                
+                ${tournamentHistory.length > 0 ? `
+                <div style="background: rgba(74, 158, 255, 0.1); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                    <label style="display: block; color: #4a9eff; margin-bottom: 0.5rem; font-weight: bold;">⚡ Quick Start - Load Previous Players</label>
+                    <p style="color: #888; font-size: 0.85rem; margin-bottom: 0.75rem;">Load players from a previous tournament. You can edit any field after loading.</p>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <select id="loadPreviousTournament" style="flex: 1; padding: 0.6rem; background: rgba(40, 40, 60, 0.8); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                            ${historyOptions}
+                        </select>
+                        <button type="button" id="loadPlayersBtn" class="btn btn-primary" style="padding: 0.6rem 1.25rem; white-space: nowrap;">📋 Load Players</button>
+                    </div>
+                </div>
+                ` : ''}
                 
                 <h3 style="color: #fff; margin: 1.5rem 0 0.5rem 0;">Players - Round 1 Setup</h3>
                 <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Enter player names, game, and bet amount. Win amounts will be added during the tournament.</p>
@@ -1776,6 +1797,53 @@ function setupTournamentSetupForm() {
     
     sizeSelect.addEventListener('change', generatePlayerSetupInputs);
     generatePlayerSetupInputs();
+    
+    // Load Previous Players functionality
+    const loadBtn = document.getElementById('loadPlayersBtn');
+    const loadSelect = document.getElementById('loadPreviousTournament');
+    
+    if (loadBtn && loadSelect) {
+        loadBtn.addEventListener('click', function() {
+            const selectedIdx = loadSelect.value;
+            if (selectedIdx === '') {
+                alert('Please select a tournament to load players from.');
+                return;
+            }
+            
+            const tournament = tournamentHistory[parseInt(selectedIdx)];
+            if (!tournament || !tournament.bracket || !tournament.bracket[0]) {
+                alert('Could not load players from this tournament.');
+                return;
+            }
+            
+            // Get all players from round 1
+            const round1 = tournament.bracket[0];
+            const players = [];
+            round1.forEach(matchup => {
+                if (matchup.player1) players.push(matchup.player1);
+                if (matchup.player2) players.push(matchup.player2);
+            });
+            
+            // Fill in the form fields
+            players.forEach((player, idx) => {
+                const nameInput = document.getElementById('player' + idx + 'Name');
+                const gameInput = document.getElementById('player' + idx + 'Game');
+                const betInput = document.getElementById('player' + idx + 'Bet');
+                
+                if (nameInput) nameInput.value = player.name || '';
+                if (gameInput) gameInput.value = player.game || '';
+                if (betInput) betInput.value = player.bet || '';
+            });
+            
+            // Show success message
+            loadBtn.textContent = '✓ Loaded!';
+            loadBtn.style.background = '#51cf66';
+            setTimeout(() => {
+                loadBtn.textContent = '📋 Load Players';
+                loadBtn.style.background = '';
+            }, 2000);
+        });
+    }
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
