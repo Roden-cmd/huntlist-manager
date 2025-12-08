@@ -1437,90 +1437,146 @@ function showTournamentBracketModal(index) {
     const round2 = bracket[1] || [];
     const round3 = bracket[2] || [];
     
-    // Build matchup HTML for each round
+    // Constants matching the OBS overlay
+    const CARD_HEIGHT = 60;
+    const CARD_GAP = 4;
+    const QF_MATCHUP_GAP = 16;
+    const QF_MATCHUP_HEIGHT = CARD_HEIGHT * 2 + CARD_GAP; // 124px
+    const QF_TOTAL_HEIGHT = QF_MATCHUP_HEIGHT * 4 + QF_MATCHUP_GAP * 3; // 544px
+    
+    // QF card centers (Y positions)
+    const QF_Y = [
+        { p1: 30, p2: 94 },   // Matchup 1
+        { p1: 170, p2: 234 }, // Matchup 2
+        { p1: 310, p2: 374 }, // Matchup 3
+        { p1: 450, p2: 514 }  // Matchup 4
+    ];
+    
+    // SF positions - each player aligns with merge point of QF pair
+    const SF_Y = [
+        { p1: 62, p2: 202 },  // SF1: between QF1 and QF2
+        { p1: 342, p2: 482 }  // SF2: between QF3 and QF4
+    ];
+    
+    // Finals position
+    const F_CENTER = (SF_Y[0].p2 + SF_Y[1].p1) / 2; // 272
+    const F_Y = { p1: 237, p2: 307 };
+    
+    // Champion center
+    const CHAMP_Y = 272;
+    
+    // Build QF matchups HTML
     const qfMatchups = round1.map(m => createModalMatchupHTML(m)).join('');
+    
+    // Build SF player cards (individual cards, not matchups)
+    const sf1p1 = round2[0]?.player1;
+    const sf1p2 = round2[0]?.player2;
+    const sf2p1 = round2[1]?.player1;
+    const sf2p2 = round2[1]?.player2;
+    
+    // Build Finals player cards
+    const fp1 = round3[0]?.player1;
+    const fp2 = round3[0]?.player2;
     
     let html = `
         <div id="tournamentBracketModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;">
             <div style="background: #1a1a2e; border-radius: 16px; width: 95%; max-width: 1400px; padding: 2rem; position: relative;">
                 <button onclick="document.getElementById('tournamentBracketModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #888; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
                 
-                <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="text-align: center; margin-bottom: 1rem;">
                     <h2 style="color: #4a9eff; margin-bottom: 0.25rem;">${tournament.name}</h2>
                     <p style="color: #888;">${date} • ${tournament.size} players</p>
                 </div>
                 
-                <!-- Round Titles Row -->
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Quarter Finals</div>
-                    <div style="width: 60px;"></div>
-                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Semi Finals</div>
-                    <div style="width: 60px;"></div>
-                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Finals</div>
-                    <div style="width: 50px;"></div>
-                    <div style="flex: 1; text-align: center; color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
-                </div>
-                
-                <!-- Bracket with SVG Lines -->
-                <div style="display: flex; align-items: flex-start;">
+                <!-- Bracket Container -->
+                <div style="display: flex; align-items: flex-start; justify-content: center;">
                     
-                    <!-- Quarter Finals -->
-                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
-                        ${qfMatchups}
+                    <!-- Quarter Finals Column -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 8px; height: 20px;">Quarter Finals</div>
+                        <div style="display: flex; flex-direction: column; gap: ${QF_MATCHUP_GAP}px;">
+                            ${qfMatchups}
+                        </div>
                     </div>
                     
                     <!-- QF to SF Lines -->
-                    <svg width="60" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 30 H 25 V 62 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 94 H 25 V 62" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 170 H 25 V 202 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 234 H 25 V 202" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 310 H 25 V 342 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 374 H 25 V 342" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 450 H 25 V 482 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 514 H 25 V 482" stroke="#3a4055" stroke-width="2" fill="none"/>
-                    </svg>
+                    <div style="padding-top: 28px;">
+                        <svg width="50" height="${QF_TOTAL_HEIGHT}" style="display: block;">
+                            <path d="M 0 ${QF_Y[0].p1} H 20 V ${SF_Y[0].p1} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[0].p2} H 20 V ${SF_Y[0].p1}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[1].p1} H 20 V ${SF_Y[0].p2} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[1].p2} H 20 V ${SF_Y[0].p2}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[2].p1} H 20 V ${SF_Y[1].p1} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[2].p2} H 20 V ${SF_Y[1].p1}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[3].p1} H 20 V ${SF_Y[1].p2} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${QF_Y[3].p2} H 20 V ${SF_Y[1].p2}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
                     
-                    <!-- Semi Finals - SF1 at top, SF2 lower with 140px gap between them -->
-                    <div style="flex: 1; display: flex; flex-direction: column; padding-top: 32px;">
-                        <div>
-                            ${round2[0] ? createModalMatchupHTML(round2[0]) : createEmptyModalMatchup()}
-                        </div>
-                        <div style="margin-top: 140px;">
-                            ${round2[1] ? createModalMatchupHTML(round2[1]) : createEmptyModalMatchup()}
+                    <!-- Semi Finals Column - Individual cards positioned absolutely -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 8px; height: 20px;">Semi Finals</div>
+                        <div style="position: relative; width: 220px; height: ${QF_TOTAL_HEIGHT}px;">
+                            <div style="position: absolute; top: ${SF_Y[0].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(sf1p1, sf1p2, round2[0])}
+                            </div>
+                            <div style="position: absolute; top: ${SF_Y[0].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(sf1p2, sf1p1, round2[0])}
+                            </div>
+                            <div style="position: absolute; top: ${SF_Y[1].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(sf2p1, sf2p2, round2[1])}
+                            </div>
+                            <div style="position: absolute; top: ${SF_Y[1].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(sf2p2, sf2p1, round2[1])}
+                            </div>
                         </div>
                     </div>
                     
                     <!-- SF to Finals Lines -->
-                    <svg width="60" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 62 H 25 V 237 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 202 H 25 V 237" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 342 H 25 V 307 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 482 H 25 V 307" stroke="#3a4055" stroke-width="2" fill="none"/>
-                    </svg>
+                    <div style="padding-top: 28px;">
+                        <svg width="50" height="${QF_TOTAL_HEIGHT}" style="display: block;">
+                            <path d="M 0 ${SF_Y[0].p1} H 20 V ${F_Y.p1} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${SF_Y[0].p2} H 20 V ${F_Y.p1}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${SF_Y[1].p1} H 20 V ${F_Y.p2} H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${SF_Y[1].p2} H 20 V ${F_Y.p2}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
                     
-                    <!-- Finals -->
-                    <div style="flex: 1; display: flex; flex-direction: column; padding-top: 207px;">
-                        ${round3[0] ? createModalMatchupHTML(round3[0]) : createEmptyModalMatchup()}
+                    <!-- Finals Column - Individual cards -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 8px; height: 20px;">Finals</div>
+                        <div style="position: relative; width: 220px; height: ${QF_TOTAL_HEIGHT}px;">
+                            <div style="position: absolute; top: ${F_Y.p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(fp1, fp2, round3[0])}
+                            </div>
+                            <div style="position: absolute; top: ${F_Y.p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(fp2, fp1, round3[0])}
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Finals to Champion Lines -->
-                    <svg width="50" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 237 H 20 V 272 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 307 H 20 V 272" stroke="#3a4055" stroke-width="2" fill="none"/>
-                    </svg>
+                    <div style="padding-top: 28px;">
+                        <svg width="40" height="${QF_TOTAL_HEIGHT}" style="display: block;">
+                            <path d="M 0 ${F_Y.p1} H 15 V ${CHAMP_Y} H 40" stroke="#3a4055" stroke-width="2" fill="none"/>
+                            <path d="M 0 ${F_Y.p2} H 15 V ${CHAMP_Y}" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        </svg>
+                    </div>
                     
-                    <!-- Champion -->
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 180px;">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem 2rem; border-radius: 14px; text-align: center; min-width: 160px;">
-                            <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">${winner ? winner.emoji : '❓'}</div>
-                            <div style="color: #fff; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;">${winner ? winner.name : 'TBD'}</div>
-                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: bold; font-size: 1.2rem;">${winner && winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '---'}</div>
+                    <!-- Champion Column -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div style="color: #ffd700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 8px; height: 20px;">🏆 Champion</div>
+                        <div style="position: relative; height: ${QF_TOTAL_HEIGHT}px; display: flex; align-items: center; justify-content: center;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem 1.5rem; border-radius: 14px; text-align: center; min-width: 140px;">
+                                <div style="font-size: 3rem; margin-bottom: 0.5rem;">${winner ? winner.emoji : '❓'}</div>
+                                <div style="color: #fff; font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem;">${winner ? winner.name : 'TBD'}</div>
+                                <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 1rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">${winner && winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '---'}</div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <div style="text-align: center; margin-top: 1.5rem;">
+                <div style="text-align: center; margin-top: 1rem;">
                     <button onclick="document.getElementById('tournamentBracketModal').remove()" class="btn btn-primary" style="padding: 0.75rem 2rem;">Close</button>
                 </div>
             </div>
@@ -1533,6 +1589,32 @@ function showTournamentBracketModal(index) {
     document.getElementById('tournamentBracketModal').addEventListener('click', function(e) {
         if (e.target === this) this.remove();
     });
+}
+
+function createModalPlayerCard(player, opponent, matchup) {
+    if (!player) {
+        return `
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px; background: rgba(35, 40, 60, 0.95); border-radius: 10px; opacity: 0.4;">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 24px;">❓</div>
+                <div style="flex: 1;"><div style="color: #fff; font-size: 14px; font-weight: bold;">TBD</div><div style="color: #666; font-size: 11px;">-</div></div>
+                <div style="background: #3a3f55; color: #555; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: bold;">---</div>
+            </div>
+        `;
+    }
+    
+    const isWinner = player.multiplier && opponent?.multiplier && player.multiplier > opponent.multiplier;
+    const isLoser = player.multiplier && opponent?.multiplier && player.multiplier < opponent.multiplier;
+    
+    return `
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px; background: rgba(35, 40, 60, 0.95); border-radius: 10px; border-left: 4px solid ${isWinner ? '#4a9eff' : 'transparent'}; ${isWinner ? 'background: rgba(74, 158, 255, 0.15);' : ''} ${isLoser ? 'opacity: 0.5;' : ''}">
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 24px;">${player.emoji || '❓'}</div>
+            <div style="flex: 1; min-width: 0;">
+                <div style="color: #fff; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${player.name || 'TBD'}</div>
+                <div style="color: #666; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${player.game || '-'}</div>
+            </div>
+            <div style="background: ${player.multiplier ? '#ff6b6b' : '#3a3f55'}; color: ${player.multiplier ? '#fff' : '#555'}; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: bold;">${player.multiplier ? player.multiplier.toFixed(0) + 'x' : '---'}</div>
+        </div>
+    `;
 }
 
 function createModalMatchupHTML(matchup) {
