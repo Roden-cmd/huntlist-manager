@@ -54,6 +54,10 @@
             background: rgba(74, 158, 255, 0.25);
         }
 
+        .player-card.loser {
+            opacity: 0.5;
+        }
+
         .player-card.empty {
             opacity: 0.4;
         }
@@ -353,12 +357,18 @@
             const p2 = matchup.player2;
             const winner = matchup.winner;
             
+            // Only show winner/loser states when round is complete
             const p1IsWinner = showWinner && winner && winner.name === p1.name;
             const p2IsWinner = showWinner && winner && winner.name === p2.name;
+            const p1IsLoser = showWinner && winner && winner.name !== p1.name;
+            const p2IsLoser = showWinner && winner && winner.name !== p2.name;
+            
+            const p1Class = p1IsWinner ? 'winner' : (p1IsLoser ? 'loser' : '');
+            const p2Class = p2IsWinner ? 'winner' : (p2IsLoser ? 'loser' : '');
             
             return `
                 <div class="matchup" style="gap: ${gap}px;">
-                    <div class="player-card ${p1IsWinner ? 'winner' : ''}">
+                    <div class="player-card ${p1Class}">
                         <div class="player-avatar">${p1.emoji || '❓'}</div>
                         <div class="player-info">
                             <div class="player-name">${p1.name || 'TBD'}</div>
@@ -368,7 +378,7 @@
                             ${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '---'}
                         </div>
                     </div>
-                    <div class="player-card ${p2IsWinner ? 'winner' : ''}">
+                    <div class="player-card ${p2Class}">
                         <div class="player-avatar">${p2.emoji || '❓'}</div>
                         <div class="player-info">
                             <div class="player-name">${p2.name || 'TBD'}</div>
