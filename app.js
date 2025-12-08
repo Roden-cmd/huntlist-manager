@@ -1414,27 +1414,28 @@ function getRoundName(round, size) {
 
 function createTournamentSetupForm() {
     return `
-        <div style="max-width: 600px; background: rgba(26, 26, 46, 0.6); padding: 2rem; border-radius: 12px;">
+        <div style="background: rgba(26, 26, 46, 0.6); padding: 2rem; border-radius: 12px;">
             <form id="tournamentSetupForm">
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">Tournament Name *</label>
-                    <input type="text" id="tournamentName" required style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">Tournament Name *</label>
+                        <input type="text" id="tournamentName" required style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">Number of Players *</label>
+                        <select id="tournamentSize" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                            <option value="8">8 Players</option>
+                            <option value="16">16 Players</option>
+                        </select>
+                    </div>
                 </div>
                 
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">Number of Players *</label>
-                    <select id="tournamentSize" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
-                        <option value="8">8 Players</option>
-                        <option value="16">16 Players</option>
-                    </select>
-                </div>
-                
-                <h3 style="color: #fff; margin: 1.5rem 0 1rem 0;">Players - Round 1 Setup</h3>
-                <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Enter player names, initial game, and bet amount. Win amounts will be added during the tournament.</p>
+                <h3 style="color: #fff; margin: 1.5rem 0 0.5rem 0;">Players - Round 1 Setup</h3>
+                <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Enter player names, game, and bet amount. Win amounts will be added during the tournament.</p>
                 
                 <div id="playersSetupContainer"></div>
                 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">🏆 Start Tournament</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 1.1rem;">🏆 Start Tournament</button>
             </form>
         </div>
     `;
@@ -1449,32 +1450,22 @@ function setupTournamentSetupForm() {
     
     function generatePlayerSetupInputs() {
         const size = parseInt(sizeSelect.value);
-        let html = '';
+        let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">';
         
         for (let i = 0; i < size; i++) {
             html += `
-                <div style="background: rgba(40, 40, 60, 0.4); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                    <h4 style="color: #4a9eff; margin: 0 0 1rem 0;">Player ${i + 1}</h4>
-                    <div style="display: grid; gap: 0.75rem;">
-                        <div>
-                            <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Name *</label>
-                            <input type="text" id="player${i}Name" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                            <div>
-                                <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Game *</label>
-                                <input type="text" id="player${i}Game" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
-                            </div>
-                            <div>
-                                <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Bet *</label>
-                                <input type="number" step="0.01" id="player${i}Bet" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
-                            </div>
-                        </div>
+                <div style="background: rgba(40, 40, 60, 0.4); padding: 1rem; border-radius: 8px;">
+                    <h4 style="color: #4a9eff; margin: 0 0 0.75rem 0; font-size: 0.95rem;">Player ${i + 1}</h4>
+                    <div style="display: grid; gap: 0.5rem;">
+                        <input type="text" id="player${i}Name" placeholder="Name" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                        <input type="text" id="player${i}Game" placeholder="Game" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                        <input type="number" step="0.01" id="player${i}Bet" placeholder="Bet" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
                     </div>
                 </div>
             `;
         }
         
+        html += '</div>';
         container.innerHTML = html;
     }
     
