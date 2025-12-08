@@ -12,15 +12,114 @@
         }
 
         body {
-            background: #1a1a2e;
+            background: transparent;
             font-family: 'Segoe UI', Arial, sans-serif;
             color: #fff;
-            padding: 30px;
+            padding: 20px;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+
+        /* Background Container */
+        .bracket-background {
+            background: rgba(15, 15, 30, 0.95);
+            border-radius: 24px;
+            padding: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Theme Variations */
+        .theme-default .bracket-background {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(40, 30, 60, 0.95) 100%);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        .theme-default .player-avatar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .theme-default .winner-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .theme-default .player-card.winner { border-left-color: #4a9eff; background: rgba(74, 158, 255, 0.25); }
+
+        .theme-fire .bracket-background {
+            background: linear-gradient(135deg, rgba(30, 15, 15, 0.95) 0%, rgba(50, 20, 10, 0.95) 100%);
+            border-color: rgba(245, 175, 25, 0.3);
+        }
+        .theme-fire .player-avatar { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); }
+        .theme-fire .winner-card { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); }
+        .theme-fire .player-card.winner { border-left-color: #f5af19; background: rgba(245, 175, 25, 0.25); }
+        .theme-fire .bracket-line { stroke: #5a3020; }
+
+        .theme-ice .bracket-background {
+            background: linear-gradient(135deg, rgba(10, 25, 40, 0.95) 0%, rgba(15, 40, 60, 0.95) 100%);
+            border-color: rgba(0, 198, 255, 0.3);
+        }
+        .theme-ice .player-avatar { background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); }
+        .theme-ice .winner-card { background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%); }
+        .theme-ice .player-card.winner { border-left-color: #00c6ff; background: rgba(0, 198, 255, 0.25); }
+        .theme-ice .bracket-line { stroke: #1a4a6a; }
+
+        .theme-gold .bracket-background {
+            background: linear-gradient(135deg, rgba(40, 30, 15, 0.95) 0%, rgba(50, 40, 20, 0.95) 100%);
+            border-color: rgba(255, 210, 0, 0.3);
+        }
+        .theme-gold .player-avatar { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); }
+        .theme-gold .winner-card { background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%); }
+        .theme-gold .player-card.winner { border-left-color: #ffd200; background: rgba(255, 210, 0, 0.25); }
+        .theme-gold .bracket-line { stroke: #5a4a20; }
+
+        .theme-neon .bracket-background {
+            background: linear-gradient(135deg, rgba(20, 10, 30, 0.95) 0%, rgba(10, 20, 30, 0.95) 100%);
+            border-color: rgba(255, 0, 255, 0.3);
+        }
+        .theme-neon .player-avatar { background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%); }
+        .theme-neon .winner-card { background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%); }
+        .theme-neon .player-card.winner { border-left-color: #00ffff; background: rgba(0, 255, 255, 0.25); }
+        .theme-neon .bracket-line { stroke: #4a2a5a; }
+
+        .theme-forest .bracket-background {
+            background: linear-gradient(135deg, rgba(15, 30, 25, 0.95) 0%, rgba(20, 40, 30, 0.95) 100%);
+            border-color: rgba(113, 178, 128, 0.3);
+        }
+        .theme-forest .player-avatar { background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); }
+        .theme-forest .winner-card { background: linear-gradient(135deg, #134e5e 0%, #71b280 100%); }
+        .theme-forest .player-card.winner { border-left-color: #71b280; background: rgba(113, 178, 128, 0.25); }
+        .theme-forest .bracket-line { stroke: #2a4a3a; }
+
+        .theme-sunset .bracket-background {
+            background: linear-gradient(135deg, rgba(40, 15, 25, 0.95) 0%, rgba(50, 25, 15, 0.95) 100%);
+            border-color: rgba(255, 106, 0, 0.3);
+        }
+        .theme-sunset .player-avatar { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
+        .theme-sunset .winner-card { background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }
+        .theme-sunset .player-card.winner { border-left-color: #ff6a00; background: rgba(255, 106, 0, 0.25); }
+        .theme-sunset .bracket-line { stroke: #5a2a2a; }
+
+        .theme-ocean .bracket-background {
+            background: linear-gradient(135deg, rgba(15, 20, 40, 0.95) 0%, rgba(15, 35, 45, 0.95) 100%);
+            border-color: rgba(38, 208, 206, 0.3);
+        }
+        .theme-ocean .player-avatar { background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%); }
+        .theme-ocean .winner-card { background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%); }
+        .theme-ocean .player-card.winner { border-left-color: #26d0ce; background: rgba(38, 208, 206, 0.25); }
+        .theme-ocean .bracket-line { stroke: #1a4a5a; }
+
+        .theme-dark .bracket-background {
+            background: linear-gradient(135deg, rgba(20, 20, 22, 0.95) 0%, rgba(35, 35, 38, 0.95) 100%);
+            border-color: rgba(100, 100, 105, 0.3);
+        }
+        .theme-dark .player-avatar { background: linear-gradient(135deg, #232526 0%, #414345 100%); }
+        .theme-dark .winner-card { background: linear-gradient(135deg, #434343 0%, #000000 100%); }
+        .theme-dark .player-card.winner { border-left-color: #888; background: rgba(136, 136, 136, 0.25); }
+        .theme-dark .bracket-line { stroke: #3a3a3a; }
+
+        .theme-christmas .bracket-background {
+            background: linear-gradient(135deg, rgba(22, 45, 30, 0.95) 0%, rgba(50, 20, 22, 0.95) 100%);
+            border-color: rgba(187, 37, 40, 0.3);
+        }
+        .theme-christmas .player-avatar { background: linear-gradient(135deg, #165B33 0%, #BB2528 100%); }
+        .theme-christmas .winner-card { background: linear-gradient(135deg, #165B33 0%, #BB2528 100%); }
+        .theme-christmas .player-card.winner { border-left-color: #ffd700; background: rgba(255, 215, 0, 0.25); }
+        .theme-christmas .bracket-line { stroke: #3a2a2a; }
 
         .tournament-container {
             display: flex;
@@ -211,9 +310,11 @@
         }
     </style>
 </head>
-<body>
-    <div class="tournament-container" id="tournamentContainer">
-        <div class="no-tournament">Loading tournament...</div>
+<body class="theme-default">
+    <div class="bracket-background">
+        <div class="tournament-container" id="tournamentContainer">
+            <div class="no-tournament">Loading tournament...</div>
+        </div>
     </div>
 
     <script type="module">
@@ -237,33 +338,28 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
-        // Constants - defined BEFORE use
+        // Constants
         const CARD_HEIGHT = 60;
         const CARD_GAP = 4;
         const QF_MATCHUP_GAP = 16;
+        const QF_MATCHUP_HEIGHT = CARD_HEIGHT * 2 + CARD_GAP;
+        const QF_TOTAL_HEIGHT = QF_MATCHUP_HEIGHT * 4 + QF_MATCHUP_GAP * 3;
 
-        // Calculate all Y positions for perfect alignment
-        const QF_MATCHUP_HEIGHT = CARD_HEIGHT * 2 + CARD_GAP; // 124px
-        const QF_TOTAL_HEIGHT = QF_MATCHUP_HEIGHT * 4 + QF_MATCHUP_GAP * 3; // 544px
-
-        // QF card centers (Y positions from top)
         const QF = [
-            { p1: 30, p2: 94 },   // Matchup 1: cards at 0-60 and 64-124
-            { p1: 170, p2: 234 }, // Matchup 2: starts at 140
-            { p1: 310, p2: 374 }, // Matchup 3: starts at 280
-            { p1: 450, p2: 514 }  // Matchup 4: starts at 420
+            { p1: 30, p2: 94 },
+            { p1: 170, p2: 234 },
+            { p1: 310, p2: 374 },
+            { p1: 450, p2: 514 }
         ];
 
-        // SF positions - each SF player aligns with the MERGE point of two QF players
         const SF = [
-            { p1: (QF[0].p1 + QF[0].p2) / 2, p2: (QF[1].p1 + QF[1].p2) / 2 }, // 62, 202
-            { p1: (QF[2].p1 + QF[2].p2) / 2, p2: (QF[3].p1 + QF[3].p2) / 2 }  // 342, 482
+            { p1: (QF[0].p1 + QF[0].p2) / 2, p2: (QF[1].p1 + QF[1].p2) / 2 },
+            { p1: (QF[2].p1 + QF[2].p2) / 2, p2: (QF[3].p1 + QF[3].p2) / 2 }
         ];
 
-        // Finals position - centered between SF matchups
-        const F_CENTER = (SF[0].p2 + SF[1].p1) / 2; // (202 + 342) / 2 = 272
-        const SF_GAP = SF[0].p2 - SF[0].p1; // 140
-        const F = { p1: F_CENTER - SF_GAP / 4, p2: F_CENTER + SF_GAP / 4 }; // 237, 307
+        const F_CENTER = (SF[0].p2 + SF[1].p1) / 2;
+        const SF_GAP = SF[0].p2 - SF[0].p1;
+        const F = { p1: F_CENTER - SF_GAP / 4, p2: F_CENTER + SF_GAP / 4 };
 
         if (!userId) {
             document.getElementById('tournamentContainer').innerHTML = '<div class="no-tournament">No userId in URL</div>';
@@ -274,7 +370,10 @@
             
             onValue(tournamentRef, (snapshot) => {
                 if (snapshot.exists()) {
-                    renderTournament(snapshot.val());
+                    const tournament = snapshot.val();
+                    const theme = tournament.theme || 'default';
+                    document.body.className = 'theme-' + theme;
+                    renderTournament(tournament);
                 } else {
                     showDefaultBracket();
                 }
@@ -294,7 +393,6 @@
             
             let html = '';
             
-            // Round 1 - Quarter Finals
             html += `<div class="round" style="gap: ${QF_MATCHUP_GAP}px;">`;
             round1.forEach((matchup) => {
                 html += createMatchupHTML(matchup, tournament.currentRound > 1, CARD_GAP);
@@ -304,10 +402,8 @@
             }
             html += '</div>';
             
-            // Connector QF to SF
             html += createQFtoSFConnector();
             
-            // Round 2 - Semi Finals
             const sf1Top = SF[0].p1 - CARD_HEIGHT / 2;
             const sf1Gap = SF[0].p2 - SF[0].p1 - CARD_HEIGHT;
             const sf2Top = SF[1].p1 - CARD_HEIGHT / 2;
@@ -324,10 +420,8 @@
             }
             html += '</div>';
             
-            // Connector SF to Finals
             html += createSFtoFConnector();
             
-            // Round 3 - Finals
             const fTop = F.p1 - CARD_HEIGHT / 2;
             const fGap = F.p2 - F.p1 - CARD_HEIGHT;
             
@@ -339,10 +433,7 @@
             }
             html += '</div>';
             
-            // Connector Finals to Champion
             html += createFtoChampConnector();
-            
-            // Winner
             html += createWinnerSection(tournament.champion);
             
             container.innerHTML = html;
@@ -356,11 +447,9 @@
             const p1 = matchup.player1;
             const p2 = matchup.player2;
             
-            // Determine winner/loser states based on multiplier (higher wins)
             let p1Class = '';
             let p2Class = '';
             
-            // Only show winner/loser when round is complete AND both have multipliers
             if (showWinner && p1.multiplier && p2.multiplier) {
                 if (p1.multiplier > p2.multiplier) {
                     p1Class = 'winner';
@@ -369,7 +458,6 @@
                     p1Class = 'loser';
                     p2Class = 'winner';
                 }
-                // If equal, no highlight
             }
             
             return `
@@ -422,26 +510,16 @@
         }
 
         function createQFtoSFConnector() {
-            const width = 50;
-            const height = QF_TOTAL_HEIGHT;
-            
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${height}">
-                        <!-- QF1 → SF1 P1 -->
-                        <path class="bracket-line" d="M 0 ${QF[0].p1} H 20 V ${SF[0].p1} H ${width}"/>
+                    <svg width="50" height="${QF_TOTAL_HEIGHT}">
+                        <path class="bracket-line" d="M 0 ${QF[0].p1} H 20 V ${SF[0].p1} H 50"/>
                         <path class="bracket-line" d="M 0 ${QF[0].p2} H 20 V ${SF[0].p1}"/>
-                        
-                        <!-- QF2 → SF1 P2 -->
-                        <path class="bracket-line" d="M 0 ${QF[1].p1} H 20 V ${SF[0].p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[1].p1} H 20 V ${SF[0].p2} H 50"/>
                         <path class="bracket-line" d="M 0 ${QF[1].p2} H 20 V ${SF[0].p2}"/>
-                        
-                        <!-- QF3 → SF2 P1 -->
-                        <path class="bracket-line" d="M 0 ${QF[2].p1} H 20 V ${SF[1].p1} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[2].p1} H 20 V ${SF[1].p1} H 50"/>
                         <path class="bracket-line" d="M 0 ${QF[2].p2} H 20 V ${SF[1].p1}"/>
-                        
-                        <!-- QF4 → SF2 P2 -->
-                        <path class="bracket-line" d="M 0 ${QF[3].p1} H 20 V ${SF[1].p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[3].p1} H 20 V ${SF[1].p2} H 50"/>
                         <path class="bracket-line" d="M 0 ${QF[3].p2} H 20 V ${SF[1].p2}"/>
                     </svg>
                 </div>
@@ -449,18 +527,12 @@
         }
 
         function createSFtoFConnector() {
-            const width = 50;
-            const height = QF_TOTAL_HEIGHT;
-            
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${height}">
-                        <!-- SF1 → F P1 -->
-                        <path class="bracket-line" d="M 0 ${SF[0].p1} H 20 V ${F.p1} H ${width}"/>
+                    <svg width="50" height="${QF_TOTAL_HEIGHT}">
+                        <path class="bracket-line" d="M 0 ${SF[0].p1} H 20 V ${F.p1} H 50"/>
                         <path class="bracket-line" d="M 0 ${SF[0].p2} H 20 V ${F.p1}"/>
-                        
-                        <!-- SF2 → F P2 -->
-                        <path class="bracket-line" d="M 0 ${SF[1].p1} H 20 V ${F.p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${SF[1].p1} H 20 V ${F.p2} H 50"/>
                         <path class="bracket-line" d="M 0 ${SF[1].p2} H 20 V ${F.p2}"/>
                     </svg>
                 </div>
@@ -468,14 +540,11 @@
         }
 
         function createFtoChampConnector() {
-            const width = 40;
-            const height = QF_TOTAL_HEIGHT;
             const center = (F.p1 + F.p2) / 2;
-            
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${height}">
-                        <path class="bracket-line" d="M 0 ${F.p1} H 15 V ${center} H ${width}"/>
+                    <svg width="40" height="${QF_TOTAL_HEIGHT}">
+                        <path class="bracket-line" d="M 0 ${F.p1} H 15 V ${center} H 40"/>
                         <path class="bracket-line" d="M 0 ${F.p2} H 15 V ${center}"/>
                     </svg>
                 </div>
@@ -523,7 +592,6 @@
             
             let html = '';
             
-            // Round 1
             html += `<div class="round" style="gap: ${QF_MATCHUP_GAP}px;">`;
             for (let i = 0; i < 4; i++) {
                 html += `
@@ -551,7 +619,6 @@
             
             html += createQFtoSFConnector();
             
-            // Round 2
             html += `<div class="round" style="margin-top: ${sf1Top}px; gap: ${sfMatchupGap}px;">`;
             for (let i = 0; i < 2; i++) {
                 html += createEmptyMatchup(sf1Gap);
@@ -560,13 +627,11 @@
             
             html += createSFtoFConnector();
             
-            // Finals
             html += `<div class="round" style="margin-top: ${fTop}px;">`;
             html += createEmptyMatchup(fGap);
             html += '</div>';
             
             html += createFtoChampConnector();
-            
             html += createWinnerSection(null);
             
             container.innerHTML = html;

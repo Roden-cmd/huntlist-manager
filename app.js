@@ -1743,6 +1743,54 @@ function createTournamentSetupForm() {
                     </div>
                 </div>
                 
+                <!-- Theme Selector -->
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">🎨 Tournament Theme</label>
+                    <div id="themeSelector" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;">
+                        <div class="theme-option selected" data-theme="default" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid #4a9eff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <div style="font-size: 1.5rem;">🏆</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Classic</div>
+                        </div>
+                        <div class="theme-option" data-theme="fire" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);">
+                            <div style="font-size: 1.5rem;">🔥</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Fire</div>
+                        </div>
+                        <div class="theme-option" data-theme="ice" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);">
+                            <div style="font-size: 1.5rem;">❄️</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Ice</div>
+                        </div>
+                        <div class="theme-option" data-theme="gold" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
+                            <div style="font-size: 1.5rem;">👑</div>
+                            <div style="color: #1a1a2e; font-size: 0.75rem; margin-top: 0.25rem;">Royal</div>
+                        </div>
+                        <div class="theme-option" data-theme="neon" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%);">
+                            <div style="font-size: 1.5rem;">⚡</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Neon</div>
+                        </div>
+                        <div class="theme-option" data-theme="forest" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);">
+                            <div style="font-size: 1.5rem;">🌲</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Forest</div>
+                        </div>
+                        <div class="theme-option" data-theme="sunset" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
+                            <div style="font-size: 1.5rem;">🌅</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Sunset</div>
+                        </div>
+                        <div class="theme-option" data-theme="ocean" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);">
+                            <div style="font-size: 1.5rem;">🌊</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Ocean</div>
+                        </div>
+                        <div class="theme-option" data-theme="dark" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #232526 0%, #414345 100%);">
+                            <div style="font-size: 1.5rem;">🌙</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Dark</div>
+                        </div>
+                        <div class="theme-option" data-theme="christmas" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #165B33 0%, #BB2528 100%);">
+                            <div style="font-size: 1.5rem;">🎄</div>
+                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Christmas</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="tournamentTheme" value="default">
+                </div>
+                
                 ${tournamentHistory.length > 0 ? `
                 <div style="background: rgba(74, 158, 255, 0.1); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
                     <label style="display: block; color: #4a9eff; margin-bottom: 0.5rem; font-weight: bold;">⚡ Quick Start - Load Previous Players</label>
@@ -1845,10 +1893,29 @@ function setupTournamentSetupForm() {
         });
     }
     
+    // Theme selector functionality
+    const themeOptions = document.querySelectorAll('.theme-option');
+    const themeInput = document.getElementById('tournamentTheme');
+    
+    themeOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // Remove selected from all
+            themeOptions.forEach(o => {
+                o.style.border = '2px solid transparent';
+                o.classList.remove('selected');
+            });
+            // Add selected to clicked
+            this.style.border = '2px solid #4a9eff';
+            this.classList.add('selected');
+            themeInput.value = this.dataset.theme;
+        });
+    });
+    
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
         const size = parseInt(sizeSelect.value);
+        const theme = document.getElementById('tournamentTheme').value || 'default';
         const players = [];
         
         // Shuffle emojis and pick unique ones for each player
@@ -1872,6 +1939,7 @@ function setupTournamentSetupForm() {
             name: document.getElementById('tournamentName').value,
             date: new Date().toISOString(),
             size: size,
+            theme: theme,
             currentRound: 1,
             bracket: initialBracket
         };
