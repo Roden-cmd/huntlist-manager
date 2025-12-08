@@ -233,10 +233,37 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
-        // Fixed heights for perfect alignment - MUST be defined before use
+        // Constants - defined BEFORE use
         const CARD_HEIGHT = 60;
-        const CARD_GAP = 4;       // Gap between cards in a matchup
-        const MATCHUP_GAP = 16;   // Gap between matchups in QF
+        const CARD_GAP = 4;
+        const QF_MATCHUP_GAP = 16;
+
+        // Calculate all Y positions for perfect alignment
+        // QF: 4 matchups, each with 2 cards
+        const QF_MATCHUP_HEIGHT = CARD_HEIGHT * 2 + CARD_GAP; // 124px
+        const QF_TOTAL_HEIGHT = QF_MATCHUP_HEIGHT * 4 + QF_MATCHUP_GAP * 3; // 544px
+
+        // QF card centers (Y positions from top)
+        const QF = [
+            { p1: 30, p2: 94 },   // Matchup 1: cards at 0-60 and 64-124
+            { p1: 170, p2: 234 }, // Matchup 2: starts at 140
+            { p1: 310, p2: 374 }, // Matchup 3: starts at 280
+            { p1: 450, p2: 514 }  // Matchup 4: starts at 420
+        ];
+
+        // SF positions - each SF player aligns with the MERGE point of two QF players
+        // SF1 P1 aligns between QF1 (center = 62) 
+        // SF1 P2 aligns between QF2 (center = 202)
+        // Gap between SF cards = difference = 140px
+        const SF_GAP = (QF[1].p1 + QF[1].p2) / 2 - (QF[0].p1 + QF[0].p2) / 2; // 140px
+        const SF = [
+            { p1: (QF[0].p1 + QF[0].p2) / 2, p2: (QF[1].p1 + QF[1].p2) / 2 }, // 62, 202
+            { p1: (QF[2].p1 + QF[2].p2) / 2, p2: (QF[3].p1 + QF[3].p2) / 2 }  // 342, 482
+        ];
+
+        // Finals position - centered between SF matchups
+        const F_CENTER = (SF[0].p2 + SF[1].p1) / 2; // (202 + 342) / 2 = 272
+        const F = { p1: F_CENTER - SF_GAP / 4, p2: F_CENTER + SF_GAP / 4 }; // Spread around center
 
         if (!userId) {
             document.getElementById('tournamentContainer').innerHTML = '<div class="no-tournament">No userId in URL</div>';
@@ -257,13 +284,6 @@
             });
         }
 
-        // QF: 4 matchups, each matchup = 2 cards (60px each) + 4px gap = 124px
-        // Total QF height = 4 * 124 + 3 * 16 = 496 + 48 = 544px
-        
-        // SF: 2 matchups, need to center with QF pairs
-        // SF matchup 1 center should align between QF matchup 1 & 2
-        // SF matchup 2 center should align between QF matchup 3 & 4
-
         function renderTournament(tournament) {
             const container = document.getElementById('tournamentContainer');
             const bracket = tournament.bracket || [];
@@ -275,41 +295,47 @@
             let html = '';
             
             // Round 1 - Quarter Finals
-            html += '<div class="round round-1" style="gap: ' + MATCHUP_GAP + 'px;">';
+            html += `<div class="round" style="gap: ${QF_MATCHUP_GAP}px;">`;
             round1.forEach((matchup) => {
-                html += createMatchupHTML(matchup, tournament.currentRound > 1);
+                html += createMatchupHTML(matchup, tournament.currentRound > 1, CARD_GAP);
             });
             for (let i = round1.length; i < 4; i++) {
-                html += createEmptyMatchup();
+                html += createEmptyMatchup(CARD_GAP);
             }
             html += '</div>';
             
             // Connector QF to SF
             html += createQFtoSFConnector();
             
-            // Round 2 - Semi Finals
-            const sfMargin = (CARD_HEIGHT * 2 + CARD_GAP + MATCHUP_GAP) / 2 - CARD_GAP / 2;
-            html += '<div class="round round-2" style="margin-top: ' + sfMargin + 'px; gap: ' + (sfMargin * 2 + MATCHUP_GAP) + 'px;">';
+            // Round 2 - Semi Finals (cards positioned to align with merge points)
+            const sf1Top = SF[0].p1 - CARD_HEIGHT / 2;
+            const sf1Gap = SF[0].p2 - SF[0].p1 - CARD_HEIGHT;
+            const sf2Top = SF[1].p1 - CARD_HEIGHT / 2;
+            const sfMatchupGap = sf2Top - (SF[0].p2 + CARD_HEIGHT / 2);
+            
+            html += `<div class="round" style="margin-top: ${sf1Top}px; gap: ${sfMatchupGap}px;">`;
             if (round2.length > 0) {
                 round2.forEach((matchup) => {
-                    html += createMatchupHTML(matchup, tournament.currentRound > 2);
+                    html += createMatchupHTML(matchup, tournament.currentRound > 2, sf1Gap);
                 });
             }
             for (let i = round2.length; i < 2; i++) {
-                html += createEmptyMatchup();
+                html += createEmptyMatchup(sf1Gap);
             }
             html += '</div>';
             
             // Connector SF to Finals
             html += createSFtoFConnector();
             
-            // Round 3 - Finals
-            const fMargin = sfMargin + (CARD_HEIGHT * 2 + CARD_GAP + sfMargin * 2 + MATCHUP_GAP) / 2 - (CARD_HEIGHT + CARD_GAP / 2);
-            html += '<div class="round round-3" style="margin-top: ' + fMargin + 'px;">';
+            // Round 3 - Finals (centered between SF matchups)
+            const fTop = F.p1 - CARD_HEIGHT / 2;
+            const fGap = F.p2 - F.p1 - CARD_HEIGHT;
+            
+            html += `<div class="round" style="margin-top: ${fTop}px;">`;
             if (round3.length > 0) {
-                html += createMatchupHTML(round3[0], tournament.currentRound > 3);
+                html += createMatchupHTML(round3[0], tournament.currentRound > 3, fGap);
             } else {
-                html += createEmptyMatchup();
+                html += createEmptyMatchup(fGap);
             }
             html += '</div>';
             
@@ -322,9 +348,9 @@
             container.innerHTML = html;
         }
 
-        function createMatchupHTML(matchup, showWinner) {
+        function createMatchupHTML(matchup, showWinner, gap) {
             if (!matchup || !matchup.player1 || !matchup.player2) {
-                return createEmptyMatchup();
+                return createEmptyMatchup(gap);
             }
             
             const p1 = matchup.player1;
@@ -335,7 +361,7 @@
             const p2IsWinner = showWinner && winner && winner.name === p2.name;
             
             return `
-                <div class="matchup" style="gap: ${CARD_GAP}px;">
+                <div class="matchup" style="gap: ${gap}px;">
                     <div class="player-card ${p1IsWinner ? 'winner' : ''}">
                         <div class="player-avatar">${p1.emoji || '❓'}</div>
                         <div class="player-info">
@@ -360,9 +386,9 @@
             `;
         }
 
-        function createEmptyMatchup() {
+        function createEmptyMatchup(gap) {
             return `
-                <div class="matchup" style="gap: ${CARD_GAP}px;">
+                <div class="matchup" style="gap: ${gap}px;">
                     <div class="player-card empty">
                         <div class="player-avatar">❓</div>
                         <div class="player-info">
@@ -385,67 +411,26 @@
 
         function createQFtoSFConnector() {
             const width = 50;
-            const matchupHeight = CARD_HEIGHT * 2 + CARD_GAP; // 124px
-            const totalHeight = matchupHeight * 4 + MATCHUP_GAP * 3; // 544px
-            
-            // Center of each QF card (from top of bracket)
-            const qf1_p1 = CARD_HEIGHT / 2;  // 30
-            const qf1_p2 = CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 94
-            
-            const qf2_start = matchupHeight + MATCHUP_GAP;  // 140
-            const qf2_p1 = qf2_start + CARD_HEIGHT / 2;  // 170
-            const qf2_p2 = qf2_start + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 234
-            
-            const qf3_start = (matchupHeight + MATCHUP_GAP) * 2;  // 280
-            const qf3_p1 = qf3_start + CARD_HEIGHT / 2;  // 310
-            const qf3_p2 = qf3_start + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 374
-            
-            const qf4_start = (matchupHeight + MATCHUP_GAP) * 3;  // 420
-            const qf4_p1 = qf4_start + CARD_HEIGHT / 2;  // 450
-            const qf4_p2 = qf4_start + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 514
-            
-            // SF card centers - each SF matchup is centered between two QF matchups
-            // SF1 top card center = midpoint between qf1_p2 and qf2_p1
-            const sf1_p1 = (qf1_p2 + qf2_p1) / 2;  // 164 - but needs adjustment for margin
-            // Actually: SF1 starts at sfMargin from top
-            // sfMargin = (124 + 16) / 2 - 2 = 68
-            // SF1 p1 center = 68 + 30 = 98
-            // SF1 p2 center = 68 + 94 = 162
-            
-            const sfMargin = (matchupHeight + MATCHUP_GAP) / 2 - CARD_GAP / 2;  // 68
-            const sf1_top = sfMargin + CARD_HEIGHT / 2;  // 98
-            const sf1_bot = sfMargin + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 162
-            
-            const sfGap = sfMargin * 2 + MATCHUP_GAP;  // 152
-            const sf2_top = sfMargin + matchupHeight + sfGap + CARD_HEIGHT / 2;  // 68 + 124 + 152 + 30 = 374
-            const sf2_bot = sfMargin + matchupHeight + sfGap + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;  // 438
+            const height = QF_TOTAL_HEIGHT;
             
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${totalHeight}">
-                        <!-- QF1 Player 1 → SF1 Player 1 -->
-                        <path class="bracket-line" d="M 0 ${qf1_p1} H 25 V ${sf1_top} H ${width}"/>
+                    <svg width="${width}" height="${height}">
+                        <!-- QF1 → SF1 P1 -->
+                        <path class="bracket-line" d="M 0 ${QF[0].p1} H 20 V ${SF[0].p1} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[0].p2} H 20 V ${SF[0].p1}"/>
                         
-                        <!-- QF1 Player 2 → merge point → SF1 Player 1 -->
-                        <path class="bracket-line" d="M 0 ${qf1_p2} H 25 V ${sf1_top}"/>
+                        <!-- QF2 → SF1 P2 -->
+                        <path class="bracket-line" d="M 0 ${QF[1].p1} H 20 V ${SF[0].p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[1].p2} H 20 V ${SF[0].p2}"/>
                         
-                        <!-- QF2 Player 1 → SF1 Player 2 -->
-                        <path class="bracket-line" d="M 0 ${qf2_p1} H 25 V ${sf1_bot} H ${width}"/>
+                        <!-- QF3 → SF2 P1 -->
+                        <path class="bracket-line" d="M 0 ${QF[2].p1} H 20 V ${SF[1].p1} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[2].p2} H 20 V ${SF[1].p1}"/>
                         
-                        <!-- QF2 Player 2 → merge point → SF1 Player 2 -->
-                        <path class="bracket-line" d="M 0 ${qf2_p2} H 25 V ${sf1_bot}"/>
-                        
-                        <!-- QF3 Player 1 → SF2 Player 1 -->
-                        <path class="bracket-line" d="M 0 ${qf3_p1} H 25 V ${sf2_top} H ${width}"/>
-                        
-                        <!-- QF3 Player 2 → merge point → SF2 Player 1 -->
-                        <path class="bracket-line" d="M 0 ${qf3_p2} H 25 V ${sf2_top}"/>
-                        
-                        <!-- QF4 Player 1 → SF2 Player 2 -->
-                        <path class="bracket-line" d="M 0 ${qf4_p1} H 25 V ${sf2_bot} H ${width}"/>
-                        
-                        <!-- QF4 Player 2 → merge point → SF2 Player 2 -->
-                        <path class="bracket-line" d="M 0 ${qf4_p2} H 25 V ${sf2_bot}"/>
+                        <!-- QF4 → SF2 P2 -->
+                        <path class="bracket-line" d="M 0 ${QF[3].p1} H 20 V ${SF[1].p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${QF[3].p2} H 20 V ${SF[1].p2}"/>
                     </svg>
                 </div>
             `;
@@ -453,36 +438,18 @@
 
         function createSFtoFConnector() {
             const width = 50;
-            const matchupHeight = CARD_HEIGHT * 2 + CARD_GAP;
-            const totalHeight = matchupHeight * 4 + MATCHUP_GAP * 3;
-            
-            const sfMargin = (matchupHeight + MATCHUP_GAP) / 2 - CARD_GAP / 2;
-            const sf1_top = sfMargin + CARD_HEIGHT / 2;
-            const sf1_bot = sfMargin + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;
-            
-            const sfGap = sfMargin * 2 + MATCHUP_GAP;
-            const sf2_top = sfMargin + matchupHeight + sfGap + CARD_HEIGHT / 2;
-            const sf2_bot = sfMargin + matchupHeight + sfGap + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;
-            
-            // Finals position
-            const fMargin = sfMargin + (matchupHeight + sfGap) / 2 - (CARD_HEIGHT + CARD_GAP / 2);
-            const f_top = fMargin + CARD_HEIGHT / 2;
-            const f_bot = fMargin + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;
+            const height = QF_TOTAL_HEIGHT;
             
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${totalHeight}">
-                        <!-- SF1 Player 1 → Finals Player 1 -->
-                        <path class="bracket-line" d="M 0 ${sf1_top} H 25 V ${f_top} H ${width}"/>
+                    <svg width="${width}" height="${height}">
+                        <!-- SF1 → F P1 -->
+                        <path class="bracket-line" d="M 0 ${SF[0].p1} H 20 V ${F.p1} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${SF[0].p2} H 20 V ${F.p1}"/>
                         
-                        <!-- SF1 Player 2 → merge → Finals Player 1 -->
-                        <path class="bracket-line" d="M 0 ${sf1_bot} H 25 V ${f_top}"/>
-                        
-                        <!-- SF2 Player 1 → Finals Player 2 -->
-                        <path class="bracket-line" d="M 0 ${sf2_top} H 25 V ${f_bot} H ${width}"/>
-                        
-                        <!-- SF2 Player 2 → merge → Finals Player 2 -->
-                        <path class="bracket-line" d="M 0 ${sf2_bot} H 25 V ${f_bot}"/>
+                        <!-- SF2 → F P2 -->
+                        <path class="bracket-line" d="M 0 ${SF[1].p1} H 20 V ${F.p2} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${SF[1].p2} H 20 V ${F.p2}"/>
                     </svg>
                 </div>
             `;
@@ -490,37 +457,23 @@
 
         function createFtoChampConnector() {
             const width = 40;
-            const matchupHeight = CARD_HEIGHT * 2 + CARD_GAP;
-            const totalHeight = matchupHeight * 4 + MATCHUP_GAP * 3;
-            
-            const sfMargin = (matchupHeight + MATCHUP_GAP) / 2 - CARD_GAP / 2;
-            const sfGap = sfMargin * 2 + MATCHUP_GAP;
-            const fMargin = sfMargin + (matchupHeight + sfGap) / 2 - (CARD_HEIGHT + CARD_GAP / 2);
-            
-            const f_top = fMargin + CARD_HEIGHT / 2;
-            const f_bot = fMargin + CARD_HEIGHT + CARD_GAP + CARD_HEIGHT / 2;
-            const f_center = (f_top + f_bot) / 2;
+            const height = QF_TOTAL_HEIGHT;
+            const center = (F.p1 + F.p2) / 2;
             
             return `
                 <div class="connector">
-                    <svg width="${width}" height="${totalHeight}">
-                        <!-- Finals Player 1 → Champion -->
-                        <path class="bracket-line" d="M 0 ${f_top} H 15 V ${f_center} H ${width}"/>
-                        
-                        <!-- Finals Player 2 → merge → Champion -->
-                        <path class="bracket-line" d="M 0 ${f_bot} H 15 V ${f_center}"/>
+                    <svg width="${width}" height="${height}">
+                        <path class="bracket-line" d="M 0 ${F.p1} H 15 V ${center} H ${width}"/>
+                        <path class="bracket-line" d="M 0 ${F.p2} H 15 V ${center}"/>
                     </svg>
                 </div>
             `;
         }
 
         function createWinnerSection(champion) {
-            const matchupHeight = CARD_HEIGHT * 2 + CARD_GAP;
-            const totalHeight = matchupHeight * 4 + MATCHUP_GAP * 3;
-            
             if (champion) {
                 return `
-                    <div class="winner-section" style="height: ${totalHeight}px;">
+                    <div class="winner-section" style="height: ${QF_TOTAL_HEIGHT}px;">
                         <div class="winner-card">
                             <div class="winner-indicator"></div>
                             <div class="winner-avatar">${champion.emoji || '🏆'}</div>
@@ -534,7 +487,7 @@
             }
             
             return `
-                <div class="winner-section" style="height: ${totalHeight}px;">
+                <div class="winner-section" style="height: ${QF_TOTAL_HEIGHT}px;">
                     <div class="winner-card pending">
                         <div class="winner-avatar">❓</div>
                         <div class="winner-label">🏆 Champion</div>
@@ -548,15 +501,18 @@
 
         function showDefaultBracket() {
             const container = document.getElementById('tournamentContainer');
-            const matchupHeight = CARD_HEIGHT * 2 + CARD_GAP;
-            const sfMargin = (matchupHeight + MATCHUP_GAP) / 2 - CARD_GAP / 2;
-            const sfGap = sfMargin * 2 + MATCHUP_GAP;
-            const fMargin = sfMargin + (matchupHeight + sfGap) / 2 - (CARD_HEIGHT + CARD_GAP / 2);
+            
+            const sf1Top = SF[0].p1 - CARD_HEIGHT / 2;
+            const sf1Gap = SF[0].p2 - SF[0].p1 - CARD_HEIGHT;
+            const sf2Top = SF[1].p1 - CARD_HEIGHT / 2;
+            const sfMatchupGap = sf2Top - (SF[0].p2 + CARD_HEIGHT / 2);
+            const fTop = F.p1 - CARD_HEIGHT / 2;
+            const fGap = F.p2 - F.p1 - CARD_HEIGHT;
             
             let html = '';
             
             // Round 1
-            html += '<div class="round round-1" style="gap: ' + MATCHUP_GAP + 'px;">';
+            html += `<div class="round" style="gap: ${QF_MATCHUP_GAP}px;">`;
             for (let i = 0; i < 4; i++) {
                 html += `
                     <div class="matchup" style="gap: ${CARD_GAP}px;">
@@ -584,17 +540,17 @@
             html += createQFtoSFConnector();
             
             // Round 2
-            html += '<div class="round round-2" style="margin-top: ' + sfMargin + 'px; gap: ' + sfGap + 'px;">';
+            html += `<div class="round" style="margin-top: ${sf1Top}px; gap: ${sfMatchupGap}px;">`;
             for (let i = 0; i < 2; i++) {
-                html += createEmptyMatchup();
+                html += createEmptyMatchup(sf1Gap);
             }
             html += '</div>';
             
             html += createSFtoFConnector();
             
             // Finals
-            html += '<div class="round round-3" style="margin-top: ' + fMargin + 'px;">';
-            html += createEmptyMatchup();
+            html += `<div class="round" style="margin-top: ${fTop}px;">`;
+            html += createEmptyMatchup(fGap);
             html += '</div>';
             
             html += createFtoChampConnector();
