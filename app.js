@@ -1465,8 +1465,15 @@ function showTournamentBracketModal(index) {
     // Champion center
     const CHAMP_Y = 272;
     
-    // Build QF matchups HTML
-    const qfMatchups = round1.map(m => createModalMatchupHTML(m)).join('');
+    // Get all QF players
+    const qf1p1 = round1[0]?.player1;
+    const qf1p2 = round1[0]?.player2;
+    const qf2p1 = round1[1]?.player1;
+    const qf2p2 = round1[1]?.player2;
+    const qf3p1 = round1[2]?.player1;
+    const qf3p2 = round1[2]?.player2;
+    const qf4p1 = round1[3]?.player1;
+    const qf4p2 = round1[3]?.player2;
     
     // Build SF player cards (individual cards, not matchups)
     const sf1p1 = round2[0]?.player1;
@@ -1491,11 +1498,34 @@ function showTournamentBracketModal(index) {
                 <!-- Bracket Container -->
                 <div style="display: flex; align-items: flex-start; justify-content: center;">
                     
-                    <!-- Quarter Finals Column -->
+                    <!-- Quarter Finals Column - Individual cards positioned absolutely -->
                     <div style="display: flex; flex-direction: column;">
                         <div style="color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 8px; height: 20px;">Quarter Finals</div>
-                        <div style="display: flex; flex-direction: column; gap: ${QF_MATCHUP_GAP}px;">
-                            ${qfMatchups}
+                        <div style="position: relative; width: 220px; height: ${QF_TOTAL_HEIGHT}px;">
+                            <div style="position: absolute; top: ${QF_Y[0].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf1p1, qf1p2, round1[0])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[0].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf1p2, qf1p1, round1[0])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[1].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf2p1, qf2p2, round1[1])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[1].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf2p2, qf2p1, round1[1])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[2].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf3p1, qf3p2, round1[2])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[2].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf3p2, qf3p1, round1[2])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[3].p1 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf4p1, qf4p2, round1[3])}
+                            </div>
+                            <div style="position: absolute; top: ${QF_Y[3].p2 - CARD_HEIGHT/2}px; left: 0; right: 0;">
+                                ${createModalPlayerCard(qf4p2, qf4p1, round1[3])}
+                            </div>
                         </div>
                     </div>
                     
