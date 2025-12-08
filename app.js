@@ -1259,8 +1259,17 @@ function finishHunt() {
     .then(function() {
         console.log('✅ Hunt saved to history');
         
-        // Go to bonus-hunts to see the completed hunt
-        // DON'T clear active hunt - it stays in OBS until new hunt starts
+        // Clear the active hunt so create form shows
+        currentHunt = null;
+        games = [];
+        
+        // Clear from Firebase
+        return firebase.database().ref('users/' + currentUser.uid + '/activeHunt').remove();
+    })
+    .then(function() {
+        console.log('✅ Active hunt cleared');
+        
+        // Go to bonus-hunts to show create new hunt form
         navigateTo('bonus-hunts');
         alert('Hunt completed and saved to history! 🎉');
     })
