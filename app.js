@@ -1399,6 +1399,32 @@ function updateTournamentsPage() {
     } else if (activeTournament.currentRound <= getTotalRounds(activeTournament.size)) {
         setupRoundManagementListeners();
     }
+    
+    // Setup tournament history delete buttons
+    setupTournamentHistoryListeners();
+}
+
+function setupTournamentHistoryListeners() {
+    const deleteButtons = document.querySelectorAll('.deleteTournamentBtn');
+    deleteButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const index = parseInt(this.dataset.tournamentIndex);
+            deleteTournamentFromHistory(index);
+        });
+    });
+}
+
+function deleteTournamentFromHistory(index) {
+    if (!confirm('Are you sure you want to delete this tournament from history?')) return;
+    
+    tournamentHistory.splice(index, 1);
+    
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').set(tournamentHistory);
+    }
+    
+    updateTournamentsPage();
 }
 
 function getTotalRounds(size) {
@@ -1422,11 +1448,9 @@ function createTournamentSetupForm() {
                         <input type="text" id="tournamentName" required style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
                     </div>
                     <div>
-                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">Number of Players *</label>
-                        <select id="tournamentSize" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
-                            <option value="8">8 Players</option>
-                            <option value="16">16 Players</option>
-                        </select>
+                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">Players</label>
+                        <div style="padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">8 Players</div>
+                        <input type="hidden" id="tournamentSize" value="8">
                     </div>
                 </div>
                 
@@ -1863,22 +1887,77 @@ function createTournamentHistoryCards() {
         const actualIndex = tournamentHistory.length - 1 - index;
         const date = new Date(tournament.date).toLocaleDateString();
         const winner = tournament.champion;
+        const bracket = tournament.bracket || [];
         
         if (!winner) return '';
         
+        // Get all players from round 1
+        const round1 = bracket[0] || [];
+        const allPlayers = [];
+        round1.forEach(matchup => {
+            if (matchup.player1) allPlayers.push(matchup.player1);
+            if (matchup.player2) allPlayers.push(matchup.player2);
+        });
+        
+        // Get finalists from finals round
+        const finals = bracket[2] || [];
+        const finalist1 = finals[0]?.player1;
+        const finalist2 = finals[0]?.player2;
+        
         return `
-            <div style="background: rgba(26, 26, 46, 0.6); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;" onmouseenter="this.style.borderColor='#4a9eff'; this.style.transform='translateY(-4px)'; this.style.boxShadow='0 8px 24px rgba(74, 158, 255, 0.3)';" onmouseleave="this.style.borderColor='rgba(74, 158, 255, 0.2)'; this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                <h3 style="color: #4a9eff; margin-bottom: 0.5rem;">${tournament.name}</h3>
-                <p style="color: #888; font-size: 0.9rem; margin-bottom: 1rem;">${date} • ${tournament.size} players</p>
-                
-                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; border-left: 4px solid #ffd700;">
-                    <div style="font-size: 2rem;">${winner.emoji}</div>
-                    <div style="flex: 1;">
-                        <div style="color: #fff; font-weight: bold;">🏆 ${winner.name}</div>
-                        <div style="color: #888; font-size: 0.85rem;">${winner.game}</div>
+            <div class="tournament-history-card" data-tournament-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;">
+                <div class="tournament-history-content" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem;">${tournament.name}</h3>
+                        <p style="color: #888; font-size: 0.9rem;">${date} • ${tournament.size} players</p>
                     </div>
-                    <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 12px; font-weight: bold;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 2rem;">${winner.emoji}</div>
+                    </div>
                 </div>
+                
+                <!-- Champion Section -->
+                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%); border-radius: 8px; border-left: 4px solid #ffd700; margin-bottom: 1rem;">
+                    <div style="flex: 1;">
+                        <div style="color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 1.1rem;">${winner.name}</div>
+                    </div>
+                    <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 10px; font-weight: bold; font-size: 1.1rem;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                </div>
+                
+                <!-- Finals Preview -->
+                ${finalist1 && finalist2 ? `
+                <div style="padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; margin-bottom: 1rem;">
+                    <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Finals</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; ${finalist1.multiplier > finalist2.multiplier ? 'opacity: 1;' : 'opacity: 0.5;'}">
+                            <span style="font-size: 1.2rem;">${finalist1.emoji}</span>
+                            <span style="color: #fff; font-size: 0.9rem;">${finalist1.name}</span>
+                            <span style="color: #ff6b6b; font-size: 0.85rem; font-weight: bold;">${finalist1.multiplier ? finalist1.multiplier.toFixed(0) + 'x' : '-'}</span>
+                        </div>
+                        <span style="color: #666; font-size: 0.8rem;">vs</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; ${finalist2.multiplier > finalist1.multiplier ? 'opacity: 1;' : 'opacity: 0.5;'}">
+                            <span style="color: #ff6b6b; font-size: 0.85rem; font-weight: bold;">${finalist2.multiplier ? finalist2.multiplier.toFixed(0) + 'x' : '-'}</span>
+                            <span style="color: #fff; font-size: 0.9rem;">${finalist2.name}</span>
+                            <span style="font-size: 1.2rem;">${finalist2.emoji}</span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- All Players Mini Grid -->
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${allPlayers.map(p => `
+                        <div style="display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; background: rgba(40, 40, 60, 0.6); border-radius: 6px; font-size: 0.8rem; ${p.emoji === winner.emoji ? 'border: 1px solid #ffd700;' : ''}">
+                            <span>${p.emoji}</span>
+                            <span style="color: #888;">${p.multiplier ? p.multiplier.toFixed(0) + 'x' : '-'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <button class="deleteTournamentBtn" data-tournament-index="${actualIndex}" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
+                    🗑️ Delete Tournament
+                </button>
             </div>
         `;
     }).filter(Boolean).join('');
