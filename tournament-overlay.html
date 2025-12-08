@@ -355,30 +355,22 @@
             
             const p1 = matchup.player1;
             const p2 = matchup.player2;
-            const winner = matchup.winner;
             
-            // Determine winner/loser states
-            let p1IsWinner = false;
-            let p2IsWinner = false;
-            let p1IsLoser = false;
-            let p2IsLoser = false;
+            // Determine winner/loser states based on multiplier (higher wins)
+            let p1Class = '';
+            let p2Class = '';
             
-            if (showWinner && winner) {
-                // Compare by emoji (unique identifier) since names might be similar
-                if (winner.emoji) {
-                    p1IsWinner = winner.emoji === p1.emoji;
-                    p2IsWinner = winner.emoji === p2.emoji;
-                } else {
-                    // Fallback: winner has higher multiplier
-                    p1IsWinner = p1.multiplier > p2.multiplier;
-                    p2IsWinner = p2.multiplier > p1.multiplier;
+            // Only show winner/loser when round is complete AND both have multipliers
+            if (showWinner && p1.multiplier && p2.multiplier) {
+                if (p1.multiplier > p2.multiplier) {
+                    p1Class = 'winner';
+                    p2Class = 'loser';
+                } else if (p2.multiplier > p1.multiplier) {
+                    p1Class = 'loser';
+                    p2Class = 'winner';
                 }
-                p1IsLoser = !p1IsWinner && (p1IsWinner || p2IsWinner);
-                p2IsLoser = !p2IsWinner && (p1IsWinner || p2IsWinner);
+                // If equal, no highlight
             }
-            
-            const p1Class = p1IsWinner ? 'winner' : (p1IsLoser ? 'loser' : '');
-            const p2Class = p2IsWinner ? 'winner' : (p2IsLoser ? 'loser' : '');
             
             return `
                 <div class="matchup" style="gap: ${gap}px;">
