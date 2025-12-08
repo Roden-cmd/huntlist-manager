@@ -358,8 +358,66 @@
         }
 
         function showNoTournament() {
-            document.getElementById('tournamentContainer').innerHTML = 
-                '<div class="no-tournament">No Active Tournament</div>';
+            // Show default empty bracket
+            const container = document.getElementById('tournamentContainer');
+            
+            let html = `
+                <div class="tournament-header">
+                    <div class="tournament-title">Tournament</div>
+                    <div class="tournament-date">Waiting for players...</div>
+                </div>
+                <div class="bracket-container">
+            `;
+            
+            // Default 8-player empty bracket
+            const roundNames = ['Quarter Finals', 'Semi Finals', 'Finals'];
+            const matchupsPerRound = [4, 2, 1];
+            
+            roundNames.forEach((roundName, roundIndex) => {
+                html += `<div class="round-column"><div class="round-title">${roundName}</div>`;
+                
+                for (let i = 0; i < matchupsPerRound[roundIndex]; i++) {
+                    html += `
+                        <div class="matchup">
+                            <div class="player-card">
+                                <div class="player-emoji">❓</div>
+                                <div class="player-info">
+                                    <div class="player-name">Player ${roundIndex === 0 ? (i * 2 + 1) : '?'}</div>
+                                    <div class="player-game">TBD</div>
+                                </div>
+                                <div class="player-multiplier pending">---</div>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="player-card">
+                                <div class="player-emoji">❓</div>
+                                <div class="player-info">
+                                    <div class="player-name">Player ${roundIndex === 0 ? (i * 2 + 2) : '?'}</div>
+                                    <div class="player-game">TBD</div>
+                                </div>
+                                <div class="player-multiplier pending">---</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += '</div>';
+            });
+            
+            // Empty winner section
+            html += `
+                </div>
+                <div class="champion-container">
+                    <div class="champion-card" style="opacity: 0.5;">
+                        <div class="champion-emoji">❓</div>
+                        <div class="champion-trophy">🏆</div>
+                        <div class="champion-name">Champion</div>
+                        <div class="champion-game">TBD</div>
+                        <div class="champion-multiplier">---</div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
         }
     </script>
 </body>

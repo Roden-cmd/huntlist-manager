@@ -1524,31 +1524,97 @@ function createRoundManagementView() {
     const roundData = activeTournament.bracket[round - 1];
     const roundName = getRoundName(round, activeTournament.size);
     
-    let html = '<div style="background: rgba(26, 26, 46, 0.6); padding: 2rem; border-radius: 12px;">';
-    html += '<h2 style="color: #4a9eff; margin-bottom: 1.5rem;">Round ' + round + ': ' + roundName + '</h2>';
+    let html = '<div style="background: rgba(26, 26, 46, 0.6); padding: 1.5rem; border-radius: 12px;">';
+    html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">';
+    html += '<h2 style="color: #4a9eff; margin: 0;">Round ' + round + ': ' + roundName + '</h2>';
+    html += '<button type="button" onclick="saveCurrentRound()" class="btn" style="background: #28a745; color: #fff; padding: 0.5rem 1.5rem; border: none; border-radius: 6px; cursor: pointer;">💾 Save to OBS</button>';
+    html += '</div>';
     
     html += '<form id="roundForm">';
     
+    // Grid layout for matchups - 2 columns for 8 players
+    html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">';
+    
     roundData.forEach((matchup, matchIndex) => {
-        html += '<div style="background: rgba(40, 40, 60, 0.4); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">';
-        html += '<h3 style="color: #fff; margin-bottom: 1rem;">Matchup ' + (matchIndex + 1) + '</h3>';
-        
-        // Player 1
-        html += createPlayerInputFields(matchup.player1, matchIndex, 1);
-        
-        html += '<div style="text-align: center; color: #666; margin: 1rem 0; font-weight: bold;">VS</div>';
-        
-        // Player 2
-        html += createPlayerInputFields(matchup.player2, matchIndex, 2);
-        
-        html += '</div>';
+        html += `
+            <div style="background: rgba(40, 40, 60, 0.4); padding: 1rem; border-radius: 10px;">
+                <div style="color: #888; font-size: 0.8rem; margin-bottom: 0.75rem; text-align: center;">Matchup ${matchIndex + 1}</div>
+                
+                <!-- Players side by side -->
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+                    <!-- Player 1 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${matchup.player1.emoji}</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 0.9rem;">${matchup.player1.name}</div>
+                        <div style="color: #888; font-size: 0.75rem;">${matchup.player1.game}</div>
+                        <div style="color: #4a9eff; font-size: 0.75rem;">€${matchup.player1.bet.toFixed(2)}</div>
+                        ${matchup.player1.multiplier > 0 ? `<div style="background: #ff6b6b; color: #fff; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-top: 0.25rem;">${matchup.player1.multiplier.toFixed(0)}x</div>` : ''}
+                    </div>
+                    
+                    <!-- VS -->
+                    <div style="color: #666; font-size: 0.8rem; font-weight: bold;">VS</div>
+                    
+                    <!-- Player 2 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${matchup.player2.emoji}</div>
+                        <div style="color: #fff; font-weight: bold; font-size: 0.9rem;">${matchup.player2.name}</div>
+                        <div style="color: #888; font-size: 0.75rem;">${matchup.player2.game}</div>
+                        <div style="color: #4a9eff; font-size: 0.75rem;">€${matchup.player2.bet.toFixed(2)}</div>
+                        ${matchup.player2.multiplier > 0 ? `<div style="background: #ff6b6b; color: #fff; padding: 0.2rem 0.5rem; border-radius: 8px; font-size: 0.8rem; font-weight: bold; display: inline-block; margin-top: 0.25rem;">${matchup.player2.multiplier.toFixed(0)}x</div>` : ''}
+                    </div>
+                </div>
+                
+                <!-- Win inputs side by side -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="number" step="0.01" id="m${matchIndex}p1Win" value="${matchup.player1.win || ''}" placeholder="Win €" required 
+                        style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.9rem; text-align: center;">
+                    <input type="number" step="0.01" id="m${matchIndex}p2Win" value="${matchup.player2.win || ''}" placeholder="Win €" required 
+                        style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.9rem; text-align: center;">
+                </div>
+            </div>
+        `;
     });
     
-    html += '<button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">✓ Complete Round & Advance Winners</button>';
+    html += '</div>';
+    
+    html += '<button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem; margin-top: 1.5rem;">✓ Complete Round & Advance Winners</button>';
     html += '</form>';
     html += '</div>';
     
     return html;
+}
+
+function saveCurrentRound() {
+    const round = activeTournament.currentRound;
+    const roundData = activeTournament.bracket[round - 1];
+    
+    // Collect current win amounts (don't require all filled)
+    roundData.forEach((matchup, matchIndex) => {
+        const p1WinInput = document.getElementById('m' + matchIndex + 'p1Win');
+        const p2WinInput = document.getElementById('m' + matchIndex + 'p2Win');
+        
+        if (p1WinInput && p1WinInput.value) {
+            matchup.player1.win = parseFloat(p1WinInput.value);
+            matchup.player1.multiplier = matchup.player1.bet > 0 ? (matchup.player1.win / matchup.player1.bet) : 0;
+        }
+        
+        if (p2WinInput && p2WinInput.value) {
+            matchup.player2.win = parseFloat(p2WinInput.value);
+            matchup.player2.multiplier = matchup.player2.bet > 0 ? (matchup.player2.win / matchup.player2.bet) : 0;
+        }
+    });
+    
+    saveTournament();
+    
+    // Visual feedback
+    const btn = event.target;
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '✓ Saved!';
+    btn.style.background = '#1a8f3c';
+    setTimeout(() => {
+        btn.innerHTML = oldText;
+        btn.style.background = '#28a745';
+    }, 1500);
 }
 
 function createPlayerInputFields(player, matchIndex, playerNum) {
