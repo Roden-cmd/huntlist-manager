@@ -1352,15 +1352,17 @@ function updateTournamentsPage() {
     // Header with OBS URL
     if (currentUser) {
         const overlayUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'tournament-overlay.html?userId=' + currentUser.uid;
-        html += '<div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem;">';
-        html += '<input type="text" id="tournamentOverlayUrl" value="' + overlayUrl + '" readonly style="width: 400px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.85rem;">';
+        html += '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">';
+        html += '<h1 style="color: #fff; margin: 0;">Create Tournament</h1>';
+        html += '<div style="display: flex; gap: 0.75rem; align-items: center;">';
+        html += '<input type="text" id="tournamentOverlayUrl" value="' + overlayUrl + '" readonly style="width: 350px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.85rem;">';
         html += '<button onclick="copyTournamentOverlayUrl()" class="btn btn-primary" style="padding: 0.5rem 1rem;">📋 Copy OBS URL</button>';
+        html += '</div>';
         html += '</div>';
     }
     
     if (!activeTournament) {
         // Phase 1: Create tournament
-        html += '<h1 style="color: #fff; margin-bottom: 1.5rem;">Create Tournament</h1>';
         html += createTournamentSetupForm();
     } else if (activeTournament.currentRound <= getTotalRounds(activeTournament.size)) {
         // Active tournament - show current round
@@ -1743,68 +1745,38 @@ function createTournamentSetupForm() {
                     </div>
                 </div>
                 
-                <!-- Theme Selector -->
-                <div style="margin-bottom: 1.5rem;">
-                    <label style="display: block; color: #888; margin-bottom: 0.5rem;">🎨 Tournament Theme</label>
-                    <div id="themeSelector" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;">
-                        <div class="theme-option selected" data-theme="default" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid #4a9eff; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                            <div style="font-size: 1.5rem;">🏆</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Classic</div>
-                        </div>
-                        <div class="theme-option" data-theme="fire" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);">
-                            <div style="font-size: 1.5rem;">🔥</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Fire</div>
-                        </div>
-                        <div class="theme-option" data-theme="ice" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);">
-                            <div style="font-size: 1.5rem;">❄️</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Ice</div>
-                        </div>
-                        <div class="theme-option" data-theme="gold" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);">
-                            <div style="font-size: 1.5rem;">👑</div>
-                            <div style="color: #1a1a2e; font-size: 0.75rem; margin-top: 0.25rem;">Royal</div>
-                        </div>
-                        <div class="theme-option" data-theme="neon" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #ff00ff 0%, #00ffff 100%);">
-                            <div style="font-size: 1.5rem;">⚡</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Neon</div>
-                        </div>
-                        <div class="theme-option" data-theme="forest" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #134e5e 0%, #71b280 100%);">
-                            <div style="font-size: 1.5rem;">🌲</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Forest</div>
-                        </div>
-                        <div class="theme-option" data-theme="sunset" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);">
-                            <div style="font-size: 1.5rem;">🌅</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Sunset</div>
-                        </div>
-                        <div class="theme-option" data-theme="ocean" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);">
-                            <div style="font-size: 1.5rem;">🌊</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Ocean</div>
-                        </div>
-                        <div class="theme-option" data-theme="dark" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #232526 0%, #414345 100%);">
-                            <div style="font-size: 1.5rem;">🌙</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Dark</div>
-                        </div>
-                        <div class="theme-option" data-theme="christmas" style="cursor: pointer; padding: 0.75rem; border-radius: 8px; text-align: center; border: 2px solid transparent; background: linear-gradient(135deg, #165B33 0%, #BB2528 100%);">
-                            <div style="font-size: 1.5rem;">🎄</div>
-                            <div style="color: #fff; font-size: 0.75rem; margin-top: 0.25rem;">Christmas</div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="tournamentTheme" value="default">
-                </div>
-                
-                ${tournamentHistory.length > 0 ? `
-                <div style="background: rgba(74, 158, 255, 0.1); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-                    <label style="display: block; color: #4a9eff; margin-bottom: 0.5rem; font-weight: bold;">⚡ Quick Start - Load Previous Players</label>
-                    <p style="color: #888; font-size: 0.85rem; margin-bottom: 0.75rem;">Load players from a previous tournament. You can edit any field after loading.</p>
-                    <div style="display: flex; gap: 0.75rem;">
-                        <select id="loadPreviousTournament" style="flex: 1; padding: 0.6rem; background: rgba(40, 40, 60, 0.8); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff; font-size: 0.9rem;">
-                            ${historyOptions}
+                <!-- Theme & Quick Start Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Theme Selector Dropdown -->
+                    <div>
+                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">🎨 Tournament Theme</label>
+                        <select id="tournamentTheme" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem; cursor: pointer;">
+                            <option value="default">🏆 Classic - Purple/Blue</option>
+                            <option value="fire">🔥 Fire - Red/Orange</option>
+                            <option value="ice">❄️ Ice - Cyan/Blue</option>
+                            <option value="gold">👑 Royal - Gold/Orange</option>
+                            <option value="neon">⚡ Neon - Magenta/Cyan</option>
+                            <option value="forest">🌲 Forest - Teal/Green</option>
+                            <option value="sunset">🌅 Sunset - Pink/Orange</option>
+                            <option value="ocean">🌊 Ocean - Navy/Teal</option>
+                            <option value="dark">🌙 Dark - Gray/Black</option>
+                            <option value="christmas">🎄 Christmas - Green/Red</option>
                         </select>
-                        <button type="button" id="loadPlayersBtn" class="btn btn-primary" style="padding: 0.6rem 1.25rem; white-space: nowrap;">📋 Load Players</button>
+                    </div>
+                    
+                    <!-- Quick Start Dropdown -->
+                    <div>
+                        <label style="display: block; color: #888; margin-bottom: 0.5rem;">⚡ Quick Start - Load Previous</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <select id="loadPreviousTournament" style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;" ${tournamentHistory.length === 0 ? 'disabled' : ''}>
+                                ${tournamentHistory.length > 0 ? historyOptions : '<option value="">No previous tournaments</option>'}
+                            </select>
+                            <button type="button" id="loadPlayersBtn" class="btn btn-primary" style="padding: 0.75rem 1rem; white-space: nowrap; ${tournamentHistory.length === 0 ? 'opacity: 0.5; cursor: not-allowed;' : ''}" ${tournamentHistory.length === 0 ? 'disabled' : ''}>📋 Load</button>
+                        </div>
                     </div>
                 </div>
-                ` : ''}
                 
-                <h3 style="color: #fff; margin: 1.5rem 0 0.5rem 0;">Players - Round 1 Setup</h3>
+                <h3 style="color: #fff; margin: 0.5rem 0 0.5rem 0;">Players - Round 1 Setup</h3>
                 <p style="color: #888; margin-bottom: 1rem; font-size: 0.9rem;">Enter player names, game, and bet amount. Win amounts will be added during the tournament.</p>
                 
                 <div id="playersSetupContainer"></div>
@@ -1884,32 +1856,14 @@ function setupTournamentSetupForm() {
             });
             
             // Show success message
-            loadBtn.textContent = '✓ Loaded!';
+            loadBtn.textContent = '✓ Done!';
             loadBtn.style.background = '#51cf66';
             setTimeout(() => {
-                loadBtn.textContent = '📋 Load Players';
+                loadBtn.textContent = '📋 Load';
                 loadBtn.style.background = '';
             }, 2000);
         });
     }
-    
-    // Theme selector functionality
-    const themeOptions = document.querySelectorAll('.theme-option');
-    const themeInput = document.getElementById('tournamentTheme');
-    
-    themeOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            // Remove selected from all
-            themeOptions.forEach(o => {
-                o.style.border = '2px solid transparent';
-                o.classList.remove('selected');
-            });
-            // Add selected to clicked
-            this.style.border = '2px solid #4a9eff';
-            this.classList.add('selected');
-            themeInput.value = this.dataset.theme;
-        });
-    });
     
     form.addEventListener('submit', function(e) {
         e.preventDefault();
