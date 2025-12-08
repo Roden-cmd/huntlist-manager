@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bonus Hunt Overlay v2.1</title>
+    <title>Bonus Hunt Overlay v3.0</title>
     <style>
         * {
             margin: 0;
@@ -20,7 +20,7 @@
 
         .huntlist-container {
             background: rgba(26, 26, 46, 0.95);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 20px;
             max-width: 400px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -164,10 +164,6 @@
             text-align: center;
         }
 
-        .stat-box.full-width {
-            grid-column: 1 / -1;
-        }
-
         .stat-label {
             font-size: 9px;
             color: #888;
@@ -204,60 +200,47 @@
         }
 
         .games-list {
-            background: rgba(30, 30, 50, 0.5);
-            border-radius: 8px;
-            padding: 8px;
-            max-height: 270px;
+            max-height: 300px;
             overflow: hidden;
             position: relative;
         }
 
-        /* Seamless infinite scroll animation */
-        @keyframes infiniteScroll {
-            0% {
-                transform: translateY(0);
-            }
-            100% {
-                transform: translateY(-50%);
-            }
-        }
-
         .games-list-wrapper {
-            animation: infiniteScroll 40s linear infinite;
+            display: flex;
+            flex-direction: column;
         }
 
-        .games-list-wrapper:hover {
-            animation-play-state: paused;
+        @keyframes infiniteScroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
         }
 
         .game-item {
-            background: rgba(40, 40, 60, 0.7);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 6px;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: 25px 1fr 55px 70px;
             align-items: center;
-            transition: background 0.2s;
+            padding: 8px 10px;
+            background: rgba(40, 40, 60, 0.4);
+            border-radius: 6px;
+            margin-bottom: 4px;
+            gap: 8px;
         }
 
-        .game-item:hover {
-            background: rgba(50, 50, 70, 0.8);
-        }
-
-        .game-item:last-child {
-            margin-bottom: 0;
+        .game-item.biggest-win-row {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         .game-number {
             font-size: 11px;
             color: #666;
-            margin-right: 6px;
-            min-width: 20px;
+            text-align: center;
+        }
+
+        .biggest-win-row .game-number {
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .game-name {
-            flex: 1;
             font-size: 13px;
             color: #fff;
             white-space: nowrap;
@@ -274,89 +257,63 @@
         }
 
         .game-bet {
-            font-size: 12px;
-            color: #b0b0b0;
-            margin: 0 12px;
-            min-width: 55px;
+            font-size: 11px;
+            color: #888;
             text-align: right;
+        }
+
+        .biggest-win-row .game-bet {
+            color: rgba(255, 255, 255, 0.7);
         }
 
         .game-win {
             font-size: 13px;
             font-weight: bold;
-            min-width: 70px;
             text-align: right;
-        }
-
-        .game-win.pending {
-            color: #888;
-            font-size: 11px;
         }
 
         .game-win.won {
             color: #51cf66;
         }
 
-        /* Scrollbar */
-        .games-list::-webkit-scrollbar {
-            width: 6px;
+        .game-win.pending {
+            color: #888;
+            font-style: italic;
+            font-weight: normal;
         }
 
-        .games-list::-webkit-scrollbar-track {
-            background: rgba(20, 20, 30, 0.5);
-            border-radius: 3px;
-        }
-
-        .games-list::-webkit-scrollbar-thumb {
-            background: rgba(80, 80, 100, 0.8);
-            border-radius: 3px;
-        }
-
-        .games-list::-webkit-scrollbar-thumb:hover {
-            background: rgba(100, 100, 120, 0.9);
+        .biggest-win-row .game-win {
+            color: #fff;
         }
 
         .no-games {
             text-align: center;
             color: #666;
             padding: 30px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
-        /* Animation */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .game-item {
-            animation: slideIn 0.3s ease-out;
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 40px;
         }
     </style>
 </head>
-<body>
-    <div class="huntlist-container" id="huntlistContainer">
+<body class="theme-default">
+    <div class="huntlist-container">
         <div class="huntlist-header">
             <div class="huntlist-title-row">
                 <span class="huntlist-icon">🎰</span>
-                <span class="huntlist-title" id="huntTitle">Huntlist</span>
+                <span class="huntlist-title" id="huntTitle">Loading...</span>
             </div>
-            <div class="huntlist-description" id="huntDescription" style="display: none;"></div>
+            <div class="huntlist-description" id="huntDescription"></div>
         </div>
-        
-        <!-- Version indicator (will be hidden with CSS after testing) -->
-        <div style="position: absolute; top: 5px; right: 5px; font-size: 10px; color: #4a9eff; background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 3px; z-index: 9999;">v2.1 ✓</div>
 
         <div class="huntlist-stats">
             <div class="stat-box">
-                <div class="stat-label">Balance</div>
-                <div class="stat-value currency" id="balanceValue">1000$</div>
+                <div class="stat-label">Starting Balance</div>
+                <div class="stat-value currency" id="balanceValue">€0.00</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Total Games</div>
@@ -368,7 +325,7 @@
             </div>
             <div class="stat-box">
                 <div class="stat-label">Biggest Win</div>
-                <div class="stat-value win" id="biggestWinValue">$0.00</div>
+                <div class="stat-value win" id="biggestWinValue">€0.00</div>
                 <div class="stat-game-name" id="biggestWinGame">-</div>
             </div>
         </div>
@@ -382,82 +339,70 @@
         </div>
     </div>
 
-    <script>
-        console.log('🎰 Bonus Hunt Overlay v2.1 - Loaded at:', new Date().toISOString());
-        console.log('Page URL:', window.location.href);
-        
-        function loadHuntData() {
-            console.log('=== Loading Hunt Data ===');
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
+            authDomain: "huntlist-manager.firebaseapp.com",
+            databaseURL: "https://huntlist-manager-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "huntlist-manager",
+            storageBucket: "huntlist-manager.firebasestorage.app",
+            messagingSenderId: "380684782952",
+            appId: "1:380684782952:web:814627bb865c3aff33dadd",
+            measurementId: "G-LLBBTHN6BK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+
+        console.log('🎰 Bonus Hunt Overlay v3.0 - Firebase Edition');
+        console.log('User ID:', userId);
+
+        if (!userId) {
+            document.getElementById('huntTitle').textContent = 'No userId in URL';
+            document.getElementById('gamesList').innerHTML = '<div class="no-games">Add ?userId=YOUR_ID to URL</div>';
+        } else {
+            // Listen to activeHunt in Firebase
+            const huntRef = ref(db, `users/${userId}/activeHunt`);
             
-            // Check if we're in preview mode (showing history item)
-            const urlParams = new URLSearchParams(window.location.search);
-            const isPreview = urlParams.get('preview') === 'true';
-            console.log('Preview mode:', isPreview);
-            console.log('Full URL:', window.location.href);
-            
-            // If preview mode but no parent window, we're in OBS with wrong URL
-            if (isPreview && window.parent === window) {
-                console.warn('⚠️ WARNING: Preview mode detected in standalone overlay (OBS)!');
-                console.warn('This should not happen. Redirecting to normal mode...');
-                // Remove preview parameter and reload
-                window.location.href = window.location.pathname;
-                return;
-            }
-            
-            let hunt, games;
-            
-            try {
-                if (isPreview) {
-                    // Load preview data
-                    const previewHuntStr = localStorage.getItem('previewHunt');
-                    const previewGamesStr = localStorage.getItem('previewGames');
-                    console.log('Preview hunt string:', previewHuntStr);
-                    console.log('Preview games string:', previewGamesStr);
+            onValue(huntRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const hunt = data.hunt;
+                    const games = data.games || [];
                     
-                    hunt = JSON.parse(previewHuntStr || 'null');
-                    games = JSON.parse(previewGamesStr || '[]');
+                    // Apply theme
+                    const theme = hunt.theme || 'default';
+                    document.body.className = 'theme-' + theme;
+                    console.log('Applied theme:', theme);
+                    
+                    renderHunt(hunt, games);
                 } else {
-                    // Load current active hunt
-                    const currentHuntStr = localStorage.getItem('currentHunt');
-                    const gamesStr = localStorage.getItem('games');
-                    console.log('Current hunt string:', currentHuntStr);
-                    console.log('Games string:', gamesStr);
-                    
-                    hunt = JSON.parse(currentHuntStr || 'null');
-                    games = JSON.parse(gamesStr || '[]');
+                    document.body.className = 'theme-default';
+                    document.getElementById('huntTitle').textContent = 'No Active Hunt';
+                    document.getElementById('huntDescription').style.display = 'none';
+                    document.getElementById('balanceValue').textContent = '€0.00';
+                    document.getElementById('totalGames').textContent = '0';
+                    document.getElementById('avgMultiplier').textContent = '0x';
+                    document.getElementById('biggestWinValue').textContent = '€0.00';
+                    document.getElementById('biggestWinGame').textContent = '-';
+                    document.getElementById('gamesList').innerHTML = '<div class="no-games">No active hunt</div>';
+                    document.getElementById('gamesListWrapper').style.animation = 'none';
                 }
-                
-                console.log('Parsed hunt:', hunt);
-                console.log('Parsed games:', games);
-            } catch (error) {
-                console.error('Error loading hunt data:', error);
-                hunt = null;
-                games = [];
-            }
+            }, (error) => {
+                console.error('Firebase error:', error);
+                document.getElementById('huntTitle').textContent = 'Connection Error';
+            });
+        }
 
-            if (!hunt) {
-                console.log('No hunt found, showing default state');
-                document.body.className = 'theme-default';
-                document.getElementById('huntTitle').textContent = 'Huntlist';
-                document.getElementById('huntDescription').style.display = 'none';
-                document.getElementById('balanceValue').textContent = '0$';
-                document.getElementById('totalGames').textContent = '0';
-                document.getElementById('avgMultiplier').textContent = '0x';
-                document.getElementById('biggestWinValue').textContent = '$0.00';
-                document.getElementById('biggestWinGame').textContent = 'No wins yet';
-                document.getElementById('gamesList').innerHTML = '<div class="no-games">No games added yet</div>';
-                const gamesListWrapper = document.getElementById('gamesListWrapper');
-                if (gamesListWrapper) gamesListWrapper.style.animation = 'none';
-                return;
-            }
+        function renderHunt(hunt, games) {
+            console.log('Rendering hunt:', hunt.name, 'with', games.length, 'games');
             
-            console.log('Rendering hunt:', hunt.name);
-            
-            // Apply theme
-            const theme = hunt.theme || 'default';
-            document.body.className = 'theme-' + theme;
-            console.log('Applied theme:', theme);
-
             // Update title and description
             document.getElementById('huntTitle').textContent = hunt.name;
             
@@ -468,19 +413,12 @@
                 document.getElementById('huntDescription').style.display = 'none';
             }
 
-            // Calculate current balance
-            const currentBalance = games.length > 0 
-                ? games[games.length - 1].balance 
-                : hunt.startingBalance;
-            
-            document.getElementById('balanceValue').textContent = 
-                hunt.currency + currentBalance.toFixed(2);
-
-            // Display total games
+            // Calculate stats
+            document.getElementById('balanceValue').textContent = hunt.currency + hunt.startingBalance.toFixed(2);
             document.getElementById('totalGames').textContent = games.length;
 
             // Calculate average multiplier
-            const completedGames = games.filter(g => g.win !== null);
+            const completedGames = games.filter(g => g.win !== null && g.win !== undefined);
             let avgMultiplier = 0;
             
             if (completedGames.length > 0) {
@@ -493,45 +431,42 @@
             document.getElementById('avgMultiplier').textContent = avgMultiplier + 'x';
 
             // Calculate biggest win
-            let biggestWin = null;
+            let biggestWin = 0;
             let biggestWinGame = null;
             
-            if (completedGames.length > 0) {
-                completedGames.forEach(game => {
-                    if (biggestWin === null || game.win > biggestWin) {
-                        biggestWin = game.win;
-                        biggestWinGame = game;
-                    }
-                });
-            }
+            completedGames.forEach(game => {
+                if (game.win > biggestWin) {
+                    biggestWin = game.win;
+                    biggestWinGame = game;
+                }
+            });
 
-            if (biggestWinGame) {
-                document.getElementById('biggestWinValue').textContent = hunt.currency + biggestWin.toFixed(2);
-                document.getElementById('biggestWinGame').textContent = biggestWinGame.name;
-            } else {
-                document.getElementById('biggestWinValue').textContent = hunt.currency + '0.00';
-                document.getElementById('biggestWinGame').textContent = 'No wins yet';
-            }
+            document.getElementById('biggestWinValue').textContent = hunt.currency + biggestWin.toFixed(2);
+            document.getElementById('biggestWinGame').textContent = biggestWinGame ? biggestWinGame.name : '-';
 
-            // Display games
+            // Render games list
             const gamesList = document.getElementById('gamesList');
             const gamesListWrapper = document.getElementById('gamesListWrapper');
             
             if (games.length === 0) {
-                gamesList.innerHTML = '<div class="no-games">No games in this hunt yet</div>';
+                gamesList.innerHTML = '<div class="no-games">No games added yet</div>';
                 gamesListWrapper.style.animation = 'none';
                 return;
             }
 
             gamesList.innerHTML = '';
-            
-            // Create game items
+
             const createGameItems = () => {
                 const fragment = document.createDocumentFragment();
                 
                 games.forEach((game, index) => {
                     const gameItem = document.createElement('div');
                     gameItem.className = 'game-item';
+                    
+                    // Highlight biggest win
+                    if (biggestWinGame && game.name === biggestWinGame.name && game.win === biggestWinGame.win) {
+                        gameItem.classList.add('biggest-win-row');
+                    }
                     
                     const gameNumber = document.createElement('span');
                     gameNumber.className = 'game-number';
@@ -540,14 +475,14 @@
                     const gameName = document.createElement('span');
                     gameName.className = 'game-name' + (game.superBonus ? ' super-bonus' : '');
                     gameName.textContent = game.name;
-                    gameName.title = game.name; // Tooltip for long names
+                    gameName.title = game.name;
                     
                     const gameBet = document.createElement('span');
                     gameBet.className = 'game-bet';
-                    gameBet.textContent = game.bet.toFixed(2) + hunt.currency;
+                    gameBet.textContent = hunt.currency + game.bet.toFixed(2);
                     
                     const gameWin = document.createElement('span');
-                    if (game.win !== null) {
+                    if (game.win !== null && game.win !== undefined) {
                         gameWin.className = 'game-win won';
                         gameWin.textContent = hunt.currency + game.win.toFixed(2);
                     } else {
@@ -572,31 +507,12 @@
 
             // Enable auto-scroll only if there are more than 6 games
             if (games.length > 6) {
-                // Calculate scroll duration based on number of games (slower = more readable)
                 const scrollDuration = games.length * 2;
                 gamesListWrapper.style.animation = `infiniteScroll ${scrollDuration}s linear infinite`;
             } else {
-                // No animation for 6 or fewer games
                 gamesListWrapper.style.animation = 'none';
             }
         }
-
-        // Load data on page load
-        loadHuntData();
-
-        // Listen for storage changes to update in real-time (from other tabs/windows)
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'currentHunt' || e.key === 'games' || e.key === 'previewHunt' || e.key === 'previewGames') {
-                loadHuntData();
-            }
-        });
-        
-        // Listen for postMessage from parent window (for same-window updates)
-        window.addEventListener('message', (e) => {
-            if (e.data === 'reload') {
-                loadHuntData();
-            }
-        });
     </script>
 </body>
 </html>
