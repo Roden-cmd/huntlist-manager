@@ -242,6 +242,10 @@
             document.getElementById('tournamentContainer').innerHTML = '<div class="no-tournament">No userId in URL</div>';
         } else {
             console.log('📡 Connecting to Firebase for user:', userId);
+            
+            // Show default bracket immediately while loading
+            showNoTournament();
+            
             const tournamentRef = ref(db, `users/${userId}/activeTournament`);
             
             onValue(tournamentRef, (snapshot) => {
@@ -255,6 +259,9 @@
                     console.log('❌ No active tournament');
                     showNoTournament();
                 }
+            }, (error) => {
+                console.error('❌ Firebase error:', error);
+                showNoTournament();
             });
         }
 
