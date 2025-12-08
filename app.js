@@ -1437,58 +1437,87 @@ function showTournamentBracketModal(index) {
     const round2 = bracket[1] || [];
     const round3 = bracket[2] || [];
     
+    // Build matchup HTML for each round
+    const qfMatchups = round1.map(m => createModalMatchupHTML(m)).join('');
+    const sfMatchups = round2.length > 0 ? round2.map(m => createModalMatchupHTML(m)).join('') : createEmptyModalMatchup() + createEmptyModalMatchup();
+    const fMatchups = round3.length > 0 ? createModalMatchupHTML(round3[0]) : createEmptyModalMatchup();
+    
     let html = `
-        <div id="tournamentBracketModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-            <div style="background: #1a1a2e; border-radius: 16px; max-width: 1100px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
-                <button onclick="document.getElementById('tournamentBracketModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
+        <div id="tournamentBracketModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 1200px; width: 95%; max-height: 95vh; overflow: auto; padding: 2rem; position: relative;">
+                <button onclick="document.getElementById('tournamentBracketModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #888; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
                 
                 <div style="text-align: center; margin-bottom: 1.5rem;">
                     <h2 style="color: #4a9eff; margin-bottom: 0.25rem;">${tournament.name}</h2>
                     <p style="color: #888;">${date} • ${tournament.size} players</p>
                 </div>
                 
-                <!-- Bracket Display -->
-                <div style="display: flex; align-items: flex-start; justify-content: center; gap: 1rem; overflow-x: auto; padding: 1rem;">
+                <!-- Round Titles Row -->
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding-left: 0;">
+                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Quarter Finals</div>
+                    <div style="width: 50px;"></div>
+                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Semi Finals</div>
+                    <div style="width: 50px;"></div>
+                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Finals</div>
+                    <div style="width: 40px;"></div>
+                    <div style="min-width: 150px; text-align: center; color: #ffd700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
+                </div>
+                
+                <!-- Bracket with SVG Lines -->
+                <div style="display: flex; align-items: flex-start; position: relative;">
                     
                     <!-- Quarter Finals -->
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Quarter Finals</div>
-                        ${round1.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 200px;">
+                        ${qfMatchups}
                     </div>
                     
-                    <!-- Connector -->
-                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    <!-- QF to SF Lines -->
+                    <svg width="50" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 30 H 20 V 62 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 94 H 20 V 62" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 170 H 20 V 202 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 234 H 20 V 202" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 310 H 20 V 342 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 374 H 20 V 342" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 450 H 20 V 482 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 514 H 20 V 482" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    </svg>
                     
                     <!-- Semi Finals -->
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem;">
-                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Semi Finals</div>
-                        ${round2.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    <div style="display: flex; flex-direction: column; min-width: 200px; margin-top: 32px; gap: 140px;">
+                        ${sfMatchups}
                     </div>
                     
-                    <!-- Connector -->
-                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    <!-- SF to Finals Lines -->
+                    <svg width="50" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 62 H 20 V 237 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 202 H 20 V 237" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 342 H 20 V 307 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 482 H 20 V 307" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    </svg>
                     
                     <!-- Finals -->
-                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 5rem;">
-                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Finals</div>
-                        ${round3.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    <div style="display: flex; flex-direction: column; min-width: 200px; margin-top: 207px;">
+                        ${fMatchups}
                     </div>
                     
-                    <!-- Connector -->
-                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    <!-- Finals to Champion Lines -->
+                    <svg width="40" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 237 H 15 V 272 H 40" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 307 H 15 V 272" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    </svg>
                     
                     <!-- Champion -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 5rem;">
-                        <div style="color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">🏆 Champion</div>
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem; border-radius: 12px; text-align: center; min-width: 140px;">
-                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${winner.emoji}</div>
-                            <div style="color: #fff; font-weight: bold; margin-bottom: 0.25rem;">${winner.name}</div>
-                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: bold; display: inline-block;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 180px; min-width: 150px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 14px; text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 0.5rem;">${winner ? winner.emoji : '❓'}</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem;">${winner ? winner.name : 'TBD'}</div>
+                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">${winner && winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '---'}</div>
                         </div>
                     </div>
                 </div>
                 
-                <div style="text-align: center; margin-top: 1.5rem;">
+                <div style="text-align: center; margin-top: 2rem;">
                     <button onclick="document.getElementById('tournamentBracketModal').remove()" class="btn btn-primary" style="padding: 0.75rem 2rem;">Close</button>
                 </div>
             </div>
@@ -1503,27 +1532,50 @@ function showTournamentBracketModal(index) {
     });
 }
 
-function createBracketMatchupHTML(matchup) {
+function createModalMatchupHTML(matchup) {
     if (!matchup || !matchup.player1 || !matchup.player2) {
-        return '<div style="background: rgba(40, 40, 60, 0.4); padding: 0.75rem; border-radius: 8px; min-width: 180px; opacity: 0.5;">TBD</div>';
+        return createEmptyModalMatchup();
     }
     
     const p1 = matchup.player1;
     const p2 = matchup.player2;
-    const p1Wins = p1.multiplier > p2.multiplier;
-    const p2Wins = p2.multiplier > p1.multiplier;
+    const p1Wins = p1.multiplier && p2.multiplier && p1.multiplier > p2.multiplier;
+    const p2Wins = p1.multiplier && p2.multiplier && p2.multiplier > p1.multiplier;
     
     return `
-        <div style="background: rgba(40, 40, 60, 0.6); border-radius: 8px; min-width: 180px; overflow: hidden;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; ${p1Wins ? 'background: rgba(74, 158, 255, 0.2); border-left: 3px solid #4a9eff;' : 'opacity: 0.6;'}">
-                <span style="font-size: 1.2rem;">${p1.emoji}</span>
-                <span style="color: #fff; flex: 1; font-size: 0.9rem;">${p1.name}</span>
-                <span style="color: #ff6b6b; font-weight: bold; font-size: 0.85rem;">${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '-'}</span>
+        <div style="background: rgba(35, 40, 60, 0.95); border-radius: 10px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px; border-left: 4px solid ${p1Wins ? '#4a9eff' : 'transparent'}; ${p1Wins ? 'background: rgba(74, 158, 255, 0.15);' : ''} ${!p1Wins && p2Wins ? 'opacity: 0.5;' : ''}">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">${p1.emoji || '❓'}</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="color: #fff; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p1.name || 'TBD'}</div>
+                    <div style="color: #666; font-size: 11px;">${p1.game || '-'}</div>
+                </div>
+                <div style="background: ${p1.multiplier ? '#ff6b6b' : '#3a3f55'}; color: ${p1.multiplier ? '#fff' : '#555'}; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;">${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '---'}</div>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; border-top: 1px solid rgba(255,255,255,0.1); ${p2Wins ? 'background: rgba(74, 158, 255, 0.2); border-left: 3px solid #4a9eff;' : 'opacity: 0.6;'}">
-                <span style="font-size: 1.2rem;">${p2.emoji}</span>
-                <span style="color: #fff; flex: 1; font-size: 0.9rem;">${p2.name}</span>
-                <span style="color: #ff6b6b; font-weight: bold; font-size: 0.85rem;">${p2.multiplier ? p2.multiplier.toFixed(0) + 'x' : '-'}</span>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px; border-top: 1px solid rgba(255,255,255,0.05); border-left: 4px solid ${p2Wins ? '#4a9eff' : 'transparent'}; ${p2Wins ? 'background: rgba(74, 158, 255, 0.15);' : ''} ${!p2Wins && p1Wins ? 'opacity: 0.5;' : ''}">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">${p2.emoji || '❓'}</div>
+                <div style="flex: 1; min-width: 0;">
+                    <div style="color: #fff; font-size: 14px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p2.name || 'TBD'}</div>
+                    <div style="color: #666; font-size: 11px;">${p2.game || '-'}</div>
+                </div>
+                <div style="background: ${p2.multiplier ? '#ff6b6b' : '#3a3f55'}; color: ${p2.multiplier ? '#fff' : '#555'}; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;">${p2.multiplier ? p2.multiplier.toFixed(0) + 'x' : '---'}</div>
+            </div>
+        </div>
+    `;
+}
+
+function createEmptyModalMatchup() {
+    return `
+        <div style="background: rgba(35, 40, 60, 0.95); border-radius: 10px; overflow: hidden; opacity: 0.4;">
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px;">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">❓</div>
+                <div style="flex: 1;"><div style="color: #fff; font-size: 14px;">TBD</div><div style="color: #666; font-size: 11px;">-</div></div>
+                <div style="background: #3a3f55; color: #555; padding: 4px 8px; border-radius: 6px; font-size: 12px;">---</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; height: 60px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 20px;">❓</div>
+                <div style="flex: 1;"><div style="color: #fff; font-size: 14px;">TBD</div><div style="color: #666; font-size: 11px;">-</div></div>
+                <div style="background: #3a3f55; color: #555; padding: 4px 8px; border-radius: 6px; font-size: 12px;">---</div>
             </div>
         </div>
     `;
