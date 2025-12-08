@@ -15,55 +15,52 @@
             background: #1a1a2e;
             font-family: 'Segoe UI', Arial, sans-serif;
             color: #fff;
-            padding: 20px;
+            padding: 30px;
             min-height: 100vh;
         }
 
         .tournament-container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
         }
 
         .tournament-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .tournament-title {
-            font-size: 32px;
+            font-size: 42px;
             color: #fff;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .tournament-date {
-            font-size: 14px;
+            font-size: 18px;
             color: #888;
         }
 
         .bracket-wrapper {
             display: flex;
-            align-items: stretch;
+            align-items: center;
             justify-content: center;
-            position: relative;
         }
 
         .round {
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-            padding: 0 10px;
-            min-height: 500px;
+            position: relative;
         }
 
         .round-title {
             text-align: center;
             color: #4a9eff;
-            font-size: 13px;
+            font-size: 18px;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
 
         .matchups {
@@ -72,6 +69,11 @@
             justify-content: space-around;
             flex: 1;
         }
+
+        /* Spacing for different rounds */
+        .round-1 .matchup { margin: 10px 0; }
+        .round-2 .matchup { margin: 60px 0; }
+        .round-3 .matchup { margin: 150px 0; }
 
         .matchup {
             display: flex;
@@ -82,12 +84,12 @@
         .player-card {
             display: flex;
             align-items: center;
-            background: rgba(30, 35, 50, 0.95);
-            border-radius: 8px;
-            padding: 6px 10px;
-            margin: 2px 0;
-            min-width: 180px;
-            border-left: 3px solid transparent;
+            background: rgba(35, 40, 60, 0.95);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin: 4px 0;
+            min-width: 260px;
+            border-left: 4px solid transparent;
             transition: all 0.3s;
         }
 
@@ -101,15 +103,15 @@
         }
 
         .player-avatar {
-            width: 32px;
-            height: 32px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
-            margin-right: 8px;
+            font-size: 28px;
+            margin-right: 14px;
             flex-shrink: 0;
         }
 
@@ -119,7 +121,7 @@
         }
 
         .player-name {
-            font-size: 13px;
+            font-size: 18px;
             font-weight: bold;
             color: #fff;
             white-space: nowrap;
@@ -128,7 +130,7 @@
         }
 
         .player-game {
-            font-size: 10px;
+            font-size: 14px;
             color: #888;
             white-space: nowrap;
             overflow: hidden;
@@ -138,36 +140,39 @@
         .player-multiplier {
             background: #ff6b6b;
             color: #fff;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 11px;
+            padding: 6px 14px;
+            border-radius: 14px;
+            font-size: 16px;
             font-weight: bold;
-            margin-left: 6px;
+            margin-left: 10px;
             white-space: nowrap;
+            min-width: 60px;
+            text-align: center;
         }
 
         .player-multiplier.pending {
-            background: #444;
-            color: #777;
+            background: #3a3f55;
+            color: #666;
         }
 
         /* Bracket connector lines */
         .connector {
-            width: 50px;
+            width: 60px;
             position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
         }
 
         .connector svg {
             width: 100%;
             height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
+            overflow: visible;
         }
 
-        .connector-line {
+        .bracket-line {
             stroke: #3a4055;
-            stroke-width: 2;
+            stroke-width: 3;
             fill: none;
         }
 
@@ -177,47 +182,56 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0 20px;
+            padding: 0 30px;
         }
 
         .winner-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 14px;
-            padding: 16px 20px;
+            border-radius: 20px;
+            padding: 25px 30px;
             text-align: center;
-            min-width: 160px;
+            min-width: 200px;
+            position: relative;
         }
 
         .winner-avatar {
-            width: 50px;
-            height: 50px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
-            margin: 0 auto 8px;
+            font-size: 45px;
+            margin: 0 auto 12px;
+        }
+
+        .winner-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
         }
 
         .winner-name {
-            font-size: 16px;
+            font-size: 22px;
             font-weight: bold;
             color: #fff;
         }
 
         .winner-game {
-            font-size: 11px;
+            font-size: 14px;
             color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .winner-multiplier {
             background: #ffd700;
             color: #1a1a2e;
-            padding: 6px 14px;
-            border-radius: 10px;
-            font-size: 14px;
+            padding: 8px 20px;
+            border-radius: 14px;
+            font-size: 20px;
             font-weight: bold;
             display: inline-block;
         }
@@ -227,28 +241,38 @@
         }
 
         .winner-indicator {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
             background: #ff6b6b;
             border-radius: 50%;
             position: absolute;
-            top: 50%;
-            right: -6px;
-            transform: translateY(-50%);
-            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            top: 15px;
+            right: 15px;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.6);
             animation: pulse 2s infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { transform: translateY(-50%) scale(1); opacity: 1; }
-            50% { transform: translateY(-50%) scale(1.2); opacity: 0.7; }
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.7; }
         }
 
         .no-tournament {
             text-align: center;
-            padding: 60px;
+            padding: 80px;
             color: #666;
-            font-size: 18px;
+            font-size: 24px;
+        }
+
+        /* VS text between players in matchup */
+        .vs-connector {
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #444;
+            font-size: 10px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -315,23 +339,22 @@
             `;
             
             // Round 1 - Quarter Finals
-            html += '<div class="round">';
+            html += '<div class="round round-1">';
             html += '<div class="round-title">Quarter Finals</div>';
             html += '<div class="matchups">';
             round1.forEach((matchup) => {
                 html += createMatchupHTML(matchup, tournament.currentRound > 1);
             });
-            // Fill empty slots if needed
             for (let i = round1.length; i < 4; i++) {
                 html += createEmptyMatchup(i);
             }
             html += '</div></div>';
             
-            // Connector 1
-            html += createConnector(4, 2);
+            // Connector 1 - Lines from QF to SF
+            html += createSVGConnector(4, 2, 500);
             
             // Round 2 - Semi Finals
-            html += '<div class="round">';
+            html += '<div class="round round-2">';
             html += '<div class="round-title">Semi Finals</div>';
             html += '<div class="matchups">';
             if (round2.length > 0) {
@@ -344,11 +367,11 @@
             }
             html += '</div></div>';
             
-            // Connector 2
-            html += createConnector(2, 1);
+            // Connector 2 - Lines from SF to Finals
+            html += createSVGConnector(2, 1, 340);
             
             // Round 3 - Finals
-            html += '<div class="round">';
+            html += '<div class="round round-3">';
             html += '<div class="round-title">Finals</div>';
             html += '<div class="matchups">';
             if (round3.length > 0) {
@@ -358,8 +381,8 @@
             }
             html += '</div></div>';
             
-            // Winner connector
-            html += createConnector(1, 1);
+            // Final connector to winner
+            html += createSVGConnector(1, 1, 180);
             
             // Winner
             html += createWinnerSection(tournament.champion);
@@ -430,8 +453,40 @@
             `;
         }
 
-        function createConnector(fromCount, toCount) {
-            return `<div class="connector" style="width: 50px;"></div>`;
+        function createSVGConnector(fromCount, toCount, height) {
+            const width = 60;
+            let paths = '';
+            
+            if (fromCount === 4 && toCount === 2) {
+                // QF to SF - 4 matchups to 2
+                const matchupHeight = height / 4;
+                const targetHeight = height / 2;
+                
+                // Top pair
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 0.5} H ${width * 0.5} V ${targetHeight * 0.5} H ${width}"/>`;
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 1.5} H ${width * 0.5} V ${targetHeight * 0.5} H ${width}"/>`;
+                
+                // Bottom pair
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 2.5} H ${width * 0.5} V ${targetHeight * 1.5} H ${width}"/>`;
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 3.5} H ${width * 0.5} V ${targetHeight * 1.5} H ${width}"/>`;
+            } else if (fromCount === 2 && toCount === 1) {
+                // SF to Finals - 2 matchups to 1
+                const matchupHeight = height / 2;
+                
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 0.5} H ${width * 0.5} V ${height * 0.5} H ${width}"/>`;
+                paths += `<path class="bracket-line" d="M 0 ${matchupHeight * 1.5} H ${width * 0.5} V ${height * 0.5} H ${width}"/>`;
+            } else if (fromCount === 1 && toCount === 1) {
+                // Finals to Winner
+                paths += `<path class="bracket-line" d="M 0 ${height * 0.5} H ${width}"/>`;
+            }
+            
+            return `
+                <div class="connector">
+                    <svg width="${width}" height="${height}" style="overflow: visible;">
+                        ${paths}
+                    </svg>
+                </div>
+            `;
         }
 
         function createWinnerSection(champion) {
@@ -439,11 +494,12 @@
                 return `
                     <div class="winner-section">
                         <div class="winner-card">
+                            <div class="winner-indicator"></div>
                             <div class="winner-avatar">${champion.emoji || '🏆'}</div>
+                            <div class="winner-label">🏆 Champion</div>
                             <div class="winner-name">${champion.name}</div>
                             <div class="winner-game">${champion.game}</div>
                             <div class="winner-multiplier">${champion.multiplier ? champion.multiplier.toFixed(0) + 'x' : '---'}</div>
-                            <div class="winner-indicator"></div>
                         </div>
                     </div>
                 `;
@@ -453,8 +509,9 @@
                 <div class="winner-section">
                     <div class="winner-card pending">
                         <div class="winner-avatar">❓</div>
-                        <div class="winner-name">Champion</div>
-                        <div class="winner-game">TBD</div>
+                        <div class="winner-label">🏆 Champion</div>
+                        <div class="winner-name">TBD</div>
+                        <div class="winner-game">-</div>
                         <div class="winner-multiplier">---</div>
                     </div>
                 </div>
@@ -473,7 +530,7 @@
             `;
             
             // Round 1
-            html += '<div class="round">';
+            html += '<div class="round round-1">';
             html += '<div class="round-title">Quarter Finals</div>';
             html += '<div class="matchups">';
             for (let i = 0; i < 4; i++) {
@@ -500,10 +557,10 @@
             }
             html += '</div></div>';
             
-            html += createConnector(4, 2);
+            html += createSVGConnector(4, 2, 500);
             
             // Round 2
-            html += '<div class="round">';
+            html += '<div class="round round-2">';
             html += '<div class="round-title">Semi Finals</div>';
             html += '<div class="matchups">';
             for (let i = 0; i < 2; i++) {
@@ -511,16 +568,16 @@
             }
             html += '</div></div>';
             
-            html += createConnector(2, 1);
+            html += createSVGConnector(2, 1, 340);
             
             // Finals
-            html += '<div class="round">';
+            html += '<div class="round round-3">';
             html += '<div class="round-title">Finals</div>';
             html += '<div class="matchups">';
             html += createEmptyMatchup(0);
             html += '</div></div>';
             
-            html += createConnector(1, 1);
+            html += createSVGConnector(1, 1, 180);
             
             // Winner
             html += createWinnerSection(null);
