@@ -1304,7 +1304,7 @@ function updateSettings() {
     
     // Bonus hunt overlay
     if (huntInput) {
-        const huntUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'overlay-firebase.html?userId=' + currentUser.uid;
+        const huntUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'overlay.html?userId=' + currentUser.uid;
         huntInput.value = huntUrl;
     }
     
