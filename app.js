@@ -820,6 +820,23 @@ function createHuntForm() {
                     </div>
                 </div>
                 
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">🎨 Overlay Theme</label>
+                    <select id="huntTheme"
+                            style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                        <option value="default">🏆 Classic - Purple/Blue</option>
+                        <option value="fire">🔥 Fire - Red/Orange</option>
+                        <option value="ice">❄️ Ice - Cyan/Blue</option>
+                        <option value="gold">👑 Royal - Gold/Orange</option>
+                        <option value="neon">⚡ Neon - Magenta/Cyan</option>
+                        <option value="forest">🌲 Forest - Teal/Green</option>
+                        <option value="sunset">🌅 Sunset - Pink/Orange</option>
+                        <option value="ocean">🌊 Ocean - Navy/Teal</option>
+                        <option value="dark">🌙 Dark - Gray/Black</option>
+                        <option value="christmas">🎄 Christmas - Green/Red</option>
+                    </select>
+                </div>
+                
                 <button type="submit" class="btn btn-primary btn-large" style="width: 100%; background: #4a9eff; color: #fff; border: none; padding: 1rem; border-radius: 8px; font-size: 1.1rem; cursor: pointer;">
                     🎰 Create Hunt
                 </button>
@@ -841,6 +858,7 @@ function setupHuntFormListener() {
             description: document.getElementById('huntDescription').value,
             startingBalance: parseFloat(document.getElementById('startingBalance').value),
             currency: document.getElementById('currency').value,
+            theme: document.getElementById('huntTheme').value || 'default',
             createdAt: new Date().toISOString()
         };
         
