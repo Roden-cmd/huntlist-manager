@@ -661,9 +661,10 @@ function showHuntDetails(huntIndex) {
     
     console.log('✅ Hunt found:', hunt.hunt ? hunt.hunt.name : 'Unknown name');
     
-    const totalBet = hunt.totalBet || 0;
+    const startingBalance = hunt.hunt.startingBalance || 0;
     const totalWin = hunt.totalWin || 0;
-    const profit = hunt.profit || 0;
+    // Profit = Total Win - Starting Balance
+    const profit = totalWin - startingBalance;
     const date = new Date(hunt.savedAt).toLocaleDateString();
     
     // Create modal HTML
@@ -676,14 +677,10 @@ function showHuntDetails(huntIndex) {
                 <p style="color: #888; margin-bottom: 2rem;">${date}</p>
                 
                 <!-- Stats Grid -->
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
                     <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
                         <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Starting Balance</div>
-                        <div style="color: #fff; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${hunt.hunt.startingBalance.toFixed(2)}</div>
-                    </div>
-                    <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
-                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Total Bet</div>
-                        <div style="color: #ff6b6b; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${totalBet.toFixed(2)}</div>
+                        <div style="color: #fff; font-size: 1.3rem; font-weight: bold;">${hunt.hunt.currency}${startingBalance.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(40, 40, 60, 0.6); padding: 1rem; border-radius: 12px; text-align: center;">
                         <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Total Win</div>
@@ -904,9 +901,8 @@ function saveActiveHunt() {
 }
 
 function createHuntManagementView() {
-    const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
-    const profit = totalWin - totalBet;
+    const profit = totalWin - currentHunt.startingBalance;
     
     // Get the correct OBS URL
     const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay.html?userId=' + currentUser.uid;
@@ -926,16 +922,12 @@ function createHuntManagementView() {
                         <div style="color: #fff; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${currentHunt.startingBalance.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                        <div style="color: #888; font-size: 0.9rem;">Total Bet</div>
-                        <div style="color: #ff6b6b; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${totalBet.toFixed(2)}</div>
-                    </div>
-                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Total Win</div>
                         <div style="color: #51cf66; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${totalWin.toFixed(2)}</div>
                     </div>
                     <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
                         <div style="color: #888; font-size: 0.9rem;">Profit/Loss</div>
-                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.3rem; font-weight: bold;">${currentHunt.currency}${profit.toFixed(2)}</div>
+                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.3rem; font-weight: bold;">${profit >= 0 ? '+' : ''}${currentHunt.currency}${profit.toFixed(2)}</div>
                     </div>
                 </div>
                 
@@ -1234,9 +1226,8 @@ function clearActiveHunt() {
 function finishHunt() {
     if (!currentUser || !currentHunt) return;
     
-    const totalBet = games.reduce((sum, g) => sum + g.bet, 0);
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
-    const profit = totalWin - totalBet;
+    const profit = totalWin - currentHunt.startingBalance;
     
     console.log('🏁 Finishing hunt...');
     
@@ -1262,7 +1253,6 @@ function finishHunt() {
             games: games,
             savedAt: new Date().toISOString(),
             totalWin: totalWin,
-            totalBet: totalBet,
             profit: profit
         });
     })
