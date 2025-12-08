@@ -1679,6 +1679,13 @@ function setupRoundManagementListeners() {
             activeTournament.champion = roundData[0].winner;
             activeTournament.currentRound = round + 1; // Mark as complete
             
+            // Auto-save to history
+            tournamentHistory.push({...activeTournament});
+            
+            if (currentUser) {
+                firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').set(tournamentHistory);
+            }
+            
             saveTournament();
             updateTournamentsPage();
             
@@ -1790,20 +1797,20 @@ function createNextRoundPlayerInput(player, matchIndex, playerNum) {
 function createTournamentCompleteView() {
     const winner = activeTournament.champion;
     
-    let html = '<div style="text-align: center; padding: 3rem;">';
-    html += '<div style="font-size: 8rem; margin-bottom: 2rem;">' + winner.emoji + '</div>';
-    html += '<div style="font-size: 4rem; margin-bottom: 1rem;">🏆</div>';
-    html += '<h1 style="color: #4a9eff; font-size: 3rem; margin-bottom: 1rem;">' + winner.name + '</h1>';
-    html += '<p style="color: #888; font-size: 1.5rem; margin-bottom: 2rem;">' + activeTournament.name + ' Champion!</p>';
+    let html = '<div style="text-align: center; padding: 2rem;">';
     
-    html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: inline-block; padding: 2rem 4rem; border-radius: 16px; margin-bottom: 3rem;">';
-    html += '<div style="color: rgba(255,255,255,0.8); margin-bottom: 0.5rem;">Final Game</div>';
-    html += '<div style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">' + winner.game + '</div>';
-    html += '<div style="background: #ffd700; color: #1a1a2e; padding: 1rem 2rem; border-radius: 12px; font-size: 2rem; font-weight: bold;">' + winner.multiplier.toFixed(0) + 'x</div>';
+    // Create New Tournament button at top
+    html += '<div style="text-align: right; margin-bottom: 2rem;">';
+    html += '<button onclick="finishTournament()" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem;">➕ New Tournament</button>';
     html += '</div>';
     
-    html += '<div style="display: flex; gap: 1rem; justify-content: center;">';
-    html += '<button onclick="finishTournament()" class="btn btn-primary" style="padding: 1rem 2rem; font-size: 1.1rem;">✓ Save to History</button>';
+    html += '<div style="font-size: 5rem; margin-bottom: 1rem;">' + winner.emoji + '</div>';
+    html += '<div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏆</div>';
+    html += '<h2 style="color: #4a9eff; font-size: 2rem; margin-bottom: 0.5rem;">' + winner.name + '</h2>';
+    html += '<p style="color: #888; font-size: 1.2rem; margin-bottom: 1.5rem;">🏆 Champion!</p>';
+    
+    html += '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: inline-block; padding: 1.5rem 2.5rem; border-radius: 12px;">';
+    html += '<div style="background: #ffd700; color: #1a1a2e; padding: 0.75rem 1.5rem; border-radius: 10px; font-size: 1.5rem; font-weight: bold;">' + winner.multiplier.toFixed(0) + 'x</div>';
     html += '</div>';
     
     html += '</div>';
@@ -1824,17 +1831,14 @@ function copyTournamentOverlayUrl() {
 function finishTournament() {
     if (!activeTournament) return;
     
-    tournamentHistory.push(activeTournament);
-    
+    // Tournament already saved to history when champion was set
+    // Just clear the active tournament
     if (currentUser) {
-        firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').set(tournamentHistory);
         firebase.database().ref('users/' + currentUser.uid + '/activeTournament').remove();
     }
     
     activeTournament = null;
     updateTournamentsPage();
-    
-    alert('🏆 Tournament saved to history!');
 }
 
 function saveTournament() {
