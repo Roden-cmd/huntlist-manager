@@ -1405,6 +1405,16 @@ function updateTournamentsPage() {
 }
 
 function setupTournamentHistoryListeners() {
+    // Click on card to view bracket
+    const cardContents = document.querySelectorAll('.tournament-history-content');
+    cardContents.forEach(content => {
+        content.addEventListener('click', function() {
+            const index = parseInt(this.dataset.tournamentIndex);
+            showTournamentBracketModal(index);
+        });
+    });
+    
+    // Delete buttons
     const deleteButtons = document.querySelectorAll('.deleteTournamentBtn');
     deleteButtons.forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -1413,6 +1423,110 @@ function setupTournamentHistoryListeners() {
             deleteTournamentFromHistory(index);
         });
     });
+}
+
+function showTournamentBracketModal(index) {
+    const tournament = tournamentHistory[index];
+    if (!tournament) return;
+    
+    const bracket = tournament.bracket || [];
+    const winner = tournament.champion;
+    const date = new Date(tournament.date).toLocaleDateString();
+    
+    const round1 = bracket[0] || [];
+    const round2 = bracket[1] || [];
+    const round3 = bracket[2] || [];
+    
+    let html = `
+        <div id="tournamentBracketModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 1100px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 2rem; position: relative;">
+                <button onclick="document.getElementById('tournamentBracketModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <h2 style="color: #4a9eff; margin-bottom: 0.25rem;">${tournament.name}</h2>
+                    <p style="color: #888;">${date} • ${tournament.size} players</p>
+                </div>
+                
+                <!-- Bracket Display -->
+                <div style="display: flex; align-items: flex-start; justify-content: center; gap: 1rem; overflow-x: auto; padding: 1rem;">
+                    
+                    <!-- Quarter Finals -->
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Quarter Finals</div>
+                        ${round1.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    </div>
+                    
+                    <!-- Connector -->
+                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    
+                    <!-- Semi Finals -->
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem;">
+                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Semi Finals</div>
+                        ${round2.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    </div>
+                    
+                    <!-- Connector -->
+                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    
+                    <!-- Finals -->
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 5rem;">
+                        <div style="color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 0.5rem;">Finals</div>
+                        ${round3.map(matchup => createBracketMatchupHTML(matchup)).join('')}
+                    </div>
+                    
+                    <!-- Connector -->
+                    <div style="display: flex; flex-direction: column; justify-content: center; color: #3a4055; font-size: 2rem;">→</div>
+                    
+                    <!-- Champion -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 5rem;">
+                        <div style="color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">🏆 Champion</div>
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.25rem; border-radius: 12px; text-align: center; min-width: 140px;">
+                            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${winner.emoji}</div>
+                            <div style="color: #fff; font-weight: bold; margin-bottom: 0.25rem;">${winner.name}</div>
+                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: bold; display: inline-block;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button onclick="document.getElementById('tournamentBracketModal').remove()" class="btn btn-primary" style="padding: 0.75rem 2rem;">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+    
+    // Close on backdrop click
+    document.getElementById('tournamentBracketModal').addEventListener('click', function(e) {
+        if (e.target === this) this.remove();
+    });
+}
+
+function createBracketMatchupHTML(matchup) {
+    if (!matchup || !matchup.player1 || !matchup.player2) {
+        return '<div style="background: rgba(40, 40, 60, 0.4); padding: 0.75rem; border-radius: 8px; min-width: 180px; opacity: 0.5;">TBD</div>';
+    }
+    
+    const p1 = matchup.player1;
+    const p2 = matchup.player2;
+    const p1Wins = p1.multiplier > p2.multiplier;
+    const p2Wins = p2.multiplier > p1.multiplier;
+    
+    return `
+        <div style="background: rgba(40, 40, 60, 0.6); border-radius: 8px; min-width: 180px; overflow: hidden;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; ${p1Wins ? 'background: rgba(74, 158, 255, 0.2); border-left: 3px solid #4a9eff;' : 'opacity: 0.6;'}">
+                <span style="font-size: 1.2rem;">${p1.emoji}</span>
+                <span style="color: #fff; flex: 1; font-size: 0.9rem;">${p1.name}</span>
+                <span style="color: #ff6b6b; font-weight: bold; font-size: 0.85rem;">${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '-'}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem; border-top: 1px solid rgba(255,255,255,0.1); ${p2Wins ? 'background: rgba(74, 158, 255, 0.2); border-left: 3px solid #4a9eff;' : 'opacity: 0.6;'}">
+                <span style="font-size: 1.2rem;">${p2.emoji}</span>
+                <span style="color: #fff; flex: 1; font-size: 0.9rem;">${p2.name}</span>
+                <span style="color: #ff6b6b; font-weight: bold; font-size: 0.85rem;">${p2.multiplier ? p2.multiplier.toFixed(0) + 'x' : '-'}</span>
+            </div>
+        </div>
+    `;
 }
 
 function deleteTournamentFromHistory(index) {
@@ -1887,76 +2001,34 @@ function createTournamentHistoryCards() {
         const actualIndex = tournamentHistory.length - 1 - index;
         const date = new Date(tournament.date).toLocaleDateString();
         const winner = tournament.champion;
-        const bracket = tournament.bracket || [];
         
         if (!winner) return '';
         
-        // Get all players from round 1
-        const round1 = bracket[0] || [];
-        const allPlayers = [];
-        round1.forEach(matchup => {
-            if (matchup.player1) allPlayers.push(matchup.player1);
-            if (matchup.player2) allPlayers.push(matchup.player2);
-        });
-        
-        // Get finalists from finals round
-        const finals = bracket[2] || [];
-        const finalist1 = finals[0]?.player1;
-        const finalist2 = finals[0]?.player2;
-        
         return `
-            <div class="tournament-history-card" data-tournament-index="${actualIndex}" style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); cursor: pointer; transition: all 0.3s;">
-                <div class="tournament-history-content" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-                    <div>
-                        <h3 style="color: #4a9eff; margin-bottom: 0.5rem; font-size: 1.2rem;">${tournament.name}</h3>
-                        <p style="color: #888; font-size: 0.9rem;">${date} • ${tournament.size} players</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 2rem;">${winner.emoji}</div>
-                    </div>
-                </div>
-                
-                <!-- Champion Section -->
-                <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%); border-radius: 8px; border-left: 4px solid #ffd700; margin-bottom: 1rem;">
-                    <div style="flex: 1;">
-                        <div style="color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
-                        <div style="color: #fff; font-weight: bold; font-size: 1.1rem;">${winner.name}</div>
-                    </div>
-                    <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 10px; font-weight: bold; font-size: 1.1rem;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
-                </div>
-                
-                <!-- Finals Preview -->
-                ${finalist1 && finalist2 ? `
-                <div style="padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; margin-bottom: 1rem;">
-                    <div style="color: #888; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 0.5rem;">Finals</div>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; ${finalist1.multiplier > finalist2.multiplier ? 'opacity: 1;' : 'opacity: 0.5;'}">
-                            <span style="font-size: 1.2rem;">${finalist1.emoji}</span>
-                            <span style="color: #fff; font-size: 0.9rem;">${finalist1.name}</span>
-                            <span style="color: #ff6b6b; font-size: 0.85rem; font-weight: bold;">${finalist1.multiplier ? finalist1.multiplier.toFixed(0) + 'x' : '-'}</span>
+            <div class="tournament-history-card" style="background: rgba(26, 26, 46, 0.95); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2); transition: all 0.3s;">
+                <div class="tournament-history-content" data-tournament-index="${actualIndex}" style="cursor: pointer;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="color: #4a9eff; margin-bottom: 0.25rem; font-size: 1.1rem;">${tournament.name}</h3>
+                            <p style="color: #888; font-size: 0.85rem;">${date} • ${tournament.size} players</p>
                         </div>
-                        <span style="color: #666; font-size: 0.8rem;">vs</span>
-                        <div style="display: flex; align-items: center; gap: 0.5rem; ${finalist2.multiplier > finalist1.multiplier ? 'opacity: 1;' : 'opacity: 0.5;'}">
-                            <span style="color: #ff6b6b; font-size: 0.85rem; font-weight: bold;">${finalist2.multiplier ? finalist2.multiplier.toFixed(0) + 'x' : '-'}</span>
-                            <span style="color: #fff; font-size: 0.9rem;">${finalist2.name}</span>
-                            <span style="font-size: 1.2rem;">${finalist2.emoji}</span>
-                        </div>
+                        <div style="font-size: 2.5rem;">${winner.emoji}</div>
                     </div>
-                </div>
-                ` : ''}
-                
-                <!-- All Players Mini Grid -->
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                    ${allPlayers.map(p => `
-                        <div style="display: flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.6rem; background: rgba(40, 40, 60, 0.6); border-radius: 6px; font-size: 0.8rem; ${p.emoji === winner.emoji ? 'border: 1px solid #ffd700;' : ''}">
-                            <span>${p.emoji}</span>
-                            <span style="color: #888;">${p.multiplier ? p.multiplier.toFixed(0) + 'x' : '-'}</span>
+                    
+                    <!-- Champion Section -->
+                    <div style="display: flex; align-items: center; gap: 1rem; padding: 1rem; background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%); border-radius: 8px; border-left: 4px solid #ffd700;">
+                        <div style="flex: 1;">
+                            <div style="color: #ffd700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1rem;">${winner.name}</div>
                         </div>
-                    `).join('')}
+                        <div style="background: #ffd700; color: #1a1a2e; padding: 0.4rem 0.8rem; border-radius: 8px; font-weight: bold; font-size: 1rem;">${winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '-'}</div>
+                    </div>
+                    
+                    <p style="color: #666; font-size: 0.8rem; text-align: center; margin-top: 0.75rem;">Click to view full bracket</p>
                 </div>
                 
-                <button class="deleteTournamentBtn" data-tournament-index="${actualIndex}" style="width: 100%; margin-top: 1rem; padding: 0.75rem; background: #dc3545; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: bold;">
-                    🗑️ Delete Tournament
+                <button class="deleteTournamentBtn" data-tournament-index="${actualIndex}" style="width: 100%; margin-top: 0.75rem; padding: 0.6rem; background: rgba(220, 53, 69, 0.3); color: #ff6b6b; border: 1px solid rgba(220, 53, 69, 0.5); border-radius: 8px; cursor: pointer; font-size: 0.85rem;">
+                    🗑️ Delete
                 </button>
             </div>
         `;
