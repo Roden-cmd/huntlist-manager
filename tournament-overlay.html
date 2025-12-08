@@ -15,45 +15,23 @@
             background: #1a1a2e;
             font-family: 'Segoe UI', Arial, sans-serif;
             color: #fff;
-            padding: 25px;
+            padding: 30px;
             min-height: 100vh;
-        }
-
-        .tournament-container {
-            max-width: 1500px;
-            margin: 0 auto;
-        }
-
-        .bracket-wrapper {
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
+        .tournament-container {
+            display: flex;
+            align-items: center;
+        }
+
         .round {
             display: flex;
             flex-direction: column;
+            justify-content: space-around;
         }
-
-        .round-title {
-            text-align: center;
-            color: #4a9eff;
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .matchups {
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Matchup spacing per round */
-        .round-1 .matchup { margin: 8px 0; }
-        .round-2 .matchup { margin: 78px 0; }
-        .round-3 .matchup { margin: 218px 0; }
 
         .matchup {
             display: flex;
@@ -61,16 +39,30 @@
             position: relative;
         }
 
+        /* Spacing for rounds */
+        .round-1 .matchup {
+            margin: 6px 0;
+        }
+
+        .round-2 .matchup {
+            margin: 70px 0;
+        }
+
+        .round-3 .matchup {
+            margin: 0;
+        }
+
         .player-card {
             display: flex;
             align-items: center;
             background: rgba(35, 40, 60, 0.95);
-            border-radius: 12px;
-            padding: 10px 14px;
-            margin: 3px 0;
-            min-width: 240px;
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin: 2px 0;
+            min-width: 220px;
             border-left: 4px solid transparent;
             transition: all 0.3s;
+            position: relative;
         }
 
         .player-card.winner {
@@ -83,15 +75,15 @@
         }
 
         .player-avatar {
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            margin-right: 12px;
+            font-size: 28px;
+            margin-right: 10px;
             flex-shrink: 0;
             line-height: 1;
         }
@@ -102,7 +94,7 @@
         }
 
         .player-name {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             color: #fff;
             white-space: nowrap;
@@ -111,7 +103,7 @@
         }
 
         .player-game {
-            font-size: 13px;
+            font-size: 12px;
             color: #888;
             white-space: nowrap;
             overflow: hidden;
@@ -121,13 +113,13 @@
         .player-multiplier {
             background: #ff6b6b;
             color: #fff;
-            padding: 6px 12px;
-            border-radius: 12px;
-            font-size: 14px;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 13px;
             font-weight: bold;
-            margin-left: 10px;
+            margin-left: 8px;
             white-space: nowrap;
-            min-width: 55px;
+            min-width: 50px;
             text-align: center;
         }
 
@@ -136,143 +128,19 @@
             color: #555;
         }
 
-        /* Bracket connector lines using CSS */
+        /* Bracket lines */
         .connector {
-            width: 50px;
             position: relative;
         }
 
-        /* QF to SF connector */
-        .connector-qf-sf {
-            height: 568px;
+        .connector svg {
+            display: block;
         }
 
-        .connector-qf-sf::before,
-        .connector-qf-sf::after {
-            content: '';
-            position: absolute;
-            border: 2px solid #3a4055;
-            border-left: none;
-        }
-
-        /* Top bracket lines */
-        .connector-qf-sf .line-1 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 70px;
-            left: 0;
-        }
-        .connector-qf-sf .line-2 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 212px;
-            left: 0;
-        }
-        .connector-qf-sf .line-v1 {
-            position: absolute;
-            width: 2px;
-            height: 142px;
-            background: #3a4055;
-            top: 70px;
-            left: 25px;
-        }
-        .connector-qf-sf .line-h1 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 141px;
-            left: 25px;
-        }
-
-        /* Bottom bracket lines */
-        .connector-qf-sf .line-3 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 354px;
-            left: 0;
-        }
-        .connector-qf-sf .line-4 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 496px;
-            left: 0;
-        }
-        .connector-qf-sf .line-v2 {
-            position: absolute;
-            width: 2px;
-            height: 142px;
-            background: #3a4055;
-            top: 354px;
-            left: 25px;
-        }
-        .connector-qf-sf .line-h2 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 425px;
-            left: 25px;
-        }
-
-        /* SF to Finals connector */
-        .connector-sf-f {
-            height: 568px;
-        }
-
-        .connector-sf-f .line-1 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 141px;
-            left: 0;
-        }
-        .connector-sf-f .line-2 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 425px;
-            left: 0;
-        }
-        .connector-sf-f .line-v1 {
-            position: absolute;
-            width: 2px;
-            height: 284px;
-            background: #3a4055;
-            top: 141px;
-            left: 25px;
-        }
-        .connector-sf-f .line-h1 {
-            position: absolute;
-            width: 25px;
-            height: 2px;
-            background: #3a4055;
-            top: 283px;
-            left: 25px;
-        }
-
-        /* Finals to Champion connector */
-        .connector-f-c {
-            height: 568px;
-        }
-
-        .connector-f-c .line-1 {
-            position: absolute;
-            width: 50px;
-            height: 2px;
-            background: #3a4055;
-            top: 283px;
-            left: 0;
+        .bracket-line {
+            stroke: #3a4055;
+            stroke-width: 2;
+            fill: none;
         }
 
         /* Winner section */
@@ -281,57 +149,57 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 568px;
+            margin-left: 10px;
         }
 
         .winner-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 18px;
-            padding: 25px 30px;
+            border-radius: 16px;
+            padding: 20px 25px;
             text-align: center;
-            min-width: 180px;
+            min-width: 160px;
             position: relative;
         }
 
         .winner-avatar {
-            width: 70px;
-            height: 70px;
+            width: 65px;
+            height: 65px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 42px;
-            margin: 0 auto 10px;
+            font-size: 38px;
+            margin: 0 auto 8px;
             line-height: 1;
         }
 
         .winner-label {
-            font-size: 12px;
+            font-size: 11px;
             color: rgba(255, 255, 255, 0.8);
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .winner-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #fff;
         }
 
         .winner-game {
-            font-size: 13px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.7);
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .winner-multiplier {
             background: #ffd700;
             color: #1a1a2e;
-            padding: 8px 18px;
-            border-radius: 12px;
-            font-size: 18px;
+            padding: 6px 16px;
+            border-radius: 10px;
+            font-size: 16px;
             font-weight: bold;
             display: inline-block;
         }
@@ -341,14 +209,14 @@
         }
 
         .winner-indicator {
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             background: #ff6b6b;
             border-radius: 50%;
             position: absolute;
-            top: 12px;
-            right: 12px;
-            box-shadow: 0 0 12px rgba(255, 107, 107, 0.6);
+            top: 10px;
+            right: 10px;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.6);
             animation: pulse 2s infinite;
         }
 
@@ -418,36 +286,23 @@
             const round2 = bracket[1] || [];
             const round3 = bracket[2] || [];
             
-            let html = '<div class="bracket-wrapper">';
+            let html = '';
             
             // Round 1 - Quarter Finals
             html += '<div class="round round-1">';
-            html += '<div class="round-title">Quarter Finals</div>';
-            html += '<div class="matchups">';
             round1.forEach((matchup) => {
                 html += createMatchupHTML(matchup, tournament.currentRound > 1);
             });
             for (let i = round1.length; i < 4; i++) {
                 html += createEmptyMatchup();
             }
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector QF to SF
-            html += `<div class="connector connector-qf-sf">
-                <div class="line-1"></div>
-                <div class="line-2"></div>
-                <div class="line-v1"></div>
-                <div class="line-h1"></div>
-                <div class="line-3"></div>
-                <div class="line-4"></div>
-                <div class="line-v2"></div>
-                <div class="line-h2"></div>
-            </div>`;
+            html += createQFtoSFConnector();
             
             // Round 2 - Semi Finals
             html += '<div class="round round-2">';
-            html += '<div class="round-title">Semi Finals</div>';
-            html += '<div class="matchups">';
             if (round2.length > 0) {
                 round2.forEach((matchup) => {
                     html += createMatchupHTML(matchup, tournament.currentRound > 2);
@@ -456,36 +311,25 @@
             for (let i = round2.length; i < 2; i++) {
                 html += createEmptyMatchup();
             }
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector SF to Finals
-            html += `<div class="connector connector-sf-f">
-                <div class="line-1"></div>
-                <div class="line-2"></div>
-                <div class="line-v1"></div>
-                <div class="line-h1"></div>
-            </div>`;
+            html += createSFtoFConnector();
             
             // Round 3 - Finals
             html += '<div class="round round-3">';
-            html += '<div class="round-title">Finals</div>';
-            html += '<div class="matchups">';
             if (round3.length > 0) {
                 html += createMatchupHTML(round3[0], tournament.currentRound > 3);
             } else {
                 html += createEmptyMatchup();
             }
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector Finals to Champion
-            html += `<div class="connector connector-f-c">
-                <div class="line-1"></div>
-            </div>`;
+            html += createFtoChampConnector();
             
             // Winner
             html += createWinnerSection(tournament.champion);
-            
-            html += '</div>';
             
             container.innerHTML = html;
         }
@@ -551,10 +395,116 @@
             `;
         }
 
+        function createQFtoSFConnector() {
+            // Player card = 44px height + 8px padding top + 8px padding bottom + 2px margin = 62px
+            // But actual measured: each player card ~52px, matchup ~104px, with margins ~116px
+            const height = 480;
+            const width = 50;
+            
+            // QF: 4 matchups, each ~116px (with margin 6px top/bottom = 12px total)
+            // Centers of QF matchups: 58, 174, 290, 406
+            // SF: 2 matchups with 70px margin each side
+            // SF centers should align with merged QF pairs
+            
+            // Line from P1&P2 center (in matchup) to SF slot
+            const qf1_top = 30;      // Center of player 1 in matchup 1
+            const qf1_bot = 82;      // Center of player 2 in matchup 1
+            const qf2_top = 146;     // Center of player 1 in matchup 2
+            const qf2_bot = 198;     // Center of player 2 in matchup 2
+            const qf3_top = 262;     // Center of player 1 in matchup 3
+            const qf3_bot = 314;     // Center of player 2 in matchup 3
+            const qf4_top = 378;     // Center of player 1 in matchup 4
+            const qf4_bot = 430;     // Center of player 2 in matchup 4
+            
+            // SF matchup centers (with 70px margin = 140px spacing between matchups)
+            const sf1 = 126;   // First SF matchup center
+            const sf2 = 354;   // Second SF matchup center
+            
+            return `
+                <div class="connector">
+                    <svg width="${width}" height="${height}">
+                        <!-- QF Matchup 1 → SF 1 (top player) -->
+                        <path class="bracket-line" d="M 0 ${qf1_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${qf1_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${qf1_top} V ${qf1_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(qf1_top + qf1_bot) / 2} H 25 V ${sf1 - 26} H ${width}"/>
+                        
+                        <!-- QF Matchup 2 → SF 1 (bottom player) -->
+                        <path class="bracket-line" d="M 0 ${qf2_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${qf2_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${qf2_top} V ${qf2_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(qf2_top + qf2_bot) / 2} H 25 V ${sf1 + 26} H ${width}"/>
+                        
+                        <!-- QF Matchup 3 → SF 2 (top player) -->
+                        <path class="bracket-line" d="M 0 ${qf3_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${qf3_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${qf3_top} V ${qf3_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(qf3_top + qf3_bot) / 2} H 25 V ${sf2 - 26} H ${width}"/>
+                        
+                        <!-- QF Matchup 4 → SF 2 (bottom player) -->
+                        <path class="bracket-line" d="M 0 ${qf4_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${qf4_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${qf4_top} V ${qf4_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(qf4_top + qf4_bot) / 2} H 25 V ${sf2 + 26} H ${width}"/>
+                    </svg>
+                </div>
+            `;
+        }
+
+        function createSFtoFConnector() {
+            const height = 480;
+            const width = 50;
+            
+            const sf1_top = 100;
+            const sf1_bot = 152;
+            const sf2_top = 328;
+            const sf2_bot = 380;
+            
+            const finals = 240;  // Center of finals
+            
+            return `
+                <div class="connector">
+                    <svg width="${width}" height="${height}">
+                        <!-- SF 1 → Finals (top player) -->
+                        <path class="bracket-line" d="M 0 ${sf1_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${sf1_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${sf1_top} V ${sf1_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(sf1_top + sf1_bot) / 2} H 25 V ${finals - 26} H ${width}"/>
+                        
+                        <!-- SF 2 → Finals (bottom player) -->
+                        <path class="bracket-line" d="M 0 ${sf2_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${sf2_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${sf2_top} V ${sf2_bot}"/>
+                        <path class="bracket-line" d="M 12 ${(sf2_top + sf2_bot) / 2} H 25 V ${finals + 26} H ${width}"/>
+                    </svg>
+                </div>
+            `;
+        }
+
+        function createFtoChampConnector() {
+            const height = 480;
+            const width = 40;
+            
+            const finals_top = 214;
+            const finals_bot = 266;
+            const center = 240;
+            
+            return `
+                <div class="connector">
+                    <svg width="${width}" height="${height}">
+                        <path class="bracket-line" d="M 0 ${finals_top} H 12"/>
+                        <path class="bracket-line" d="M 0 ${finals_bot} H 12"/>
+                        <path class="bracket-line" d="M 12 ${finals_top} V ${finals_bot}"/>
+                        <path class="bracket-line" d="M 12 ${center} H ${width}"/>
+                    </svg>
+                </div>
+            `;
+        }
+
         function createWinnerSection(champion) {
             if (champion) {
                 return `
-                    <div class="winner-section">
+                    <div class="winner-section" style="height: 480px;">
                         <div class="winner-card">
                             <div class="winner-indicator"></div>
                             <div class="winner-avatar">${champion.emoji || '🏆'}</div>
@@ -568,7 +518,7 @@
             }
             
             return `
-                <div class="winner-section">
+                <div class="winner-section" style="height: 480px;">
                     <div class="winner-card pending">
                         <div class="winner-avatar">❓</div>
                         <div class="winner-label">🏆 Champion</div>
@@ -583,12 +533,10 @@
         function showDefaultBracket() {
             const container = document.getElementById('tournamentContainer');
             
-            let html = '<div class="bracket-wrapper">';
+            let html = '';
             
             // Round 1
             html += '<div class="round round-1">';
-            html += '<div class="round-title">Quarter Finals</div>';
-            html += '<div class="matchups">';
             for (let i = 0; i < 4; i++) {
                 html += `
                     <div class="matchup">
@@ -611,53 +559,31 @@
                     </div>
                 `;
             }
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector
-            html += `<div class="connector connector-qf-sf">
-                <div class="line-1"></div>
-                <div class="line-2"></div>
-                <div class="line-v1"></div>
-                <div class="line-h1"></div>
-                <div class="line-3"></div>
-                <div class="line-4"></div>
-                <div class="line-v2"></div>
-                <div class="line-h2"></div>
-            </div>`;
+            html += createQFtoSFConnector();
             
             // Round 2
             html += '<div class="round round-2">';
-            html += '<div class="round-title">Semi Finals</div>';
-            html += '<div class="matchups">';
             for (let i = 0; i < 2; i++) {
                 html += createEmptyMatchup();
             }
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector
-            html += `<div class="connector connector-sf-f">
-                <div class="line-1"></div>
-                <div class="line-2"></div>
-                <div class="line-v1"></div>
-                <div class="line-h1"></div>
-            </div>`;
+            html += createSFtoFConnector();
             
             // Finals
             html += '<div class="round round-3">';
-            html += '<div class="round-title">Finals</div>';
-            html += '<div class="matchups">';
             html += createEmptyMatchup();
-            html += '</div></div>';
+            html += '</div>';
             
             // Connector
-            html += `<div class="connector connector-f-c">
-                <div class="line-1"></div>
-            </div>`;
+            html += createFtoChampConnector();
             
             // Winner
             html += createWinnerSection(null);
-            
-            html += '</div>';
             
             container.innerHTML = html;
         }
