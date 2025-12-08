@@ -233,6 +233,11 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
+        // Fixed heights for perfect alignment - MUST be defined before use
+        const CARD_HEIGHT = 60;
+        const CARD_GAP = 4;       // Gap between cards in a matchup
+        const MATCHUP_GAP = 16;   // Gap between matchups in QF
+
         if (!userId) {
             document.getElementById('tournamentContainer').innerHTML = '<div class="no-tournament">No userId in URL</div>';
         } else {
@@ -251,11 +256,6 @@
                 showDefaultBracket();
             });
         }
-
-        // Fixed heights for perfect alignment
-        const CARD_HEIGHT = 60;
-        const CARD_GAP = 4;       // Gap between cards in a matchup
-        const MATCHUP_GAP = 16;   // Gap between matchups in QF
 
         // QF: 4 matchups, each matchup = 2 cards (60px each) + 4px gap = 124px
         // Total QF height = 4 * 124 + 3 * 16 = 496 + 48 = 544px
