@@ -357,11 +357,25 @@
             const p2 = matchup.player2;
             const winner = matchup.winner;
             
-            // Only show winner/loser states when round is complete
-            const p1IsWinner = showWinner && winner && winner.name === p1.name;
-            const p2IsWinner = showWinner && winner && winner.name === p2.name;
-            const p1IsLoser = showWinner && winner && winner.name !== p1.name;
-            const p2IsLoser = showWinner && winner && winner.name !== p2.name;
+            // Determine winner/loser states
+            let p1IsWinner = false;
+            let p2IsWinner = false;
+            let p1IsLoser = false;
+            let p2IsLoser = false;
+            
+            if (showWinner && winner) {
+                // Compare by emoji (unique identifier) since names might be similar
+                if (winner.emoji) {
+                    p1IsWinner = winner.emoji === p1.emoji;
+                    p2IsWinner = winner.emoji === p2.emoji;
+                } else {
+                    // Fallback: winner has higher multiplier
+                    p1IsWinner = p1.multiplier > p2.multiplier;
+                    p2IsWinner = p2.multiplier > p1.multiplier;
+                }
+                p1IsLoser = !p1IsWinner && (p1IsWinner || p2IsWinner);
+                p2IsLoser = !p2IsWinner && (p1IsWinner || p2IsWinner);
+            }
             
             const p1Class = p1IsWinner ? 'winner' : (p1IsLoser ? 'loser' : '');
             const p2Class = p2IsWinner ? 'winner' : (p2IsLoser ? 'loser' : '');
