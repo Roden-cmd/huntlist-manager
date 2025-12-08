@@ -344,35 +344,250 @@ function navigateTo(pageName) {
 function updateDashboard() {
     console.log('Updating dashboard...');
     
+    const container = document.getElementById('dashboardContent');
+    if (!container) return;
+    
+    // Calculate bonus hunt stats
     const totalHunts = huntHistory.length;
     let totalProfit = 0;
     let totalGamesCount = 0;
     let bestMult = 0;
+    let bestMultGame = '';
+    let totalWagered = 0;
+    let totalWon = 0;
+    
+    // Prepare data for charts - last 7 days
+    const profitByDay = {};
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const dateKey = date.toISOString().split('T')[0];
+        last7Days.push({ dateStr, dateKey });
+        profitByDay[dateKey] = 0;
+    }
     
     huntHistory.forEach(function(hunt) {
-        totalProfit += hunt.profit || 0;
+        const huntProfit = (hunt.totalWin || 0) - (hunt.hunt?.startingBalance || 0);
+        totalProfit += huntProfit;
         totalGamesCount += hunt.games ? hunt.games.length : 0;
+        totalWagered += hunt.hunt?.startingBalance || 0;
+        totalWon += hunt.totalWin || 0;
+        
+        // Add to daily profit
+        if (hunt.savedAt) {
+            const huntDate = hunt.savedAt.split('T')[0];
+            if (profitByDay.hasOwnProperty(huntDate)) {
+                profitByDay[huntDate] += huntProfit;
+            }
+        }
         
         if (hunt.games) {
             hunt.games.forEach(function(game) {
                 if (game.win && game.bet) {
                     const mult = game.win / game.bet;
-                    if (mult > bestMult) bestMult = mult;
+                    if (mult > bestMult) {
+                        bestMult = mult;
+                        bestMultGame = game.name;
+                    }
                 }
             });
         }
     });
     
-    const el1 = document.getElementById('totalHunts');
-    const el2 = document.getElementById('totalProfit');
-    const el3 = document.getElementById('totalGames');
-    const el4 = document.getElementById('bestMultiplier');
+    // Calculate tournament stats
+    const totalTournaments = tournamentHistory.length;
+    let tournamentsCompleted = 0;
+    let uniquePlayers = new Set();
     
-    if (el1) el1.textContent = totalHunts;
-    if (el2) el2.textContent = '€' + totalProfit.toFixed(2);
-    if (el3) el3.textContent = totalGamesCount;
-    if (el4) el4.textContent = bestMult.toFixed(0) + 'x';
+    tournamentHistory.forEach(function(t) {
+        if (t.bracket) {
+            tournamentsCompleted++;
+            // Get players from round 1
+            if (t.bracket.round1) {
+                t.bracket.round1.forEach(function(match) {
+                    if (match.player1?.name) uniquePlayers.add(match.player1.name);
+                    if (match.player2?.name) uniquePlayers.add(match.player2.name);
+                });
+            }
+        }
+    });
     
+    // Build chart bars
+    const maxProfit = Math.max(...Object.values(profitByDay), 1);
+    const minProfit = Math.min(...Object.values(profitByDay), 0);
+    const range = Math.max(Math.abs(maxProfit), Math.abs(minProfit), 1);
+    
+    let chartBars = '';
+    last7Days.forEach(function(day) {
+        const profit = profitByDay[day.dateKey];
+        const height = Math.abs(profit) / range * 60;
+        const isPositive = profit >= 0;
+        const barColor = isPositive ? '#51cf66' : '#ff6b6b';
+        const barPosition = isPositive ? 'bottom: 50%;' : 'top: 50%;';
+        
+        chartBars += `
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                <div style="height: 120px; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <div style="position: absolute; ${barPosition} width: 70%; height: ${Math.max(height, 2)}px; background: ${barColor}; border-radius: 4px; transition: all 0.3s;"></div>
+                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                </div>
+                <div style="color: #888; font-size: 0.7rem; text-align: center;">${day.dateStr.split(' ')[0]}</div>
+                <div style="color: ${barColor}; font-size: 0.75rem; font-weight: bold;">${profit >= 0 ? '+' : ''}€${profit.toFixed(0)}</div>
+            </div>
+        `;
+    });
+    
+    // Calculate win rate
+    const winRate = totalHunts > 0 ? (huntHistory.filter(h => ((h.totalWin || 0) - (h.hunt?.startingBalance || 0)) > 0).length / totalHunts * 100).toFixed(0) : 0;
+    
+    container.innerHTML = `
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h1 style="color: #fff; margin: 0;">Dashboard</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Welcome back! Here's your hunting overview.</p>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="navigateTo('bonus-hunts')" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                    🎰 ${currentHunt ? 'Continue Hunt' : 'New Hunt'}
+                </button>
+                <button onclick="navigateTo('tournaments')" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea;">
+                    🏆 Tournaments
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Stats Row -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, rgba(81, 207, 102, 0.2) 0%, rgba(81, 207, 102, 0.05) 100%); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(81, 207, 102, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 50px; height: 50px; background: rgba(81, 207, 102, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">💰</div>
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Total Profit</div>
+                        <div style="color: ${totalProfit >= 0 ? '#51cf66' : '#ff6b6b'}; font-size: 1.8rem; font-weight: bold;">${totalProfit >= 0 ? '+' : ''}€${totalProfit.toFixed(2)}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.05) 100%); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 50px; height: 50px; background: rgba(74, 158, 255, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🎯</div>
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Total Hunts</div>
+                        <div style="color: #4a9eff; font-size: 1.8rem; font-weight: bold;">${totalHunts}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 50px; height: 50px; background: rgba(255, 215, 0, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⭐</div>
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Best Multiplier</div>
+                        <div style="color: #ffd700; font-size: 1.8rem; font-weight: bold;">${bestMult.toFixed(0)}x</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.05) 100%); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="width: 50px; height: 50px; background: rgba(102, 126, 234, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🏆</div>
+                    <div>
+                        <div style="color: #888; font-size: 0.85rem;">Tournaments</div>
+                        <div style="color: #667eea; font-size: 1.8rem; font-weight: bold;">${totalTournaments}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Row -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Profit Chart -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h3 style="color: #fff; margin: 0 0 1.5rem 0; font-size: 1.1rem;">📈 Profit - Last 7 Days</h3>
+                <div style="display: flex; gap: 0.5rem; height: 180px;">
+                    ${chartBars}
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h3 style="color: #fff; margin: 0 0 1.5rem 0; font-size: 1.1rem;">📊 Quick Stats</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px;">
+                        <span style="color: #888;">Win Rate</span>
+                        <span style="color: #51cf66; font-weight: bold;">${winRate}%</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px;">
+                        <span style="color: #888;">Games Played</span>
+                        <span style="color: #4a9eff; font-weight: bold;">${totalGamesCount}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px;">
+                        <span style="color: #888;">Total Wagered</span>
+                        <span style="color: #ff6b6b; font-weight: bold;">€${totalWagered.toFixed(0)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px;">
+                        <span style="color: #888;">Total Won</span>
+                        <span style="color: #51cf66; font-weight: bold;">€${totalWon.toFixed(0)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row: Recent Hunts & Tournaments -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Recent Bonus Hunts -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">🎰 Recent Bonus Hunts</h3>
+                    <button onclick="navigateTo('bonus-hunts')" style="background: none; border: none; color: #4a9eff; cursor: pointer; font-size: 0.9rem;">View All →</button>
+                </div>
+                <div id="recentHuntsList" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
+                    ${huntHistory.length === 0 ? '<p style="color: #888; text-align: center; padding: 2rem;">No hunts yet</p>' : ''}
+                </div>
+            </div>
+            
+            <!-- Recent Tournaments -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">🏆 Recent Tournaments</h3>
+                    <button onclick="navigateTo('tournaments')" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 0.9rem;">View All →</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
+                    ${tournamentHistory.length === 0 ? '<p style="color: #888; text-align: center; padding: 2rem;">No tournaments yet</p>' : 
+                        tournamentHistory.slice(-5).reverse().map(function(t, idx) {
+                            const champion = t.bracket?.champion;
+                            const date = new Date(t.date).toLocaleDateString();
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; border-left: 3px solid #667eea; cursor: pointer;" onclick="showTournamentBracketModal(${tournamentHistory.length - 1 - idx})">
+                                    <div>
+                                        <div style="color: #fff; font-weight: bold;">${t.name}</div>
+                                        <div style="color: #888; font-size: 0.85rem;">${date} • ${t.size || 8} players</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        ${champion ? `<div style="color: #ffd700; font-size: 0.9rem;">👑 ${champion.name}</div>` : '<div style="color: #888; font-size: 0.85rem;">In Progress</div>'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')
+                    }
+                </div>
+            </div>
+        </div>
+        
+        ${bestMultGame ? `
+        <div style="margin-top: 1.5rem; padding: 1rem 1.5rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.05) 100%); border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.3); display: flex; align-items: center; gap: 1rem;">
+            <span style="font-size: 1.5rem;">🏅</span>
+            <div>
+                <div style="color: #ffd700; font-weight: bold;">Best Win Ever</div>
+                <div style="color: #888; font-size: 0.9rem;">${bestMultGame} - ${bestMult.toFixed(2)}x multiplier</div>
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    // Populate recent hunts list
     updateRecentHunts();
 }
 
@@ -380,14 +595,14 @@ function updateRecentHunts() {
     const container = document.getElementById('recentHuntsList');
     if (!container) return;
     
-    container.innerHTML = '';
-    
     if (huntHistory.length === 0) {
-        container.innerHTML = '<p style="color: #888; text-align: center; padding: 2rem;">No hunts yet</p>';
+        container.innerHTML = '<p style="color: #888; text-align: center; padding: 2rem;">No hunts yet. Start your first bonus hunt!</p>';
         return;
     }
     
-    huntHistory.slice(0, 5).reverse().forEach(function(hunt, reverseIndex) {
+    container.innerHTML = '';
+    
+    huntHistory.slice(-5).reverse().forEach(function(hunt, reverseIndex) {
         // Safety checks
         if (!hunt || !hunt.hunt) {
             console.warn('Invalid hunt data:', hunt);
@@ -395,23 +610,23 @@ function updateRecentHunts() {
         }
         
         const actualIndex = huntHistory.length - 1 - reverseIndex;
+        const profit = (hunt.totalWin || 0) - (hunt.hunt.startingBalance || 0);
+        const date = new Date(hunt.savedAt).toLocaleDateString();
+        const gamesCount = hunt.games ? hunt.games.length : 0;
         
         const card = document.createElement('div');
-        card.className = 'hunt-card';
-        card.style.cursor = 'pointer';
+        card.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; border-left: 3px solid ' + (profit >= 0 ? '#51cf66' : '#ff6b6b') + '; cursor: pointer; transition: all 0.2s;';
         card.dataset.huntIndex = actualIndex;
         
-        const h3 = document.createElement('h3');
-        h3.textContent = hunt.hunt.name || 'Unnamed Hunt';
-        
-        const p = document.createElement('p');
-        p.style.color = '#888';
-        const gamesCount = hunt.games ? hunt.games.length : 0;
-        const profit = hunt.profit || 0;
-        p.textContent = 'Games: ' + gamesCount + ' | Profit: €' + profit.toFixed(2);
-        
-        card.appendChild(h3);
-        card.appendChild(p);
+        card.innerHTML = `
+            <div>
+                <div style="color: #fff; font-weight: bold;">${hunt.hunt.name || 'Unnamed Hunt'}</div>
+                <div style="color: #888; font-size: 0.85rem;">${date} • ${gamesCount} games</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-weight: bold; font-size: 1.1rem;">${profit >= 0 ? '+' : ''}€${profit.toFixed(2)}</div>
+            </div>
+        `;
         
         // Add click listener
         card.addEventListener('click', function() {
@@ -420,13 +635,11 @@ function updateRecentHunts() {
         
         // Add hover effect
         card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-4px)';
-            this.style.boxShadow = '0 8px 24px rgba(74, 158, 255, 0.3)';
+            this.style.background = 'rgba(74, 158, 255, 0.2)';
         });
         
         card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = 'none';
+            this.style.background = 'rgba(40, 40, 60, 0.5)';
         });
         
         container.appendChild(card);
