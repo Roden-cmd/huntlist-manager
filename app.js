@@ -894,7 +894,7 @@ function createHuntManagementView() {
     const profit = totalWin - totalBet;
     
     // Get the correct OBS URL
-    const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay-firebase.html?userId=' + currentUser.uid;
+    const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay.html?userId=' + currentUser.uid;
     
     return `
         <div style="display: grid; grid-template-columns: 1fr 500px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
@@ -970,7 +970,7 @@ function createHuntManagementView() {
                     <!-- Preview -->
                     <div style="border: 2px solid rgba(74, 158, 255, 0.3); border-radius: 8px; overflow: hidden; background: #000;">
                         <iframe id="obsPreviewFrame" 
-                                src="overlay-firebase.html?userId=${currentUser.uid}"
+                                src="overlay.html?userId=${currentUser.uid}"
                                 style="width: 100%; height: 750px; border: none; display: block;">
                         </iframe>
                     </div>
