@@ -503,12 +503,13 @@
                 return fragment;
             };
 
-            // Add games twice for seamless infinite scroll
+            // Add games - only duplicate if we need scrolling (more than 6 games)
             gamesList.appendChild(createGameItems());
-            gamesList.appendChild(createGameItems());
-
+            
             // Enable auto-scroll only if there are more than 6 games
             if (games.length > 6) {
+                // Add second copy for seamless infinite scroll
+                gamesList.appendChild(createGameItems());
                 const scrollDuration = games.length * 2;
                 gamesListWrapper.style.animation = `infiniteScroll ${scrollDuration}s linear infinite`;
             } else {
