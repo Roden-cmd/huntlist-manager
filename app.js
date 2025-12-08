@@ -1891,13 +1891,19 @@ function loadTournamentData() {
         if (snapshot.exists()) {
             activeTournament = snapshot.val();
         }
-    });
-    
-    firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').once('value').then(function(snapshot) {
-        if (snapshot.exists()) {
-            const data = snapshot.val();
-            tournamentHistory = Array.isArray(data) ? data : Object.values(data);
-        }
+        
+        // Load history after active tournament
+        firebase.database().ref('users/' + currentUser.uid + '/tournamentHistory').once('value').then(function(historySnapshot) {
+            if (historySnapshot.exists()) {
+                const data = historySnapshot.val();
+                tournamentHistory = Array.isArray(data) ? data : Object.values(data);
+            }
+            
+            // Refresh the page if we're on tournaments
+            if (document.querySelector('.nav-link.active')?.textContent.includes('Tournaments')) {
+                updateTournamentsPage();
+            }
+        });
     });
 }
 
