@@ -1478,6 +1478,9 @@ function setupTournamentSetupForm() {
         const size = parseInt(sizeSelect.value);
         const players = [];
         
+        // Shuffle emojis and pick unique ones for each player
+        const shuffledEmojis = [...playerEmojis].sort(() => Math.random() - 0.5);
+        
         for (let i = 0; i < size; i++) {
             players.push({
                 name: document.getElementById('player' + i + 'Name').value,
@@ -1485,7 +1488,7 @@ function setupTournamentSetupForm() {
                 bet: parseFloat(document.getElementById('player' + i + 'Bet').value),
                 win: 0,
                 multiplier: 0,
-                emoji: playerEmojis[Math.floor(Math.random() * playerEmojis.length)]
+                emoji: shuffledEmojis[i % shuffledEmojis.length]
             });
         }
         
