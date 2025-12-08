@@ -425,14 +425,10 @@ function updateDashboard() {
         const height = Math.abs(profit) / range * 50;
         const isPositive = profit >= 0;
         const barColor = isPositive ? '#51cf66' : '#ff6b6b';
-        const barPosition = isPositive ? 'bottom: 50%;' : 'top: 50%;';
         
         chartBars += `
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
-                <div style="height: 80px; width: 100%; display: flex; align-items: center; justify-content: center; position: relative;">
-                    <div style="position: absolute; ${barPosition} width: 70%; height: ${Math.max(height, 2)}px; background: ${barColor}; border-radius: 4px; transition: all 0.3s;"></div>
-                    <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.1);"></div>
-                </div>
+                <div style="height: ${Math.max(height, 4)}px; width: 70%; background: ${barColor}; border-radius: 4px; transition: all 0.3s;"></div>
                 <div style="color: #888; font-size: 0.7rem; text-align: center;">${day.dateStr.split(' ')[0]}</div>
                 <div style="color: ${barColor}; font-size: 0.75rem; font-weight: bold;">${profit >= 0 ? '+' : ''}€${profit.toFixed(0)}</div>
             </div>
@@ -504,9 +500,9 @@ function updateDashboard() {
         <!-- Charts Row -->
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
             <!-- Profit Chart -->
-            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">📈 Profit - Last 7 Days</h3>
-                <div style="display: flex; gap: 0.5rem; height: 120px;">
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); display: flex; flex-direction: column;">
+                <h3 style="color: #fff; margin: 0 0 auto 0; font-size: 1.1rem;">📈 Profit - Last 7 Days</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: flex-end;">
                     ${chartBars}
                 </div>
             </div>
