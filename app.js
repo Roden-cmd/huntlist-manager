@@ -449,10 +449,10 @@ function updateDashboard() {
                 <p style="color: #888; margin-top: 0.5rem;">Welcome back! Here's your hunting overview.</p>
             </div>
             <div style="display: flex; gap: 1rem;">
-                <button onclick="navigateTo('bonus-hunts')" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
-                    🎰 ${currentHunt ? 'Continue Hunt' : 'New Hunt'}
+                <button onclick="navigateTo('bonus-hunts')" class="btn" style="padding: 0.75rem 1.5rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; color: #4a9eff;">
+                    🎰 Bonus Hunts
                 </button>
-                <button onclick="navigateTo('tournaments')" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea;">
+                <button onclick="navigateTo('tournaments')" class="btn" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
                     🏆 Tournaments
                 </button>
             </div>
@@ -541,7 +541,7 @@ function updateDashboard() {
             <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">🎰 Recent Bonus Hunts</h3>
-                    <button onclick="navigateTo('bonus-hunts')" style="background: none; border: none; color: #4a9eff; cursor: pointer; font-size: 0.9rem;">View All →</button>
+                    <button onclick="navigateTo('bonus-hunts'); setTimeout(function(){ var el = document.getElementById('huntHistorySection'); if(el) el.scrollIntoView({behavior: 'smooth'}); }, 100);" style="background: none; border: none; color: #4a9eff; cursor: pointer; font-size: 0.9rem;">View All →</button>
                 </div>
                 <div id="recentHuntsList" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
                     ${huntHistory.length === 0 ? '<p style="color: #888; text-align: center; padding: 2rem;">No hunts yet</p>' : ''}
@@ -552,7 +552,7 @@ function updateDashboard() {
             <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">🏆 Recent Tournaments</h3>
-                    <button onclick="navigateTo('tournaments')" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 0.9rem;">View All →</button>
+                    <button onclick="navigateTo('tournaments'); setTimeout(function(){ var el = document.getElementById('tournamentHistorySection'); if(el) el.scrollIntoView({behavior: 'smooth'}); }, 100);" style="background: none; border: none; color: #667eea; cursor: pointer; font-size: 0.9rem;">View All →</button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 250px; overflow-y: auto;">
                     ${tournamentHistory.length === 0 ? '<p style="color: #888; text-align: center; padding: 2rem;">No tournaments yet</p>' : 
@@ -687,7 +687,7 @@ function updateBonusHuntsPage() {
     }
     
     // Hunt History Section
-    html += '<div style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem;">';
+    html += '<div id="huntHistorySection" style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem;">';
     html += '<h2 style="color: #fff; margin-bottom: 1.5rem;">Previous Hunts (' + huntHistory.length + ')</h2>';
     
     if (huntHistory.length === 0) {
@@ -1625,7 +1625,7 @@ function updateTournamentsPage() {
     }
     
     // Tournament History
-    html += '<div style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem; margin-top: 3rem;">';
+    html += '<div id="tournamentHistorySection" style="border-top: 2px solid rgba(74, 158, 255, 0.2); padding-top: 2rem; margin-top: 3rem;">';
     html += '<h2 style="color: #fff; margin-bottom: 1.5rem;">Previous Tournaments (' + tournamentHistory.length + ')</h2>';
     
     if (tournamentHistory.length === 0) {
