@@ -1439,12 +1439,10 @@ function showTournamentBracketModal(index) {
     
     // Build matchup HTML for each round
     const qfMatchups = round1.map(m => createModalMatchupHTML(m)).join('');
-    const sfMatchups = round2.length > 0 ? round2.map(m => createModalMatchupHTML(m)).join('') : createEmptyModalMatchup() + createEmptyModalMatchup();
-    const fMatchups = round3.length > 0 ? createModalMatchupHTML(round3[0]) : createEmptyModalMatchup();
     
     let html = `
         <div id="tournamentBracketModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-            <div style="background: #1a1a2e; border-radius: 16px; max-width: 1200px; width: 95%; max-height: 95vh; overflow: auto; padding: 2rem; position: relative;">
+            <div style="background: #1a1a2e; border-radius: 16px; width: 95%; max-width: 1400px; padding: 2rem; position: relative;">
                 <button onclick="document.getElementById('tournamentBracketModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: #888; font-size: 2rem; cursor: pointer; line-height: 1;">&times;</button>
                 
                 <div style="text-align: center; margin-bottom: 1.5rem;">
@@ -1453,71 +1451,76 @@ function showTournamentBracketModal(index) {
                 </div>
                 
                 <!-- Round Titles Row -->
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding-left: 0;">
-                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Quarter Finals</div>
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Quarter Finals</div>
+                    <div style="width: 60px;"></div>
+                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Semi Finals</div>
+                    <div style="width: 60px;"></div>
+                    <div style="flex: 1; text-align: center; color: #4a9eff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Finals</div>
                     <div style="width: 50px;"></div>
-                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Semi Finals</div>
-                    <div style="width: 50px;"></div>
-                    <div style="min-width: 200px; text-align: center; color: #4a9eff; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">Finals</div>
-                    <div style="width: 40px;"></div>
-                    <div style="min-width: 150px; text-align: center; color: #ffd700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
+                    <div style="flex: 1; text-align: center; color: #ffd700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">🏆 Champion</div>
                 </div>
                 
                 <!-- Bracket with SVG Lines -->
-                <div style="display: flex; align-items: flex-start; position: relative;">
+                <div style="display: flex; align-items: flex-start;">
                     
                     <!-- Quarter Finals -->
-                    <div style="display: flex; flex-direction: column; gap: 8px; min-width: 200px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
                         ${qfMatchups}
                     </div>
                     
                     <!-- QF to SF Lines -->
-                    <svg width="50" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 30 H 20 V 62 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 94 H 20 V 62" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 170 H 20 V 202 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 234 H 20 V 202" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 310 H 20 V 342 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 374 H 20 V 342" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 450 H 20 V 482 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 514 H 20 V 482" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    <svg width="60" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 30 H 25 V 62 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 94 H 25 V 62" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 170 H 25 V 202 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 234 H 25 V 202" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 310 H 25 V 342 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 374 H 25 V 342" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 450 H 25 V 482 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 514 H 25 V 482" stroke="#3a4055" stroke-width="2" fill="none"/>
                     </svg>
                     
-                    <!-- Semi Finals -->
-                    <div style="display: flex; flex-direction: column; min-width: 200px; margin-top: 32px; gap: 140px;">
-                        ${sfMatchups}
+                    <!-- Semi Finals - SF1 at top, SF2 lower with 140px gap between them -->
+                    <div style="flex: 1; display: flex; flex-direction: column; padding-top: 32px;">
+                        <div>
+                            ${round2[0] ? createModalMatchupHTML(round2[0]) : createEmptyModalMatchup()}
+                        </div>
+                        <div style="margin-top: 140px;">
+                            ${round2[1] ? createModalMatchupHTML(round2[1]) : createEmptyModalMatchup()}
+                        </div>
                     </div>
                     
                     <!-- SF to Finals Lines -->
-                    <svg width="50" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 62 H 20 V 237 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 202 H 20 V 237" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 342 H 20 V 307 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 482 H 20 V 307" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    <svg width="60" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 62 H 25 V 237 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 202 H 25 V 237" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 342 H 25 V 307 H 60" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 482 H 25 V 307" stroke="#3a4055" stroke-width="2" fill="none"/>
                     </svg>
                     
                     <!-- Finals -->
-                    <div style="display: flex; flex-direction: column; min-width: 200px; margin-top: 207px;">
-                        ${fMatchups}
+                    <div style="flex: 1; display: flex; flex-direction: column; padding-top: 207px;">
+                        ${round3[0] ? createModalMatchupHTML(round3[0]) : createEmptyModalMatchup()}
                     </div>
                     
                     <!-- Finals to Champion Lines -->
-                    <svg width="40" height="544" style="flex-shrink: 0;">
-                        <path d="M 0 237 H 15 V 272 H 40" stroke="#3a4055" stroke-width="2" fill="none"/>
-                        <path d="M 0 307 H 15 V 272" stroke="#3a4055" stroke-width="2" fill="none"/>
+                    <svg width="50" height="544" style="flex-shrink: 0;">
+                        <path d="M 0 237 H 20 V 272 H 50" stroke="#3a4055" stroke-width="2" fill="none"/>
+                        <path d="M 0 307 H 20 V 272" stroke="#3a4055" stroke-width="2" fill="none"/>
                     </svg>
                     
                     <!-- Champion -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 180px; min-width: 150px;">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 14px; text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: 0.5rem;">${winner ? winner.emoji : '❓'}</div>
-                            <div style="color: #fff; font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem;">${winner ? winner.name : 'TBD'}</div>
-                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold; font-size: 1.1rem;">${winner && winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '---'}</div>
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding-top: 180px;">
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem 2rem; border-radius: 14px; text-align: center; min-width: 160px;">
+                            <div style="font-size: 3.5rem; margin-bottom: 0.5rem;">${winner ? winner.emoji : '❓'}</div>
+                            <div style="color: #fff; font-weight: bold; font-size: 1.2rem; margin-bottom: 0.5rem;">${winner ? winner.name : 'TBD'}</div>
+                            <div style="background: #ffd700; color: #1a1a2e; padding: 0.5rem 1.25rem; border-radius: 8px; font-weight: bold; font-size: 1.2rem;">${winner && winner.multiplier ? winner.multiplier.toFixed(0) + 'x' : '---'}</div>
                         </div>
                     </div>
                 </div>
                 
-                <div style="text-align: center; margin-top: 2rem;">
+                <div style="text-align: center; margin-top: 1.5rem;">
                     <button onclick="document.getElementById('tournamentBracketModal').remove()" class="btn btn-primary" style="padding: 0.75rem 2rem;">Close</button>
                 </div>
             </div>
