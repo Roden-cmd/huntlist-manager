@@ -3627,6 +3627,24 @@ function renderWheelPage() {
                     </div>
                 </div>
                 
+                <!-- Load from Provider -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 183, 77, 0.3);">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">🎮 Load Games by Provider</h3>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select id="providerSelect" style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(255, 183, 77, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem;">
+                            <option value="">Select a provider...</option>
+                            ${getUniqueProviders().map(provider => `
+                                <option value="${provider}">${provider}</option>
+                            `).join('')}
+                        </select>
+                        <button onclick="loadProviderGamesToWheel()" style="padding: 0.75rem 1.25rem; background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%); border: none; border-radius: 8px; color: #000; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
+                            Load
+                        </button>
+                    </div>
+                    <p style="color: #888; font-size: 0.8rem; margin-top: 0.75rem; margin-bottom: 0;" id="providerGameCount">Select a provider to see game count</p>
+                </div>
+                
                 <!-- Items List (Full Width) -->
                 <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); flex: 1; min-height: 250px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -3684,6 +3702,12 @@ function renderWheelPage() {
                 addWheelItem();
             }
         });
+    }
+    
+    // Add change listener for provider select
+    const providerSelect = document.getElementById('providerSelect');
+    if (providerSelect) {
+        providerSelect.addEventListener('change', updateProviderGameCount);
     }
 }
 
@@ -4011,6 +4035,83 @@ function saveWheelItems() {
     });
     
     console.log('🎡 Wheel items saved');
+}
+
+function getUniqueProviders() {
+    if (!gameDatabase || gameDatabase.length === 0) return [];
+    
+    const providers = new Set();
+    gameDatabase.forEach(game => {
+        if (game.provider) {
+            providers.add(game.provider);
+        }
+    });
+    
+    return Array.from(providers).sort();
+}
+
+function loadProviderGamesToWheel() {
+    const select = document.getElementById('providerSelect');
+    const provider = select.value;
+    
+    if (!provider) {
+        alert('Please select a provider first');
+        return;
+    }
+    
+    if (!gameDatabase || gameDatabase.length === 0) {
+        alert('Game database not loaded yet. Please wait and try again.');
+        return;
+    }
+    
+    // Get all games from selected provider
+    const providerGames = gameDatabase.filter(g => g.provider === provider);
+    
+    if (providerGames.length === 0) {
+        alert('No games found for ' + provider);
+        return;
+    }
+    
+    // Add games that aren't already on the wheel
+    let addedCount = 0;
+    providerGames.forEach(game => {
+        if (!wheelItems.includes(game.name)) {
+            wheelItems.push(game.name);
+            addedCount++;
+        }
+    });
+    
+    if (addedCount === 0) {
+        alert('All ' + provider + ' games are already on the wheel!');
+        return;
+    }
+    
+    saveWheelItems();
+    renderWheelPage();
+    
+    console.log('🎮 Loaded', addedCount, 'games from', provider);
+}
+
+function updateProviderGameCount() {
+    const select = document.getElementById('providerSelect');
+    const countEl = document.getElementById('providerGameCount');
+    
+    if (!select || !countEl) return;
+    
+    const provider = select.value;
+    
+    if (!provider) {
+        countEl.textContent = 'Select a provider to see game count';
+        return;
+    }
+    
+    if (!gameDatabase || gameDatabase.length === 0) {
+        countEl.textContent = 'Loading game database...';
+        return;
+    }
+    
+    const count = gameDatabase.filter(g => g.provider === provider).length;
+    countEl.textContent = `${count} games available from ${provider}`;
 }
 
 function createNewWheel() {
