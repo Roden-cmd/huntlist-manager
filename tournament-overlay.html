@@ -478,10 +478,10 @@
                 const name = gameName || 'TBD';
                 const needsScroll = name.length > 14;
                 if (needsScroll) {
-                    // Duplicate text for seamless infinite scroll
-                    const separator = '          ';
+                    // Duplicate text for seamless infinite scroll with diamond separator
+                    const separator = '     ◆     ';
                     const duration = Math.max(name.length * 0.22, 3);
-                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}</span>`;
+                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}${name}</span>`;
                 }
                 return `<span class="player-game-text">${name}</span>`;
             };

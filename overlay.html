@@ -495,9 +495,9 @@
                     
                     // Check if name is too long (more than 16 characters) and add scrolling
                     if (displayName.length > 16) {
-                        // Duplicate text for seamless infinite scroll with spacing
-                        const separator = '          ';
-                        gameNameText.textContent = displayName + separator + displayName + separator;
+                        // Use star for super bonus, stylish dot for normal games
+                        const separator = game.superBonus ? '     ⭐     ' : '     ◆     ';
+                        gameNameText.textContent = displayName + separator + game.name + separator + game.name;
                         gameNameText.classList.add('scrolling');
                         // Set animation duration based on text length (longer text = longer duration)
                         const duration = Math.max(displayName.length * 0.25, 4);
