@@ -199,16 +199,15 @@
         .player-game-text {
             display: inline-block;
             white-space: nowrap;
-            padding-right: 30px;
         }
 
         .player-game-text.scrolling {
-            animation: scrollGameText 5s linear infinite;
+            animation: scrollGameText linear infinite;
         }
 
         @keyframes scrollGameText {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
         }
 
         .player-multiplier {
@@ -477,10 +476,12 @@
             // Helper to render game name with scrolling if needed
             const renderGameName = (gameName) => {
                 const name = gameName || 'TBD';
-                const needsScroll = name.length > 16;
+                const needsScroll = name.length > 14;
                 if (needsScroll) {
                     // Duplicate text for seamless infinite scroll
-                    return `<span class="player-game-text scrolling">${name}  •  ${name}</span>`;
+                    const separator = '          ';
+                    const duration = Math.max(name.length * 0.22, 3);
+                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}</span>`;
                 }
                 return `<span class="player-game-text">${name}</span>`;
             };

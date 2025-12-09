@@ -139,24 +139,19 @@
         .game-name-text {
             display: inline-block;
             white-space: nowrap;
-            padding-right: 50px;
         }
 
         .game-name-text.scrolling {
-            animation: scrollText 6s linear infinite;
+            animation: scrollText linear infinite;
         }
 
         @keyframes scrollText {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
         }
 
         .game-name.super-bonus {
             color: #ffd700;
-        }
-
-        .game-name.super-bonus .game-name-text::before {
-            content: '⭐ ';
         }
 
         .game-bet {
@@ -494,13 +489,21 @@
                     const gameNameText = document.createElement('span');
                     gameNameText.className = 'game-name-text';
                     
-                    // Check if name is too long (more than 18 characters) and add scrolling
-                    if (game.name.length > 18) {
-                        // Duplicate text for seamless infinite scroll
-                        gameNameText.textContent = game.name + '     •     ' + game.name;
+                    // Add star prefix for super bonus
+                    const starPrefix = game.superBonus ? '⭐ ' : '';
+                    const displayName = starPrefix + game.name;
+                    
+                    // Check if name is too long (more than 16 characters) and add scrolling
+                    if (displayName.length > 16) {
+                        // Duplicate text for seamless infinite scroll with spacing
+                        const separator = '          ';
+                        gameNameText.textContent = displayName + separator + displayName + separator;
                         gameNameText.classList.add('scrolling');
+                        // Set animation duration based on text length (longer text = longer duration)
+                        const duration = Math.max(displayName.length * 0.25, 4);
+                        gameNameText.style.animationDuration = duration + 's';
                     } else {
-                        gameNameText.textContent = game.name;
+                        gameNameText.textContent = displayName;
                     }
                     
                     gameName.appendChild(gameNameText);
