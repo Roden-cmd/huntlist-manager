@@ -246,6 +246,7 @@
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const radius = Math.min(centerX, centerY) - 5;
+            const manyItems = wheelItems.length > 30;
             
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -285,36 +286,49 @@
                 ctx.closePath();
                 ctx.fillStyle = wheelColors[index % wheelColors.length];
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
                 
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(startAngle + sliceAngle / 2);
-                ctx.textAlign = 'right';
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 12px Arial';
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                ctx.shadowBlur = 3;
-                
-                let displayText = item;
-                if (displayText.length > 14) {
-                    displayText = displayText.substring(0, 13) + '...';
+                // Skip borders and text for many items (performance)
+                if (!manyItems) {
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(startAngle + sliceAngle / 2);
+                    ctx.textAlign = 'right';
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                    ctx.shadowBlur = 3;
+                    
+                    let displayText = item;
+                    if (displayText.length > 14) {
+                        displayText = displayText.substring(0, 13) + '...';
+                    }
+                    
+                    ctx.fillText(displayText, radius - 15, 4);
+                    ctx.restore();
                 }
-                
-                ctx.fillText(displayText, radius - 15, 4);
-                ctx.restore();
             });
             
             // Center circle
             ctx.beginPath();
-            ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+            ctx.arc(centerX, centerY, manyItems ? 28 : 20, 0, 2 * Math.PI);
             ctx.fillStyle = '#1a1a2e';
             ctx.fill();
             ctx.strokeStyle = '#4a9eff';
             ctx.lineWidth = 3;
             ctx.stroke();
+            
+            // Show count in center if many items
+            if (manyItems) {
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(wheelItems.length, centerX, centerY);
+            }
             
             ctx.restore();
         }

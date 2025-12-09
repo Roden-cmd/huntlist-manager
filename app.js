@@ -3747,6 +3747,7 @@ function drawWheel() {
     }
     
     const sliceAngle = (2 * Math.PI) / wheelItems.length;
+    const manyItems = wheelItems.length > 30; // Simplified mode for 30+ items
     
     // Draw slices
     wheelItems.forEach((item, index) => {
@@ -3760,38 +3761,53 @@ function drawWheel() {
         ctx.closePath();
         ctx.fillStyle = wheelColors[index % wheelColors.length];
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
         
-        // Draw text
-        ctx.save();
-        ctx.translate(centerX, centerY);
-        ctx.rotate(startAngle + sliceAngle / 2);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px Arial';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 3;
-        
-        // Truncate long text
-        let displayText = item;
-        if (displayText.length > 14) {
-            displayText = displayText.substring(0, 13) + '...';
+        // Only draw borders if not too many items
+        if (!manyItems) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
         
-        ctx.fillText(displayText, radius - 12, 4);
-        ctx.restore();
+        // Only draw text if not too many items
+        if (!manyItems) {
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(startAngle + sliceAngle / 2);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Arial';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 3;
+            
+            // Truncate long text
+            let displayText = item;
+            if (displayText.length > 14) {
+                displayText = displayText.substring(0, 13) + '...';
+            }
+            
+            ctx.fillText(displayText, radius - 12, 4);
+            ctx.restore();
+        }
     });
     
     // Draw center circle
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 18, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, manyItems ? 25 : 18, 0, 2 * Math.PI);
     ctx.fillStyle = '#1a1a2e';
     ctx.fill();
     ctx.strokeStyle = '#4a9eff';
     ctx.lineWidth = 3;
     ctx.stroke();
+    
+    // Show count in center if many items
+    if (manyItems) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(wheelItems.length, centerX, centerY);
+    }
 }
 
 function spinWheel() {
@@ -3833,6 +3849,18 @@ function spinWheel() {
     const duration = 5000;
     const startTime = Date.now();
     
+    // Pre-calculate constants
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 5;
+    const wheelColors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
+    ];
+    const sliceAngleRad = (2 * Math.PI) / wheelItems.length;
+    const manyItems = wheelItems.length > 30;
+    
     function animate() {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
@@ -3845,21 +3873,11 @@ function spinWheel() {
         // Redraw wheel with rotation
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.translate(centerX, centerY);
         ctx.rotate((currentRotation * Math.PI) / 180);
-        ctx.translate(-canvas.width / 2, -canvas.height / 2);
+        ctx.translate(-centerX, -centerY);
         
-        // Draw the wheel
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const radius = Math.min(centerX, centerY) - 5;
-        const wheelColors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-            '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
-        ];
-        const sliceAngleRad = (2 * Math.PI) / wheelItems.length;
-        
+        // Draw slices (optimized for many items)
         wheelItems.forEach((item, index) => {
             const startAngle = index * sliceAngleRad;
             const endAngle = startAngle + sliceAngleRad;
@@ -3870,33 +3888,47 @@ function spinWheel() {
             ctx.closePath();
             ctx.fillStyle = wheelColors[index % wheelColors.length];
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
             
-            ctx.save();
-            ctx.translate(centerX, centerY);
-            ctx.rotate(startAngle + sliceAngleRad / 2);
-            ctx.textAlign = 'right';
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 11px Arial';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 3;
-            let displayText = item;
-            if (displayText.length > 14) {
-                displayText = displayText.substring(0, 13) + '...';
+            // Skip borders and text for many items (performance)
+            if (!manyItems) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + sliceAngleRad / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 11px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 3;
+                let displayText = item;
+                if (displayText.length > 14) {
+                    displayText = displayText.substring(0, 13) + '...';
+                }
+                ctx.fillText(displayText, radius - 12, 4);
+                ctx.restore();
             }
-            ctx.fillText(displayText, radius - 12, 4);
-            ctx.restore();
         });
         
+        // Draw center circle
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 18, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, manyItems ? 25 : 18, 0, 2 * Math.PI);
         ctx.fillStyle = '#1a1a2e';
         ctx.fill();
         ctx.strokeStyle = '#4a9eff';
         ctx.lineWidth = 3;
         ctx.stroke();
+        
+        // Show count in center if many items
+        if (manyItems) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(wheelItems.length, centerX, centerY);
+        }
         
         ctx.restore();
         
