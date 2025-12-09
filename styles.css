@@ -641,3 +641,10 @@ body {
 .sidebar.collapsed .sidebar-toggle:hover {
     background: #5eb3ff;
 }
+
+/* Wheel Spinner Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
