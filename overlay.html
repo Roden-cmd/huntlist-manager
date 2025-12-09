@@ -498,8 +498,9 @@
                     
                     // Check if name is too long (more than 16 characters) and add scrolling
                     if (displayName.length > 16) {
-                        // Use star for super bonus, stylish diamond for normal games
-                        const separator = game.superBonus ? '        ⭐        ' : '        ◆        ';
+                        // For super bonus: just use spacing (star is already in displayName)
+                        // For normal: use diamond separator
+                        const separator = game.superBonus ? '                ' : '        ◆        ';
                         // Exactly 2 copies for perfect -50% loop
                         gameNameText.textContent = displayName + separator + displayName + separator;
                         gameNameText.classList.add('scrolling');
