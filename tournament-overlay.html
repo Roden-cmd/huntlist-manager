@@ -192,25 +192,9 @@
         .player-game {
             font-size: 12px;
             color: #888;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .player-game-text {
-            display: inline-block;
             white-space: nowrap;
-            will-change: transform;
-        }
-
-        .player-game-text.scrolling {
-            animation: scrollGameText linear infinite;
-            transform: translateZ(0);
-            backface-visibility: hidden;
-        }
-
-        @keyframes scrollGameText {
-            0% { transform: translateX(0) translateZ(0); }
-            100% { transform: translateX(-50%) translateZ(0); }
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .player-multiplier {
@@ -455,6 +439,20 @@
             container.innerHTML = html;
         }
 
+        // Helper to get single emoji (some emojis are multiple characters like 🧑‍🎤)
+        function getSingleEmoji(emoji) {
+            if (!emoji) return '❓';
+            // Handle compound emojis with ZWJ (zero-width joiner)
+            // Split by ZWJ and take first part, or use segmenter if available
+            const zwj = '\u200D';
+            if (emoji.includes(zwj)) {
+                const parts = emoji.split(zwj);
+                return parts[0] || '❓';
+            }
+            // For simple emojis, just return as-is
+            return emoji;
+        }
+
         function createMatchupHTML(matchup, showWinner, gap) {
             if (!matchup || !matchup.player1 || !matchup.player2) {
                 return createEmptyMatchup(gap);
@@ -476,36 +474,23 @@
                 }
             }
             
-            // Helper to render game name with scrolling if needed
-            const renderGameName = (gameName) => {
-                const name = gameName || 'TBD';
-                const needsScroll = name.length > 14;
-                if (needsScroll) {
-                    // Exactly 2 copies with separator for perfect -50% loop
-                    const separator = '        ◆        ';
-                    const duration = Math.max(name.length * 0.25, 4);
-                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}</span>`;
-                }
-                return `<span class="player-game-text">${name}</span>`;
-            };
-            
             return `
                 <div class="matchup" style="gap: ${gap}px;">
                     <div class="player-card ${p1Class}">
-                        <div class="player-avatar">${p1.emoji || '❓'}</div>
+                        <div class="player-avatar">${getSingleEmoji(p1.emoji)}</div>
                         <div class="player-info">
                             <div class="player-name">${p1.name || 'TBD'}</div>
-                            <div class="player-game">${renderGameName(p1.game)}</div>
+                            <div class="player-game">${p1.game || 'TBD'}</div>
                         </div>
                         <div class="player-multiplier ${!p1.multiplier ? 'pending' : ''}">
                             ${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '---'}
                         </div>
                     </div>
                     <div class="player-card ${p2Class}">
-                        <div class="player-avatar">${p2.emoji || '❓'}</div>
+                        <div class="player-avatar">${getSingleEmoji(p2.emoji)}</div>
                         <div class="player-info">
                             <div class="player-name">${p2.name || 'TBD'}</div>
-                            <div class="player-game">${renderGameName(p2.game)}</div>
+                            <div class="player-game">${p2.game || 'TBD'}</div>
                         </div>
                         <div class="player-multiplier ${!p2.multiplier ? 'pending' : ''}">
                             ${p2.multiplier ? p2.multiplier.toFixed(0) + 'x' : '---'}
@@ -586,7 +571,7 @@
                     <div class="winner-section" style="height: ${QF_TOTAL_HEIGHT}px;">
                         <div class="winner-card">
                             <div class="winner-indicator"></div>
-                            <div class="winner-avatar">${champion.emoji || '🏆'}</div>
+                            <div class="winner-avatar">${getSingleEmoji(champion.emoji)}</div>
                             <div class="winner-label">🏆 Champion</div>
                             <div class="winner-name">${champion.name}</div>
                             <div class="winner-game">${champion.game}</div>
