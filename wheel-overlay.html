@@ -21,10 +21,9 @@
         }
 
         .wheel-container {
-            background: rgba(26, 26, 46, 0.95);
+            background: rgb(26, 26, 46);
             border-radius: 20px;
             padding: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             border: 2px solid rgba(74, 158, 255, 0.3);
             display: flex;
             flex-direction: column;
@@ -227,12 +226,46 @@
         let isSpinning = false;
         let hasWinner = false;
         let previousItemCount = 0;
+        let currentTheme = 'default';
 
-        const wheelColors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-            '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
-        ];
+        // Wheel theme color schemes (must match app.js)
+        const wheelThemes = {
+            default: {
+                colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9']
+            },
+            fire: {
+                colors: ['#FF4500', '#FF6347', '#FF7F50', '#FFA500', '#FFD700', '#FF8C00', '#DC143C', '#B22222', '#CD5C5C', '#E9967A', '#FA8072', '#F08080', '#FF4500', '#FF6B6B', '#FF8566']
+            },
+            ice: {
+                colors: ['#00CED1', '#20B2AA', '#5F9EA0', '#4682B4', '#6495ED', '#00BFFF', '#87CEEB', '#87CEFA', '#ADD8E6', '#B0E0E6', '#AFEEEE', '#E0FFFF', '#00FFFF', '#7FFFD4', '#40E0D0']
+            },
+            gold: {
+                colors: ['#FFD700', '#FFA500', '#FF8C00', '#DAA520', '#B8860B', '#CD853F', '#D2691E', '#F4A460', '#DEB887', '#FFDAB9', '#FFE4B5', '#FFEFD5', '#FFD700', '#FFC125', '#EEB422']
+            },
+            neon: {
+                colors: ['#FF00FF', '#00FFFF', '#FF1493', '#00FF7F', '#FF6EC7', '#7B68EE', '#DA70D6', '#BA55D3', '#9932CC', '#8A2BE2', '#9400D3', '#FF00FF', '#E100FF', '#00BFFF', '#00FF00']
+            },
+            forest: {
+                colors: ['#228B22', '#2E8B57', '#3CB371', '#20B2AA', '#008080', '#006400', '#32CD32', '#00FA9A', '#00FF7F', '#98FB98', '#90EE90', '#8FBC8F', '#66CDAA', '#7FFFD4', '#2E8B57']
+            },
+            sunset: {
+                colors: ['#FF6B6B', '#FF8E72', '#FFB347', '#FF7F50', '#FF6347', '#FF4500', '#FF69B4', '#FFB6C1', '#FFA07A', '#FA8072', '#E9967A', '#F08080', '#FF7F7F', '#FF9999', '#FFCC99']
+            },
+            ocean: {
+                colors: ['#000080', '#00008B', '#0000CD', '#0000FF', '#191970', '#4169E1', '#4682B4', '#5F9EA0', '#6495ED', '#00CED1', '#20B2AA', '#008B8B', '#008080', '#2F4F4F', '#1E90FF']
+            },
+            dark: {
+                colors: ['#2F4F4F', '#696969', '#708090', '#778899', '#808080', '#A9A9A9', '#4A4A4A', '#5A5A5A', '#6A6A6A', '#7A7A7A', '#3D3D3D', '#4D4D4D', '#5D5D5D', '#555555', '#666666']
+            },
+            christmas: {
+                colors: ['#FF0000', '#00FF00', '#FF4444', '#44FF44', '#CC0000', '#00CC00', '#FF6666', '#66FF66', '#AA0000', '#00AA00', '#FFD700', '#C0C0C0', '#FF0000', '#228B22', '#DC143C']
+            }
+        };
+
+        // Get current wheel colors based on theme
+        function getWheelColors() {
+            return (wheelThemes[currentTheme] || wheelThemes.default).colors;
+        }
 
         // Get userId from URL
         const urlParams = new URLSearchParams(window.location.search);
@@ -243,6 +276,14 @@
         } else {
             firebase.initializeApp(firebaseConfig);
             const db = firebase.database();
+            
+            // Listen for theme changes
+            db.ref('users/' + userId + '/wheelTheme').on('value', (snapshot) => {
+                currentTheme = snapshot.val() || 'default';
+                if (!isSpinning) {
+                    drawWheel();
+                }
+            });
             
             // Listen for wheel items changes
             db.ref('users/' + userId + '/wheelItems').on('value', (snapshot) => {
@@ -363,6 +404,7 @@
             const centerY = canvas.height / 2;
             const radius = Math.min(centerX, centerY) - 5;
             const manyItems = wheelItems.length > 50;
+            const wheelColors = getWheelColors();
             
             ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);

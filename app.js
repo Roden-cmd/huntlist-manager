@@ -3387,8 +3387,53 @@ let wheelItems = [];
 let isSpinning = false;
 let currentWheelName = null;
 let currentWheelWinner = null;
+let currentWheelTheme = 'default';
 let wheelHistory = [];
 let spinHistory = []; // Track recent spin winners for this wheel session
+
+// Wheel theme color schemes
+const wheelThemes = {
+    default: {
+        name: '🏆 Classic - Purple/Blue',
+        colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9']
+    },
+    fire: {
+        name: '🔥 Fire - Red/Orange',
+        colors: ['#FF4500', '#FF6347', '#FF7F50', '#FFA500', '#FFD700', '#FF8C00', '#DC143C', '#B22222', '#CD5C5C', '#E9967A', '#FA8072', '#F08080', '#FF4500', '#FF6B6B', '#FF8566']
+    },
+    ice: {
+        name: '❄️ Ice - Cyan/Blue',
+        colors: ['#00CED1', '#20B2AA', '#5F9EA0', '#4682B4', '#6495ED', '#00BFFF', '#87CEEB', '#87CEFA', '#ADD8E6', '#B0E0E6', '#AFEEEE', '#E0FFFF', '#00FFFF', '#7FFFD4', '#40E0D0']
+    },
+    gold: {
+        name: '👑 Royal - Gold/Orange',
+        colors: ['#FFD700', '#FFA500', '#FF8C00', '#DAA520', '#B8860B', '#CD853F', '#D2691E', '#F4A460', '#DEB887', '#FFDAB9', '#FFE4B5', '#FFEFD5', '#FFD700', '#FFC125', '#EEB422']
+    },
+    neon: {
+        name: '⚡ Neon - Magenta/Cyan',
+        colors: ['#FF00FF', '#00FFFF', '#FF1493', '#00FF7F', '#FF6EC7', '#7B68EE', '#DA70D6', '#BA55D3', '#9932CC', '#8A2BE2', '#9400D3', '#FF00FF', '#E100FF', '#00BFFF', '#00FF00']
+    },
+    forest: {
+        name: '🌲 Forest - Teal/Green',
+        colors: ['#228B22', '#2E8B57', '#3CB371', '#20B2AA', '#008080', '#006400', '#32CD32', '#00FA9A', '#00FF7F', '#98FB98', '#90EE90', '#8FBC8F', '#66CDAA', '#7FFFD4', '#2E8B57']
+    },
+    sunset: {
+        name: '🌅 Sunset - Pink/Orange',
+        colors: ['#FF6B6B', '#FF8E72', '#FFB347', '#FF7F50', '#FF6347', '#FF4500', '#FF69B4', '#FFB6C1', '#FFA07A', '#FA8072', '#E9967A', '#F08080', '#FF7F7F', '#FF9999', '#FFCC99']
+    },
+    ocean: {
+        name: '🌊 Ocean - Navy/Teal',
+        colors: ['#000080', '#00008B', '#0000CD', '#0000FF', '#191970', '#4169E1', '#4682B4', '#5F9EA0', '#6495ED', '#00CED1', '#20B2AA', '#008B8B', '#008080', '#2F4F4F', '#1E90FF']
+    },
+    dark: {
+        name: '🌙 Dark - Gray/Black',
+        colors: ['#2F4F4F', '#696969', '#708090', '#778899', '#808080', '#A9A9A9', '#4A4A4A', '#5A5A5A', '#6A6A6A', '#7A7A7A', '#3D3D3D', '#4D4D4D', '#5D5D5D', '#555555', '#666666']
+    },
+    christmas: {
+        name: '🎄 Christmas - Green/Red',
+        colors: ['#FF0000', '#00FF00', '#FF4444', '#44FF44', '#CC0000', '#00CC00', '#FF6666', '#66FF66', '#AA0000', '#00AA00', '#FFD700', '#C0C0C0', '#FF0000', '#228B22', '#DC143C']
+    }
+};
 
 function updateWheelSpinnerPage() {
     const container = document.getElementById('wheelSpinnerContent');
@@ -3410,13 +3455,15 @@ function updateWheelSpinnerPage() {
                 const wheelData = snapshot.val();
                 currentWheelName = wheelData.name || null;
                 currentWheelWinner = wheelData.winner || null;
+                currentWheelTheme = wheelData.theme || 'default';
                 wheelItems = wheelData.items || [];
             } else {
                 currentWheelName = null;
                 currentWheelWinner = null;
+                currentWheelTheme = 'default';
                 wheelItems = [];
             }
-            console.log('🎡 Loaded wheel:', currentWheelName, 'with', wheelItems.length, 'items');
+            console.log('🎡 Loaded wheel:', currentWheelName, 'with', wheelItems.length, 'items, theme:', currentWheelTheme);
             renderWheelPage();
         }).catch(err => {
             console.error('Error loading wheel:', err);
@@ -3440,12 +3487,6 @@ function updateWheelSpinnerPage() {
 function renderWheelPage() {
     const container = document.getElementById('wheelSpinnerContent');
     if (!container) return;
-    
-    const wheelColors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-        '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
-    ];
     
     // Generate OBS URL
     const overlayUrl = currentUser ? 
@@ -3476,6 +3517,15 @@ function renderWheelPage() {
                     <div style="margin-bottom: 1.5rem;">
                         <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Wheel Name</label>
                         <input type="text" id="newWheelName" placeholder="e.g., Giveaway #1, Viewer Game Pick..." style="width: 100%; padding: 1rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1.1rem;">
+                    </div>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">🎨 Wheel Theme</label>
+                        <select id="wheelThemeSelect" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem; cursor: pointer;">
+                            ${Object.entries(wheelThemes).map(([key, theme]) => `
+                                <option value="${key}">${theme.name}</option>
+                            `).join('')}
+                        </select>
                     </div>
                     
                     ${previousNamesList.length > 0 ? `
@@ -3541,6 +3591,10 @@ function renderWheelPage() {
         
         return;
     }
+    
+    // Get theme colors for items display
+    const theme = wheelThemes[currentWheelTheme] || wheelThemes.default;
+    const wheelColors = theme.colors;
     
     // Active wheel view
     container.innerHTML = `
@@ -3736,11 +3790,9 @@ function drawWheel() {
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY) - 5;
     
-    const wheelColors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-        '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
-    ];
+    // Get colors from current theme
+    const theme = wheelThemes[currentWheelTheme] || wheelThemes.default;
+    const wheelColors = theme.colors;
     
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -3867,11 +3919,9 @@ function spinWheel() {
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const radius = Math.min(centerX, centerY) - 5;
-    const wheelColors = [
-        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
-        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-        '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
-    ];
+    // Get colors from current theme
+    const theme = wheelThemes[currentWheelTheme] || wheelThemes.default;
+    const wheelColors = theme.colors;
     const sliceAngleRad = (2 * Math.PI) / wheelItems.length;
     const manyItems = wheelItems.length > 50;
     
@@ -4161,10 +4211,14 @@ function saveWheelItems() {
     // Save to wheelItems for overlay
     firebase.database().ref('users/' + currentUser.uid + '/wheelItems').set(wheelItems);
     
+    // Save theme for overlay
+    firebase.database().ref('users/' + currentUser.uid + '/wheelTheme').set(currentWheelTheme);
+    
     // Also save current wheel state
     firebase.database().ref('users/' + currentUser.uid + '/currentWheel').set({
         name: currentWheelName,
         items: wheelItems,
+        theme: currentWheelTheme,
         winner: currentWheelWinner,
         updatedAt: Date.now()
     });
@@ -4260,6 +4314,7 @@ function createNewWheel() {
     
     currentWheelName = name;
     currentWheelWinner = null;
+    currentWheelTheme = document.getElementById('wheelThemeSelect')?.value || 'default';
     wheelItems = [];
     spinHistory = []; // Reset spin history for new wheel
     
