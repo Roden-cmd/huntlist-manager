@@ -4213,7 +4213,6 @@ function endCurrentWheel() {
     console.log('🎡 Wheel ended and saved to history');
     renderWheelPage();
 }
-}
 
 function openWheelOverlay() {
     if (!currentUser) return;
