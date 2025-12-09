@@ -1209,23 +1209,12 @@ function createHuntManagementView() {
                 <form id="gameForm">
                     <input type="hidden" id="editingGameIndex" value="">
                     
-                    <!-- Quick Select from Database -->
-                    ${gameDatabase.length > 0 ? `
-                    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(74, 158, 255, 0.2);">
-                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">⚡ Quick Select from Database</label>
-                        <select id="quickSelectGame" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
-                            <option value="">-- Select a saved game --</option>
-                            ${gameDatabase.filter(g => g.favorite).map(g => `<option value="${g.name}|${g.defaultBet}">⭐ ${g.name} (€${g.defaultBet.toFixed(2)})</option>`).join('')}
-                            ${gameDatabase.filter(g => !g.favorite).map(g => `<option value="${g.name}|${g.defaultBet}">${g.name} (€${g.defaultBet.toFixed(2)})</option>`).join('')}
-                        </select>
-                    </div>
-                    ` : ''}
-                    
-                    <div style="margin-bottom: 1rem;">
+                    <div style="margin-bottom: 1rem; position: relative;">
                         <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Game Name *</label>
-                        <input type="text" id="gameName" required
+                        <input type="text" id="gameName" required autocomplete="off"
                                style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;"
-                               placeholder="e.g., Book of Dead">
+                               placeholder="Start typing to search...">
+                        <div id="gameAutocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #252540; border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 0 0 8px 8px; z-index: 1001;"></div>
                     </div>
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Bet Amount * (${currentHunt.currency})</label>
@@ -1348,14 +1337,10 @@ function setupHuntManagementListeners() {
             
             // Reset quick select if exists
             const quickSelect = document.getElementById('quickSelectGame');
-            if (quickSelect) {
-                quickSelect.value = '';
-            }
-            
             gameModal.style.display = 'flex';
             
-            // Add quick select listener
-            setupQuickSelectListener();
+            // Setup autocomplete for game search
+            setupGameAutocomplete();
         });
     }
     
@@ -1422,8 +1407,8 @@ function setupHuntManagementListeners() {
         });
     });
     
-    // Setup quick select listener initially if modal exists
-    setupQuickSelectListener();
+    // Setup autocomplete initially if modal exists
+    setupGameAutocomplete();
     
     if (finishHuntBtn) {
         finishHuntBtn.addEventListener('click', function() {
@@ -1819,22 +1804,79 @@ function toggleFavoriteGame(index) {
     updateGameDatabasePage();
 }
 
-function setupQuickSelectListener() {
-    const quickSelect = document.getElementById('quickSelectGame');
-    if (quickSelect) {
-        quickSelect.addEventListener('change', function() {
-            const value = this.value;
-            if (value) {
-                const parts = value.split('|');
-                const gameName = parts[0];
-                const defaultBet = parseFloat(parts[1]) || 1;
+function setupGameAutocomplete() {
+    const gameNameInput = document.getElementById('gameName');
+    const autocompleteDiv = document.getElementById('gameAutocomplete');
+    
+    if (!gameNameInput || !autocompleteDiv) return;
+    
+    // Remove old listeners by cloning
+    const newInput = gameNameInput.cloneNode(true);
+    gameNameInput.parentNode.replaceChild(newInput, gameNameInput);
+    
+    const input = document.getElementById('gameName');
+    const dropdown = document.getElementById('gameAutocomplete');
+    
+    input.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        if (searchTerm.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        // Search in game database
+        const matches = gameDatabase.filter(g => 
+            g.name.toLowerCase().includes(searchTerm)
+        ).slice(0, 10); // Limit to 10 results
+        
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        // Build dropdown HTML
+        dropdown.innerHTML = matches.map(g => `
+            <div class="autocomplete-item" data-name="${g.name}" data-bet="${g.defaultBet}" data-provider="${g.provider}"
+                 style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(74, 158, 255, 0.1); transition: background 0.2s;"
+                 onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'"
+                 onmouseout="this.style.background='transparent'">
+                <div style="color: #fff; font-weight: 500;">${g.name}</div>
+                <div style="color: #888; font-size: 0.8rem;">${g.provider} • €${g.defaultBet.toFixed(2)}</div>
+            </div>
+        `).join('');
+        
+        dropdown.style.display = 'block';
+        
+        // Add click handlers to items
+        dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const name = this.dataset.name;
+                const bet = this.dataset.bet;
                 
-                document.getElementById('gameName').value = gameName;
-                document.getElementById('gameBet').value = defaultBet;
-                document.getElementById('gameName').focus();
-            }
+                document.getElementById('gameName').value = name;
+                document.getElementById('gameBet').value = bet;
+                dropdown.style.display = 'none';
+                
+                // Focus on bet field so user can adjust if needed
+                document.getElementById('gameBet').focus();
+            });
         });
-    }
+    });
+    
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#gameName') && !e.target.closest('#gameAutocomplete')) {
+            dropdown.style.display = 'none';
+        }
+    });
+    
+    // Hide dropdown on blur (with small delay to allow click on items)
+    input.addEventListener('blur', function() {
+        setTimeout(() => {
+            dropdown.style.display = 'none';
+        }, 200);
+    });
 }
 
 function loadStarterPack() {
