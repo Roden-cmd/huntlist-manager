@@ -7,6 +7,7 @@ let currentUser = null;
 let currentHunt = null;
 let games = [];
 let huntHistory = [];
+let gameDatabase = [];
 
 // DOM Elements
 let loginScreen, mainApp, loadingOverlay;
@@ -250,6 +251,9 @@ function loadUserData() {
     // Load tournament data
     loadTournamentData();
     
+    // Load game database
+    loadGameDatabase();
+    
     // Listen to changes
     firebase.database().ref('users/' + userId + '/activeHunt').on('value', function(snap) {
         if (snap.exists()) {
@@ -332,6 +336,7 @@ function navigateTo(pageName) {
     if (pageName === 'dashboard') updateDashboard();
     if (pageName === 'bonus-hunts') updateBonusHuntsPage();
     if (pageName === 'tournaments') updateTournamentsPage();
+    if (pageName === 'game-database') updateGameDatabasePage();
     if (pageName === 'settings') updateSettings();
     
     console.log('✅ Navigation complete');
@@ -1203,6 +1208,19 @@ function createHuntManagementView() {
                 <h2 id="gameModalTitle" style="color: #fff; margin-bottom: 1.5rem;">Add Game</h2>
                 <form id="gameForm">
                     <input type="hidden" id="editingGameIndex" value="">
+                    
+                    <!-- Quick Select from Database -->
+                    ${gameDatabase.length > 0 ? `
+                    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(74, 158, 255, 0.2);">
+                        <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">⚡ Quick Select from Database</label>
+                        <select id="quickSelectGame" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                            <option value="">-- Select a saved game --</option>
+                            ${gameDatabase.filter(g => g.favorite).map(g => `<option value="${g.name}|${g.defaultBet}">⭐ ${g.name} (€${g.defaultBet.toFixed(2)})</option>`).join('')}
+                            ${gameDatabase.filter(g => !g.favorite).map(g => `<option value="${g.name}|${g.defaultBet}">${g.name} (€${g.defaultBet.toFixed(2)})</option>`).join('')}
+                        </select>
+                    </div>
+                    ` : ''}
+                    
                     <div style="margin-bottom: 1rem;">
                         <label style="display: block; color: #b0b0b0; margin-bottom: 0.5rem;">Game Name *</label>
                         <input type="text" id="gameName" required
@@ -1327,7 +1345,17 @@ function setupHuntManagementListeners() {
             document.getElementById('gameBet').value = '';
             document.getElementById('gameWin').value = '';
             document.getElementById('superBonus').checked = false;
+            
+            // Reset quick select if exists
+            const quickSelect = document.getElementById('quickSelectGame');
+            if (quickSelect) {
+                quickSelect.value = '';
+            }
+            
             gameModal.style.display = 'flex';
+            
+            // Add quick select listener
+            setupQuickSelectListener();
         });
     }
     
@@ -1393,6 +1421,9 @@ function setupHuntManagementListeners() {
             }
         });
     });
+    
+    // Setup quick select listener initially if modal exists
+    setupQuickSelectListener();
     
     if (finishHuntBtn) {
         finishHuntBtn.addEventListener('click', function() {
@@ -1512,6 +1543,309 @@ function updateHistoryPage() {
             </div>
         `;
     }).join('');
+}
+
+// ============================================================================
+// GAME DATABASE
+// ============================================================================
+
+function updateGameDatabasePage() {
+    const container = document.getElementById('gameDatabaseContent');
+    if (!container) return;
+    
+    // Get game stats from hunt history
+    const gameStats = {};
+    huntHistory.forEach(function(hunt) {
+        if (hunt.games) {
+            hunt.games.forEach(function(game) {
+                const name = game.name.toLowerCase().trim();
+                if (!gameStats[name]) {
+                    gameStats[name] = {
+                        displayName: game.name,
+                        timesPlayed: 0,
+                        totalBet: 0,
+                        totalWin: 0,
+                        bestMultiplier: 0
+                    };
+                }
+                gameStats[name].timesPlayed++;
+                gameStats[name].totalBet += game.bet || 0;
+                gameStats[name].totalWin += game.win || 0;
+                const mult = game.bet > 0 ? (game.win || 0) / game.bet : 0;
+                if (mult > gameStats[name].bestMultiplier) {
+                    gameStats[name].bestMultiplier = mult;
+                }
+            });
+        }
+    });
+    
+    // Sort games by times played
+    const sortedStats = Object.values(gameStats).sort((a, b) => b.timesPlayed - a.timesPlayed);
+    
+    container.innerHTML = `
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h1 style="color: #fff; margin: 0;">Game Database</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Manage your favorite slots and track performance</p>
+            </div>
+            <button onclick="showAddGameModal()" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                ➕ Add Game
+            </button>
+        </div>
+        
+        <!-- Quick Stats -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(74, 158, 255, 0.05) 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.3); text-align: center;">
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">Saved Games</div>
+                <div style="color: #4a9eff; font-size: 1.5rem; font-weight: bold;">${gameDatabase.length}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(102, 126, 234, 0.05) 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(102, 126, 234, 0.3); text-align: center;">
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">Unique Games Played</div>
+                <div style="color: #667eea; font-size: 1.5rem; font-weight: bold;">${Object.keys(gameStats).length}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(81, 207, 102, 0.2) 0%, rgba(81, 207, 102, 0.05) 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(81, 207, 102, 0.3); text-align: center;">
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">Most Played</div>
+                <div style="color: #51cf66; font-size: 1.1rem; font-weight: bold;">${sortedStats[0]?.displayName || '-'}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(255, 215, 0, 0.3); text-align: center;">
+                <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.25rem;">Best Performer</div>
+                <div style="color: #ffd700; font-size: 1.1rem; font-weight: bold;">${getBestPerformer(gameStats)}</div>
+            </div>
+        </div>
+        
+        <!-- Two Column Layout -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Saved Games -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">⭐ Saved Games (${gameDatabase.length})</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${gameDatabase.length === 0 ? 
+                        '<p style="color: #888; text-align: center; padding: 2rem;">No saved games yet. Add your favorite slots!</p>' :
+                        gameDatabase.map((game, index) => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid ${game.favorite ? '#ffd700' : '#4a9eff'};">
+                                <div style="flex: 1;">
+                                    <div style="color: #fff; font-weight: bold;">${game.name} ${game.favorite ? '⭐' : ''}</div>
+                                    <div style="color: #888; font-size: 0.85rem;">${game.provider || 'Unknown Provider'} • Default Bet: €${(game.defaultBet || 1).toFixed(2)}</div>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button onclick="toggleFavoriteGame(${index})" style="background: rgba(255, 215, 0, 0.2); border: none; color: #ffd700; padding: 0.5rem; border-radius: 6px; cursor: pointer;" title="Toggle Favorite">
+                                        ${game.favorite ? '★' : '☆'}
+                                    </button>
+                                    <button onclick="editSavedGame(${index})" style="background: rgba(74, 158, 255, 0.2); border: none; color: #4a9eff; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;">
+                                        Edit
+                                    </button>
+                                    <button onclick="deleteSavedGame(${index})" style="background: rgba(255, 107, 107, 0.2); border: none; color: #ff6b6b; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')
+                    }
+                </div>
+            </div>
+            
+            <!-- Game Performance Stats -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">📊 Game Performance (from Hunt History)</h3>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${sortedStats.length === 0 ? 
+                        '<p style="color: #888; text-align: center; padding: 2rem;">No game history yet. Complete some hunts!</p>' :
+                        sortedStats.slice(0, 20).map(game => {
+                            const profit = game.totalWin - game.totalBet;
+                            const avgMult = game.totalBet > 0 ? (game.totalWin / game.totalBet) : 0;
+                            return `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.5rem;">
+                                    <div style="flex: 1;">
+                                        <div style="color: #fff; font-weight: 500;">${game.displayName}</div>
+                                        <div style="color: #888; font-size: 0.8rem;">Played ${game.timesPlayed}x • Best: ${game.bestMultiplier.toFixed(0)}x</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-weight: bold;">${profit >= 0 ? '+' : ''}€${profit.toFixed(2)}</div>
+                                        <div style="color: #888; font-size: 0.8rem;">Avg: ${avgMult.toFixed(2)}x</div>
+                                    </div>
+                                    <button onclick="addGameToDatabase('${game.displayName.replace(/'/g, "\\'")}')" style="background: rgba(81, 207, 102, 0.2); border: none; color: #51cf66; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; margin-left: 0.75rem; font-size: 0.8rem;" title="Save to Database">
+                                        + Save
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')
+                    }
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function getBestPerformer(gameStats) {
+    let best = null;
+    let bestProfit = -Infinity;
+    
+    Object.values(gameStats).forEach(game => {
+        if (game.timesPlayed >= 3) { // Minimum 3 plays to qualify
+            const profit = game.totalWin - game.totalBet;
+            if (profit > bestProfit) {
+                bestProfit = profit;
+                best = game.displayName;
+            }
+        }
+    });
+    
+    return best || '-';
+}
+
+function showAddGameModal(editIndex = null) {
+    const isEdit = editIndex !== null;
+    const game = isEdit ? gameDatabase[editIndex] : null;
+    
+    const modalHTML = `
+        <div id="gameDatabaseModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 1001; display: flex; align-items: center; justify-content: center; padding: 2rem;">
+            <div style="background: #1a1a2e; border-radius: 16px; max-width: 500px; width: 100%; padding: 2rem; position: relative;">
+                <button onclick="document.getElementById('gameDatabaseModal').remove()" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.1); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 1.2rem;">✕</button>
+                
+                <h2 style="color: #4a9eff; margin-bottom: 1.5rem;">${isEdit ? 'Edit Game' : 'Add New Game'}</h2>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: #888; display: block; margin-bottom: 0.5rem;">Game Name *</label>
+                    <input type="text" id="dbGameName" value="${game?.name || ''}" style="width: 100%; padding: 0.75rem; background: rgba(40,40,60,0.6); border: 1px solid rgba(74,158,255,0.3); border-radius: 8px; color: #fff; font-size: 1rem;" placeholder="e.g., Book of Dead">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: #888; display: block; margin-bottom: 0.5rem;">Provider</label>
+                    <input type="text" id="dbGameProvider" value="${game?.provider || ''}" style="width: 100%; padding: 0.75rem; background: rgba(40,40,60,0.6); border: 1px solid rgba(74,158,255,0.3); border-radius: 8px; color: #fff; font-size: 1rem;" placeholder="e.g., Play'n GO">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: #888; display: block; margin-bottom: 0.5rem;">Default Bet (€)</label>
+                    <input type="number" id="dbGameBet" value="${game?.defaultBet || 1}" step="0.1" min="0.1" style="width: 100%; padding: 0.75rem; background: rgba(40,40,60,0.6); border: 1px solid rgba(74,158,255,0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="color: #888; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="dbGameFavorite" ${game?.favorite ? 'checked' : ''} style="width: 18px; height: 18px;">
+                        <span>⭐ Mark as Favorite</span>
+                    </label>
+                </div>
+                
+                <div style="display: flex; gap: 1rem;">
+                    <button onclick="document.getElementById('gameDatabaseModal').remove()" style="flex: 1; padding: 0.75rem; background: rgba(255,255,255,0.1); border: none; border-radius: 8px; color: #fff; cursor: pointer;">Cancel</button>
+                    <button onclick="saveGameToDatabase(${editIndex})" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">${isEdit ? 'Save Changes' : 'Add Game'}</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.getElementById('dbGameName').focus();
+}
+
+function saveGameToDatabase(editIndex) {
+    const name = document.getElementById('dbGameName').value.trim();
+    const provider = document.getElementById('dbGameProvider').value.trim();
+    const defaultBet = parseFloat(document.getElementById('dbGameBet').value) || 1;
+    const favorite = document.getElementById('dbGameFavorite').checked;
+    
+    if (!name) {
+        alert('Please enter a game name');
+        return;
+    }
+    
+    const gameData = {
+        name: name,
+        provider: provider,
+        defaultBet: defaultBet,
+        favorite: favorite,
+        addedAt: editIndex !== null ? gameDatabase[editIndex].addedAt : new Date().toISOString()
+    };
+    
+    if (editIndex !== null) {
+        gameDatabase[editIndex] = gameData;
+    } else {
+        // Check for duplicates
+        const exists = gameDatabase.some(g => g.name.toLowerCase() === name.toLowerCase());
+        if (exists) {
+            alert('This game is already in your database');
+            return;
+        }
+        gameDatabase.push(gameData);
+    }
+    
+    // Save to Firebase
+    saveGameDatabase();
+    
+    document.getElementById('gameDatabaseModal').remove();
+    updateGameDatabasePage();
+}
+
+function addGameToDatabase(gameName) {
+    // Check if already exists
+    const exists = gameDatabase.some(g => g.name.toLowerCase() === gameName.toLowerCase());
+    if (exists) {
+        alert('This game is already in your database');
+        return;
+    }
+    
+    gameDatabase.push({
+        name: gameName,
+        provider: '',
+        defaultBet: 1,
+        favorite: false,
+        addedAt: new Date().toISOString()
+    });
+    
+    saveGameDatabase();
+    updateGameDatabasePage();
+}
+
+function editSavedGame(index) {
+    showAddGameModal(index);
+}
+
+function deleteSavedGame(index) {
+    if (confirm('Delete "' + gameDatabase[index].name + '" from your database?')) {
+        gameDatabase.splice(index, 1);
+        saveGameDatabase();
+        updateGameDatabasePage();
+    }
+}
+
+function toggleFavoriteGame(index) {
+    gameDatabase[index].favorite = !gameDatabase[index].favorite;
+    saveGameDatabase();
+    updateGameDatabasePage();
+}
+
+function setupQuickSelectListener() {
+    const quickSelect = document.getElementById('quickSelectGame');
+    if (quickSelect) {
+        quickSelect.addEventListener('change', function() {
+            const value = this.value;
+            if (value) {
+                const parts = value.split('|');
+                const gameName = parts[0];
+                const defaultBet = parseFloat(parts[1]) || 1;
+                
+                document.getElementById('gameName').value = gameName;
+                document.getElementById('gameBet').value = defaultBet;
+                document.getElementById('gameName').focus();
+            }
+        });
+    }
+}
+
+function saveGameDatabase() {
+    if (!currentUser) return;
+    firebase.database().ref('users/' + currentUser.uid + '/gameDatabase').set(gameDatabase);
+}
+
+function loadGameDatabase() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/gameDatabase').once('value').then(function(snapshot) {
+        if (snapshot.exists()) {
+            gameDatabase = snapshot.val() || [];
+            console.log('📊 Game database loaded:', gameDatabase.length, 'games');
+        }
+    });
 }
 
 // ============================================================================
