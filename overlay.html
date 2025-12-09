@@ -139,16 +139,16 @@
         .game-name-text {
             display: inline-block;
             white-space: nowrap;
+            padding-right: 50px;
         }
 
         .game-name-text.scrolling {
-            animation: scrollText 8s linear infinite;
+            animation: scrollText 6s linear infinite;
         }
 
         @keyframes scrollText {
-            0%, 10% { transform: translateX(0); }
-            45%, 55% { transform: translateX(calc(-100% + 100px)); }
-            90%, 100% { transform: translateX(0); }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .game-name.super-bonus {
@@ -493,11 +493,14 @@
                     
                     const gameNameText = document.createElement('span');
                     gameNameText.className = 'game-name-text';
-                    gameNameText.textContent = game.name;
                     
                     // Check if name is too long (more than 18 characters) and add scrolling
                     if (game.name.length > 18) {
+                        // Duplicate text for seamless infinite scroll
+                        gameNameText.textContent = game.name + '     •     ' + game.name;
                         gameNameText.classList.add('scrolling');
+                    } else {
+                        gameNameText.textContent = game.name;
                     }
                     
                     gameName.appendChild(gameNameText);
