@@ -139,15 +139,18 @@
         .game-name-text {
             display: inline-block;
             white-space: nowrap;
+            will-change: transform;
         }
 
         .game-name-text.scrolling {
             animation: scrollText linear infinite;
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         @keyframes scrollText {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
+            0% { transform: translateX(0) translateZ(0); }
+            100% { transform: translateX(-50%) translateZ(0); }
         }
 
         .game-name.super-bonus {
@@ -495,12 +498,13 @@
                     
                     // Check if name is too long (more than 16 characters) and add scrolling
                     if (displayName.length > 16) {
-                        // Use star for super bonus, stylish dot for normal games
-                        const separator = game.superBonus ? '     ⭐     ' : '     ◆     ';
-                        gameNameText.textContent = displayName + separator + game.name + separator + game.name;
+                        // Use star for super bonus, stylish diamond for normal games
+                        const separator = game.superBonus ? '        ⭐        ' : '        ◆        ';
+                        // Exactly 2 copies for perfect -50% loop
+                        gameNameText.textContent = displayName + separator + displayName + separator;
                         gameNameText.classList.add('scrolling');
                         // Set animation duration based on text length (longer text = longer duration)
-                        const duration = Math.max(displayName.length * 0.25, 4);
+                        const duration = Math.max(displayName.length * 0.3, 5);
                         gameNameText.style.animationDuration = duration + 's';
                     } else {
                         gameNameText.textContent = displayName;

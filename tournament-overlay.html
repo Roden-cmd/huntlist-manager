@@ -199,15 +199,18 @@
         .player-game-text {
             display: inline-block;
             white-space: nowrap;
+            will-change: transform;
         }
 
         .player-game-text.scrolling {
             animation: scrollGameText linear infinite;
+            transform: translateZ(0);
+            backface-visibility: hidden;
         }
 
         @keyframes scrollGameText {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
+            0% { transform: translateX(0) translateZ(0); }
+            100% { transform: translateX(-50%) translateZ(0); }
         }
 
         .player-multiplier {
@@ -478,10 +481,10 @@
                 const name = gameName || 'TBD';
                 const needsScroll = name.length > 14;
                 if (needsScroll) {
-                    // Duplicate text for seamless infinite scroll with diamond separator
-                    const separator = '     ◆     ';
-                    const duration = Math.max(name.length * 0.22, 3);
-                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}${name}</span>`;
+                    // Exactly 2 copies with separator for perfect -50% loop
+                    const separator = '        ◆        ';
+                    const duration = Math.max(name.length * 0.25, 4);
+                    return `<span class="player-game-text scrolling" style="animation-duration: ${duration}s;">${name}${separator}${name}${separator}</span>`;
                 }
                 return `<span class="player-game-text">${name}</span>`;
             };
