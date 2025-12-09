@@ -3747,7 +3747,7 @@ function drawWheel() {
     }
     
     const sliceAngle = (2 * Math.PI) / wheelItems.length;
-    const manyItems = wheelItems.length > 30; // Simplified mode for 30+ items
+    const manyItems = wheelItems.length > 50; // Show text up to 50 items
     
     // Draw slices
     wheelItems.forEach((item, index) => {
@@ -3791,23 +3791,21 @@ function drawWheel() {
         }
     });
     
-    // Draw center circle
+    // Draw center circle - always show count
     ctx.beginPath();
-    ctx.arc(centerX, centerY, manyItems ? 25 : 18, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
     ctx.fillStyle = '#1a1a2e';
     ctx.fill();
     ctx.strokeStyle = '#4a9eff';
     ctx.lineWidth = 3;
     ctx.stroke();
     
-    // Show count in center if many items
-    if (manyItems) {
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(wheelItems.length, centerX, centerY);
-    }
+    // Always show count in center
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(wheelItems.length, centerX, centerY);
 }
 
 function spinWheel() {
@@ -3859,7 +3857,7 @@ function spinWheel() {
         '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
     ];
     const sliceAngleRad = (2 * Math.PI) / wheelItems.length;
-    const manyItems = wheelItems.length > 30;
+    const manyItems = wheelItems.length > 50;
     
     function animate() {
         const elapsed = Date.now() - startTime;
@@ -3912,23 +3910,21 @@ function spinWheel() {
             }
         });
         
-        // Draw center circle
+        // Draw center circle - always show count
         ctx.beginPath();
-        ctx.arc(centerX, centerY, manyItems ? 25 : 18, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
         ctx.fillStyle = '#1a1a2e';
         ctx.fill();
         ctx.strokeStyle = '#4a9eff';
         ctx.lineWidth = 3;
         ctx.stroke();
         
-        // Show count in center if many items
-        if (manyItems) {
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(wheelItems.length, centerX, centerY);
-        }
+        // Always show count in center
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(wheelItems.length, centerX, centerY);
         
         ctx.restore();
         
