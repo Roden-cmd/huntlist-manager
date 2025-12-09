@@ -132,16 +132,30 @@
         .game-name {
             font-size: 13px;
             color: #fff;
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .game-name-text {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .game-name-text.scrolling {
+            animation: scrollText 8s linear infinite;
+        }
+
+        @keyframes scrollText {
+            0%, 10% { transform: translateX(0); }
+            45%, 55% { transform: translateX(calc(-100% + 100px)); }
+            90%, 100% { transform: translateX(0); }
         }
 
         .game-name.super-bonus {
             color: #ffd700;
         }
 
-        .game-name.super-bonus::before {
+        .game-name.super-bonus .game-name-text::before {
             content: '⭐ ';
         }
 
@@ -476,7 +490,17 @@
                     
                     const gameName = document.createElement('span');
                     gameName.className = 'game-name' + (game.superBonus ? ' super-bonus' : '');
-                    gameName.textContent = game.name;
+                    
+                    const gameNameText = document.createElement('span');
+                    gameNameText.className = 'game-name-text';
+                    gameNameText.textContent = game.name;
+                    
+                    // Check if name is too long (more than 18 characters) and add scrolling
+                    if (game.name.length > 18) {
+                        gameNameText.classList.add('scrolling');
+                    }
+                    
+                    gameName.appendChild(gameNameText);
                     gameName.title = game.name;
                     
                     const gameBet = document.createElement('span');

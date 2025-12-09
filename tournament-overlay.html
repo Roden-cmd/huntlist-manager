@@ -177,6 +177,7 @@
         .player-info {
             flex: 1;
             min-width: 0;
+            overflow: hidden;
         }
 
         .player-name {
@@ -191,9 +192,23 @@
         .player-game {
             font-size: 12px;
             color: #888;
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .player-game-text {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .player-game-text.scrolling {
+            animation: scrollGameText 6s linear infinite;
+        }
+
+        @keyframes scrollGameText {
+            0%, 15% { transform: translateX(0); }
+            42%, 58% { transform: translateX(calc(-100% + 120px)); }
+            85%, 100% { transform: translateX(0); }
         }
 
         .player-multiplier {
@@ -459,13 +474,20 @@
                 }
             }
             
+            // Helper to render game name with scrolling if needed
+            const renderGameName = (gameName) => {
+                const name = gameName || 'TBD';
+                const needsScroll = name.length > 16;
+                return `<span class="player-game-text${needsScroll ? ' scrolling' : ''}">${name}</span>`;
+            };
+            
             return `
                 <div class="matchup" style="gap: ${gap}px;">
                     <div class="player-card ${p1Class}">
                         <div class="player-avatar">${p1.emoji || '❓'}</div>
                         <div class="player-info">
                             <div class="player-name">${p1.name || 'TBD'}</div>
-                            <div class="player-game">${p1.game || 'TBD'}</div>
+                            <div class="player-game">${renderGameName(p1.game)}</div>
                         </div>
                         <div class="player-multiplier ${!p1.multiplier ? 'pending' : ''}">
                             ${p1.multiplier ? p1.multiplier.toFixed(0) + 'x' : '---'}
@@ -475,7 +497,7 @@
                         <div class="player-avatar">${p2.emoji || '❓'}</div>
                         <div class="player-info">
                             <div class="player-name">${p2.name || 'TBD'}</div>
-                            <div class="player-game">${p2.game || 'TBD'}</div>
+                            <div class="player-game">${renderGameName(p2.game)}</div>
                         </div>
                         <div class="player-multiplier ${!p2.multiplier ? 'pending' : ''}">
                             ${p2.multiplier ? p2.multiplier.toFixed(0) + 'x' : '---'}
