@@ -1588,9 +1588,14 @@ function updateGameDatabasePage() {
                 <h1 style="color: #fff; margin: 0;">Game Database</h1>
                 <p style="color: #888; margin-top: 0.5rem;">Manage your favorite slots and track performance</p>
             </div>
-            <button onclick="showAddGameModal()" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
-                ➕ Add Game
-            </button>
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="loadStarterPack()" class="btn" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
+                    📦 Load All Casino Games
+                </button>
+                <button onclick="showAddGameModal()" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                    ➕ Add Game
+                </button>
+            </div>
         </div>
         
         <!-- Quick Stats -->
@@ -1830,6 +1835,55 @@ function setupQuickSelectListener() {
             }
         });
     }
+}
+
+function loadStarterPack() {
+    // Show loading message
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '⏳ Loading 11,000+ games...';
+    btn.disabled = true;
+    
+    // Fetch the casino games JSON
+    fetch('casino-games.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Could not load games file');
+            return response.json();
+        })
+        .then(starterGames => {
+            // Count how many will be added
+            let addedCount = 0;
+            let skippedCount = 0;
+            
+            starterGames.forEach(function(game) {
+                const exists = gameDatabase.some(g => g.name.toLowerCase() === game.name.toLowerCase());
+                if (!exists) {
+                    gameDatabase.push({
+                        name: game.name,
+                        provider: game.provider,
+                        defaultBet: game.defaultBet,
+                        favorite: false,
+                        addedAt: new Date().toISOString()
+                    });
+                    addedCount++;
+                } else {
+                    skippedCount++;
+                }
+            });
+            
+            if (addedCount > 0) {
+                saveGameDatabase();
+                updateGameDatabasePage();
+            }
+            
+            alert('Casino Games loaded!\\n\\n✅ Added: ' + addedCount + ' games\\n⏭️ Skipped (already exists): ' + skippedCount + ' games\\n\\nTotal games in database: ' + gameDatabase.length);
+        })
+        .catch(error => {
+            console.error('Error loading games:', error);
+            alert('Error loading games. Make sure casino-games.json is uploaded to your repository.');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
 }
 
 function saveGameDatabase() {
