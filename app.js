@@ -3391,47 +3391,77 @@ let currentWheelTheme = 'default';
 let wheelHistory = [];
 let spinHistory = []; // Track recent spin winners for this wheel session
 
-// Wheel theme color schemes
+// Wheel theme color schemes with UI styling
 const wheelThemes = {
     default: {
         name: '🏆 Classic - Purple/Blue',
-        colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9']
+        colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9', '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'],
+        accent: '#4a9eff',
+        accentRgb: '74, 158, 255',
+        bg: '26, 26, 46'
     },
     fire: {
         name: '🔥 Fire - Red/Orange',
-        colors: ['#FF4500', '#FF6347', '#FF7F50', '#FFA500', '#FFD700', '#FF8C00', '#DC143C', '#B22222', '#CD5C5C', '#E9967A', '#FA8072', '#F08080', '#FF4500', '#FF6B6B', '#FF8566']
+        colors: ['#FF4500', '#FF6347', '#FF7F50', '#FFA500', '#FFD700', '#FF8C00', '#DC143C', '#B22222', '#CD5C5C', '#E9967A', '#FA8072', '#F08080', '#FF4500', '#FF6B6B', '#FF8566'],
+        accent: '#FF6347',
+        accentRgb: '255, 99, 71',
+        bg: '46, 20, 16'
     },
     ice: {
         name: '❄️ Ice - Cyan/Blue',
-        colors: ['#00CED1', '#20B2AA', '#5F9EA0', '#4682B4', '#6495ED', '#00BFFF', '#87CEEB', '#87CEFA', '#ADD8E6', '#B0E0E6', '#AFEEEE', '#E0FFFF', '#00FFFF', '#7FFFD4', '#40E0D0']
+        colors: ['#00CED1', '#20B2AA', '#5F9EA0', '#4682B4', '#6495ED', '#00BFFF', '#87CEEB', '#87CEFA', '#ADD8E6', '#B0E0E6', '#AFEEEE', '#E0FFFF', '#00FFFF', '#7FFFD4', '#40E0D0'],
+        accent: '#00CED1',
+        accentRgb: '0, 206, 209',
+        bg: '16, 30, 46'
     },
     gold: {
         name: '👑 Royal - Gold/Orange',
-        colors: ['#FFD700', '#FFA500', '#FF8C00', '#DAA520', '#B8860B', '#CD853F', '#D2691E', '#F4A460', '#DEB887', '#FFDAB9', '#FFE4B5', '#FFEFD5', '#FFD700', '#FFC125', '#EEB422']
+        colors: ['#FFD700', '#FFA500', '#FF8C00', '#DAA520', '#B8860B', '#CD853F', '#D2691E', '#F4A460', '#DEB887', '#FFDAB9', '#FFE4B5', '#FFEFD5', '#FFD700', '#FFC125', '#EEB422'],
+        accent: '#FFD700',
+        accentRgb: '255, 215, 0',
+        bg: '46, 36, 16'
     },
     neon: {
         name: '⚡ Neon - Magenta/Cyan',
-        colors: ['#FF00FF', '#00FFFF', '#FF1493', '#00FF7F', '#FF6EC7', '#7B68EE', '#DA70D6', '#BA55D3', '#9932CC', '#8A2BE2', '#9400D3', '#FF00FF', '#E100FF', '#00BFFF', '#00FF00']
+        colors: ['#FF00FF', '#00FFFF', '#FF1493', '#00FF7F', '#FF6EC7', '#7B68EE', '#DA70D6', '#BA55D3', '#9932CC', '#8A2BE2', '#9400D3', '#FF00FF', '#E100FF', '#00BFFF', '#00FF00'],
+        accent: '#FF00FF',
+        accentRgb: '255, 0, 255',
+        bg: '30, 16, 46'
     },
     forest: {
         name: '🌲 Forest - Teal/Green',
-        colors: ['#228B22', '#2E8B57', '#3CB371', '#20B2AA', '#008080', '#006400', '#32CD32', '#00FA9A', '#00FF7F', '#98FB98', '#90EE90', '#8FBC8F', '#66CDAA', '#7FFFD4', '#2E8B57']
+        colors: ['#228B22', '#2E8B57', '#3CB371', '#20B2AA', '#008080', '#006400', '#32CD32', '#00FA9A', '#00FF7F', '#98FB98', '#90EE90', '#8FBC8F', '#66CDAA', '#7FFFD4', '#2E8B57'],
+        accent: '#3CB371',
+        accentRgb: '60, 179, 113',
+        bg: '16, 36, 26'
     },
     sunset: {
         name: '🌅 Sunset - Pink/Orange',
-        colors: ['#FF6B6B', '#FF8E72', '#FFB347', '#FF7F50', '#FF6347', '#FF4500', '#FF69B4', '#FFB6C1', '#FFA07A', '#FA8072', '#E9967A', '#F08080', '#FF7F7F', '#FF9999', '#FFCC99']
+        colors: ['#FF6B6B', '#FF8E72', '#FFB347', '#FF7F50', '#FF6347', '#FF4500', '#FF69B4', '#FFB6C1', '#FFA07A', '#FA8072', '#E9967A', '#F08080', '#FF7F7F', '#FF9999', '#FFCC99'],
+        accent: '#FF69B4',
+        accentRgb: '255, 105, 180',
+        bg: '46, 26, 36'
     },
     ocean: {
         name: '🌊 Ocean - Navy/Teal',
-        colors: ['#000080', '#00008B', '#0000CD', '#0000FF', '#191970', '#4169E1', '#4682B4', '#5F9EA0', '#6495ED', '#00CED1', '#20B2AA', '#008B8B', '#008080', '#2F4F4F', '#1E90FF']
+        colors: ['#000080', '#00008B', '#0000CD', '#0000FF', '#191970', '#4169E1', '#4682B4', '#5F9EA0', '#6495ED', '#00CED1', '#20B2AA', '#008B8B', '#008080', '#2F4F4F', '#1E90FF'],
+        accent: '#4169E1',
+        accentRgb: '65, 105, 225',
+        bg: '16, 20, 40'
     },
     dark: {
         name: '🌙 Dark - Gray/Black',
-        colors: ['#2F4F4F', '#696969', '#708090', '#778899', '#808080', '#A9A9A9', '#4A4A4A', '#5A5A5A', '#6A6A6A', '#7A7A7A', '#3D3D3D', '#4D4D4D', '#5D5D5D', '#555555', '#666666']
+        colors: ['#2F4F4F', '#696969', '#708090', '#778899', '#808080', '#A9A9A9', '#4A4A4A', '#5A5A5A', '#6A6A6A', '#7A7A7A', '#3D3D3D', '#4D4D4D', '#5D5D5D', '#555555', '#666666'],
+        accent: '#808080',
+        accentRgb: '128, 128, 128',
+        bg: '20, 20, 20'
     },
     christmas: {
         name: '🎄 Christmas - Green/Red',
-        colors: ['#FF0000', '#00FF00', '#FF4444', '#44FF44', '#CC0000', '#00CC00', '#FF6666', '#66FF66', '#AA0000', '#00AA00', '#FFD700', '#C0C0C0', '#FF0000', '#228B22', '#DC143C']
+        colors: ['#FF0000', '#00FF00', '#FF4444', '#44FF44', '#CC0000', '#00CC00', '#FF6666', '#66FF66', '#AA0000', '#00AA00', '#FFD700', '#C0C0C0', '#FF0000', '#228B22', '#DC143C'],
+        accent: '#FF0000',
+        accentRgb: '255, 0, 0',
+        bg: '30, 20, 20'
     }
 };
 
@@ -3595,6 +3625,9 @@ function renderWheelPage() {
     // Get theme colors for items display
     const theme = wheelThemes[currentWheelTheme] || wheelThemes.default;
     const wheelColors = theme.colors;
+    const accent = theme.accent;
+    const accentRgb = theme.accentRgb;
+    const bgRgb = theme.bg;
     
     // Active wheel view
     container.innerHTML = `
@@ -3612,8 +3645,8 @@ function renderWheelPage() {
                 <button onclick="saveWheelItems()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">
                     💾 Save to Overlay
                 </button>
-                <input type="text" value="${overlayUrl}" readonly id="obsUrlInput" style="width: 250px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.7rem;">
-                <button onclick="copyWheelOverlayUrl()" class="btn" style="padding: 0.5rem 0.75rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea; font-size: 0.85rem;">
+                <input type="text" value="${overlayUrl}" readonly id="obsUrlInput" style="width: 250px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(${accentRgb}, 0.3); border-radius: 6px; color: #888; font-size: 0.7rem;">
+                <button onclick="copyWheelOverlayUrl()" class="btn" style="padding: 0.5rem 0.75rem; background: rgba(${accentRgb}, 0.2); border: 1px solid ${accent}; color: ${accent}; font-size: 0.85rem;">
                     📋 Copy
                 </button>
             </div>
@@ -3621,16 +3654,16 @@ function renderWheelPage() {
         
         <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem;">
             <!-- Left: Wheel -->
-            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); display: flex; flex-direction: column; align-items: center;">
+            <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.2); display: flex; flex-direction: column; align-items: center;">
                 
                 <!-- Wheel Container -->
                 <div style="position: relative; margin-bottom: 1.5rem;">
-                    <div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">▼</div>
-                    <canvas id="wheelCanvas" width="260" height="260" style="border-radius: 50%; box-shadow: 0 0 25px rgba(74, 158, 255, 0.3);"></canvas>
+                    <div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); color: ${accent};">▼</div>
+                    <canvas id="wheelCanvas" width="260" height="260" style="border-radius: 50%; box-shadow: 0 0 25px rgba(${accentRgb}, 0.3);"></canvas>
                 </div>
                 
                 <!-- Spin Button -->
-                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 1rem 2.5rem; font-size: 1.2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 1rem 2.5rem; font-size: 1.2rem; background: linear-gradient(135deg, ${accent} 0%, ${wheelColors[1] || accent} 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(${accentRgb}, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                     🎰 SPIN!
                 </button>
                 
@@ -3645,11 +3678,11 @@ function renderWheelPage() {
                 
                 <!-- Recent Spin History -->
                 ${spinHistory.length > 0 ? `
-                <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(${bgRgb}, 0.5); border-radius: 8px; border: 1px solid rgba(${accentRgb}, 0.2);">
                     <div style="color: #888; font-size: 0.75rem; margin-bottom: 0.5rem;">Recent Winners:</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
                         ${spinHistory.slice(-5).reverse().map((winner, i) => `
-                            <span style="padding: 0.25rem 0.6rem; background: ${i === 0 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(74, 158, 255, 0.1)'}; border-radius: 4px; font-size: 0.8rem; color: ${i === 0 ? '#ffd700' : '#aaa'};">${winner}</span>
+                            <span style="padding: 0.25rem 0.6rem; background: ${i === 0 ? 'rgba(255, 215, 0, 0.2)' : `rgba(${accentRgb}, 0.1)`}; border-radius: 4px; font-size: 0.8rem; color: ${i === 0 ? '#ffd700' : '#aaa'};">${winner}</span>
                         `).join('')}
                     </div>
                 </div>
@@ -3668,12 +3701,12 @@ function renderWheelPage() {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                     
                     <!-- Add Single Item -->
-                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.2);">
                         <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">➕ Add Single Item</h3>
                         
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
-                            <input type="text" id="wheelItemInput" placeholder="Enter name..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
-                            <button onclick="addWheelItem()" style="padding: 0.75rem 1.25rem; background: #4a9eff; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">Add</button>
+                            <input type="text" id="wheelItemInput" placeholder="Enter name..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(${accentRgb}, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                            <button onclick="addWheelItem()" style="padding: 0.75rem 1.25rem; background: ${accent}; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">Add</button>
                         </div>
                         
                         <button onclick="loadBonusGamesToWheel()" style="width: 100%; padding: 0.75rem; background: rgba(81, 207, 102, 0.2); border: 1px solid #51cf66; border-radius: 8px; color: #51cf66; cursor: pointer; font-size: 0.9rem; margin-bottom: 0.75rem;">
@@ -3686,29 +3719,29 @@ function renderWheelPage() {
                     </div>
                     
                     <!-- Add Multiple Items -->
-                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.2);">
                         <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">👥 Add Multiple (Bulk)</h3>
                         
-                        <textarea id="bulkItemsInput" placeholder="Enter names, one per line:&#10;&#10;John&#10;Sarah&#10;Mike&#10;Emma&#10;Alex" style="width: 100%; height: 140px; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem; resize: none; font-family: inherit;"></textarea>
+                        <textarea id="bulkItemsInput" placeholder="Enter names, one per line:&#10;&#10;John&#10;Sarah&#10;Mike&#10;Emma&#10;Alex" style="width: 100%; height: 140px; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(${accentRgb}, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem; resize: none; font-family: inherit;"></textarea>
                         
-                        <button onclick="addBulkItems()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 0.75rem; font-size: 0.95rem;">
+                        <button onclick="addBulkItems()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, ${accent} 0%, ${wheelColors[1] || accent} 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 0.75rem; font-size: 0.95rem;">
                             ➕ Add All Names
                         </button>
                     </div>
                 </div>
                 
                 <!-- Load from Provider -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 183, 77, 0.3);">
+                <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.3);">
                     <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">🎮 Load Games by Provider</h3>
                     
                     <div style="display: flex; gap: 0.5rem;">
-                        <select id="providerSelect" style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(255, 183, 77, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem;">
+                        <select id="providerSelect" style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(${accentRgb}, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem;">
                             <option value="">Select a provider...</option>
                             ${getUniqueProviders().map(provider => `
                                 <option value="${provider}">${provider}</option>
                             `).join('')}
                         </select>
-                        <button onclick="loadProviderGamesToWheel()" style="padding: 0.75rem 1.25rem; background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%); border: none; border-radius: 8px; color: #000; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
+                        <button onclick="loadProviderGamesToWheel()" style="padding: 0.75rem 1.25rem; background: ${accent}; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 0.95rem;">
                             Load
                         </button>
                     </div>
@@ -3716,7 +3749,7 @@ function renderWheelPage() {
                 </div>
                 
                 <!-- Items List (Full Width) -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); flex: 1; min-height: 250px;">
+                <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.2); flex: 1; min-height: 250px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">📋 Items on Wheel (${wheelItems.length})</h3>
                         ${wheelItems.length > 0 ? `<span style="color: #888; font-size: 0.85rem;">Click ✕ to remove</span>` : ''}
@@ -3738,14 +3771,14 @@ function renderWheelPage() {
         </div>
         
         <!-- Wheel History -->
-        <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); margin-top: 1.5rem;">
+        <div style="background: rgba(${bgRgb}, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(${accentRgb}, 0.2); margin-top: 1.5rem;">
             <h3 style="color: #fff; margin: 0 0 1rem 0;">📜 Wheel History</h3>
             
             ${wheelHistory.length === 0 ? 
                 '<p style="color: #666; text-align: center; padding: 1rem;">No wheel history yet.</p>' :
                 `<div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
                     ${wheelHistory.map(wheel => `
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(40, 40, 60, 0.5); border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.15);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(40, 40, 60, 0.5); border-radius: 12px; border: 1px solid rgba(${accentRgb}, 0.15);">
                             <div style="flex: 1;">
                                 <div style="color: #fff; font-weight: 600; font-size: 1rem;">${wheel.name}</div>
                                 <div style="color: #888; font-size: 0.8rem; margin-top: 0.25rem;">${new Date(wheel.endedAt).toLocaleDateString()} at ${new Date(wheel.endedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
