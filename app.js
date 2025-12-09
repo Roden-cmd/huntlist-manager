@@ -3388,6 +3388,7 @@ let isSpinning = false;
 let currentWheelName = null;
 let currentWheelWinner = null;
 let wheelHistory = [];
+let spinHistory = []; // Track recent spin winners for this wheel session
 
 function updateWheelSpinnerPage() {
     const container = document.getElementById('wheelSpinnerContent');
@@ -3583,7 +3584,22 @@ function renderWheelPage() {
                 <div id="wheelResult" style="margin-top: 1.5rem; padding: 1rem 2rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: 12px; border: 2px solid rgba(255, 215, 0, 0.5); display: ${currentWheelWinner ? 'block' : 'none'}; text-align: center;">
                     <div style="color: #888; font-size: 0.85rem;">🏆 Winner:</div>
                     <div id="wheelResultText" style="color: #ffd700; font-size: 1.4rem; font-weight: bold;">${currentWheelWinner || ''}</div>
+                    <button onclick="removeWinnerFromWheel()" style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 6px; color: #ff6b6b; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 107, 107, 0.3)'" onmouseout="this.style.background='rgba(255, 107, 107, 0.2)'">
+                        🚫 Remove Winner from Wheel
+                    </button>
                 </div>
+                
+                <!-- Recent Spin History -->
+                ${spinHistory.length > 0 ? `
+                <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <div style="color: #888; font-size: 0.75rem; margin-bottom: 0.5rem;">Recent Winners:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        ${spinHistory.slice(-5).reverse().map((winner, i) => `
+                            <span style="padding: 0.25rem 0.6rem; background: ${i === 0 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(74, 158, 255, 0.1)'}; border-radius: 4px; font-size: 0.8rem; color: ${i === 0 ? '#ffd700' : '#aaa'};">${winner}</span>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
                 
                 <!-- Items Count -->
                 <div style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
@@ -3936,24 +3952,33 @@ function spinWheel() {
             spinBtn.disabled = false;
             spinBtn.textContent = '🎰 SPIN!';
             
+            const winner = wheelItems[winningIndex];
+            
             // Show result
-            resultText.textContent = wheelItems[winningIndex];
+            resultText.textContent = winner;
             resultDiv.style.display = 'block';
             resultDiv.style.animation = 'none';
             resultDiv.offsetHeight;
             resultDiv.style.animation = 'pulse 0.5s ease-out';
             
+            // Add to spin history
+            spinHistory.push(winner);
+            
+            // Launch confetti!
+            launchConfetti();
+            
             // Update Firebase with result
             if (currentUser) {
                 firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').set({
                     spinning: false,
-                    winner: wheelItems[winningIndex],
+                    winner: winner,
                     winningIndex: winningIndex,
+                    spinHistory: spinHistory.slice(-5), // Keep last 5 for overlay
                     completedAt: Date.now()
                 });
                 
                 // Save winner to current wheel
-                currentWheelWinner = wheelItems[winningIndex];
+                currentWheelWinner = winner;
                 firebase.database().ref('users/' + currentUser.uid + '/currentWheel/winner').set(currentWheelWinner);
             }
             
@@ -3983,6 +4008,88 @@ function removeWheelItem(index) {
     wheelItems.splice(index, 1);
     saveWheelItems();
     renderWheelPage();
+}
+
+function removeWinnerFromWheel() {
+    if (!currentWheelWinner) return;
+    
+    const winnerIndex = wheelItems.indexOf(currentWheelWinner);
+    if (winnerIndex > -1) {
+        wheelItems.splice(winnerIndex, 1);
+        currentWheelWinner = null;
+        saveWheelItems();
+        
+        // Update Firebase
+        if (currentUser) {
+            firebase.database().ref('users/' + currentUser.uid + '/currentWheel/winner').set(null);
+        }
+        
+        renderWheelPage();
+        console.log('🚫 Removed winner from wheel');
+    }
+}
+
+function launchConfetti() {
+    const container = document.getElementById('wheelSpinnerContent');
+    if (!container) return;
+    
+    // Create confetti container
+    const confettiContainer = document.createElement('div');
+    confettiContainer.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; overflow: hidden;';
+    document.body.appendChild(confettiContainer);
+    
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd', '#f7dc6f', '#bb8fce', '#ffd700', '#ff6f61'];
+    const confettiCount = 150;
+    
+    for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = Math.random() * 10 + 5;
+        const startX = Math.random() * 100;
+        const startY = -10;
+        const rotation = Math.random() * 360;
+        const duration = Math.random() * 2 + 2;
+        const delay = Math.random() * 0.5;
+        
+        confetti.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            left: ${startX}%;
+            top: ${startY}%;
+            transform: rotate(${rotation}deg);
+            opacity: 1;
+            border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+            animation: confettiFall ${duration}s ease-out ${delay}s forwards;
+        `;
+        
+        confettiContainer.appendChild(confetti);
+    }
+    
+    // Add animation keyframes if not exists
+    if (!document.getElementById('confettiStyles')) {
+        const style = document.createElement('style');
+        style.id = 'confettiStyles';
+        style.textContent = `
+            @keyframes confettiFall {
+                0% {
+                    transform: translateY(0) rotate(0deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(100vh) rotate(720deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Remove confetti after animation
+    setTimeout(() => {
+        confettiContainer.remove();
+    }, 4000);
 }
 
 function clearWheelItems() {
@@ -4154,6 +4261,7 @@ function createNewWheel() {
     currentWheelName = name;
     currentWheelWinner = null;
     wheelItems = [];
+    spinHistory = []; // Reset spin history for new wheel
     
     // Check for quickload selection
     const quickloadSelect = document.getElementById('quickloadSelect');
