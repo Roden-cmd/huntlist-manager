@@ -3385,6 +3385,9 @@ function loadTournamentData() {
 
 let wheelItems = [];
 let isSpinning = false;
+let currentWheelName = null;
+let currentWheelWinner = null;
+let wheelHistory = [];
 
 function updateWheelSpinnerPage() {
     const container = document.getElementById('wheelSpinnerContent');
@@ -3395,21 +3398,40 @@ function updateWheelSpinnerPage() {
     
     console.log('🎡 Loading wheel spinner page...');
     
-    // Render page immediately with empty wheel
+    // Render page immediately
     renderWheelPage();
     
-    // Then load saved wheel items from Firebase
+    // Load saved data from Firebase
     if (currentUser) {
-        firebase.database().ref('users/' + currentUser.uid + '/wheelItems').once('value').then(snapshot => {
+        // Load current wheel state
+        firebase.database().ref('users/' + currentUser.uid + '/currentWheel').once('value').then(snapshot => {
             if (snapshot.exists()) {
-                wheelItems = snapshot.val() || [];
+                const wheelData = snapshot.val();
+                currentWheelName = wheelData.name || null;
+                currentWheelWinner = wheelData.winner || null;
+                wheelItems = wheelData.items || [];
             } else {
+                currentWheelName = null;
+                currentWheelWinner = null;
                 wheelItems = [];
             }
-            console.log('🎡 Loaded', wheelItems.length, 'wheel items');
+            console.log('🎡 Loaded wheel:', currentWheelName, 'with', wheelItems.length, 'items');
             renderWheelPage();
         }).catch(err => {
-            console.error('Error loading wheel items:', err);
+            console.error('Error loading wheel:', err);
+        });
+        
+        // Load wheel history
+        firebase.database().ref('users/' + currentUser.uid + '/wheelHistory').once('value').then(snapshot => {
+            if (snapshot.exists()) {
+                wheelHistory = Object.values(snapshot.val() || {}).sort((a, b) => b.endedAt - a.endedAt);
+            } else {
+                wheelHistory = [];
+            }
+            console.log('🎡 Loaded wheel history:', wheelHistory.length, 'entries');
+            renderWheelPage();
+        }).catch(err => {
+            console.error('Error loading wheel history:', err);
         });
     }
 }
@@ -3428,13 +3450,110 @@ function renderWheelPage() {
     const overlayUrl = currentUser ? 
         window.location.origin + window.location.pathname.replace('index.html', '') + 'wheel-overlay.html?userId=' + currentUser.uid : '';
     
+    // If no wheel is active, show creation screen
+    if (!currentWheelName) {
+        // Get unique names from history for quickload
+        const allPreviousNames = new Set();
+        wheelHistory.forEach(wheel => {
+            if (wheel.items && Array.isArray(wheel.items)) {
+                wheel.items.forEach(name => allPreviousNames.add(name));
+            }
+        });
+        const previousNamesList = Array.from(allPreviousNames).sort();
+        
+        container.innerHTML = `
+            <div class="page-header" style="margin-bottom: 1.5rem;">
+                <h1 style="color: #fff; margin: 0;">🎡 Wheel Spinner</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Create a new wheel to get started.</p>
+            </div>
+            
+            <!-- Create New Wheel -->
+            <div style="max-width: 500px; margin: 0 auto 2rem auto;">
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3);">
+                    <h2 style="color: #fff; margin: 0 0 1.5rem 0; text-align: center;">🎯 Create New Wheel</h2>
+                    
+                    <div style="margin-bottom: 1.5rem;">
+                        <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Wheel Name</label>
+                        <input type="text" id="newWheelName" placeholder="e.g., Giveaway #1, Viewer Game Pick..." style="width: 100%; padding: 1rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1.1rem;">
+                    </div>
+                    
+                    ${previousNamesList.length > 0 ? `
+                        <div style="margin-bottom: 1.5rem;">
+                            <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">
+                                ⚡ Quickload Previous Names (${previousNamesList.length} available)
+                            </label>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <select id="quickloadSelect" style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem;">
+                                    <option value="">Select names to load...</option>
+                                    <option value="all">📋 All Previous Names (${previousNamesList.length})</option>
+                                    ${wheelHistory.slice(0, 10).map((wheel, idx) => `
+                                        <option value="wheel_${idx}">From "${wheel.name}" (${wheel.items ? wheel.items.length : 0} names)</option>
+                                    `).join('')}
+                                </select>
+                            </div>
+                            <p style="color: #666; font-size: 0.8rem; margin-top: 0.5rem;">Names will be loaded after creating the wheel</p>
+                        </div>
+                    ` : ''}
+                    
+                    <button onclick="createNewWheel()" style="width: 100%; padding: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1.1rem;">
+                        ✨ Create Wheel
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Wheel History -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h3 style="color: #fff; margin: 0 0 1rem 0;">📜 Wheel History</h3>
+                
+                ${wheelHistory.length === 0 ? 
+                    '<p style="color: #666; text-align: center; padding: 2rem;">No wheel history yet.</p>' :
+                    `<div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto;">
+                        ${wheelHistory.map(wheel => `
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(40, 40, 60, 0.5); border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.15);">
+                                <div style="flex: 1;">
+                                    <div style="color: #fff; font-weight: 600; font-size: 1rem;">${wheel.name}</div>
+                                    <div style="color: #888; font-size: 0.8rem; margin-top: 0.25rem;">${new Date(wheel.endedAt).toLocaleDateString()} at ${new Date(wheel.endedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • ${wheel.items ? wheel.items.length : wheel.entries || 0} entries</div>
+                                </div>
+                                <div style="padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%); border-radius: 8px; border: 2px solid rgba(255, 215, 0, 0.5);">
+                                    <div style="color: #888; font-size: 0.7rem;">🏆 Winner</div>
+                                    <div style="color: #ffd700; font-weight: bold; font-size: 1rem;">${wheel.winner}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`
+                }
+            </div>
+        `;
+        
+        // Add enter key listener for wheel name input
+        setTimeout(() => {
+            const input = document.getElementById('newWheelName');
+            if (input) {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        createNewWheel();
+                    }
+                });
+                input.focus();
+            }
+        }, 100);
+        
+        return;
+    }
+    
+    // Active wheel view
     container.innerHTML = `
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
-                <h1 style="color: #fff; margin: 0;">🎡 Wheel Spinner</h1>
-                <p style="color: #888; margin-top: 0.5rem;">Add items below and click Save to sync with OBS overlay.</p>
+                <h1 style="color: #fff; margin: 0;">🎡 ${currentWheelName}</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Add items below and spin the wheel!</p>
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
+                ${currentWheelWinner ? `
+                    <button onclick="endCurrentWheel()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">
+                        ✅ End Wheel
+                    </button>
+                ` : ''}
                 <button onclick="saveWheelItems()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">
                     💾 Save to Overlay
                 </button>
@@ -3461,9 +3580,9 @@ function renderWheelPage() {
                 </button>
                 
                 <!-- Result Display -->
-                <div id="wheelResult" style="margin-top: 1.5rem; padding: 1rem 2rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: 12px; border: 2px solid rgba(255, 215, 0, 0.5); display: none; text-align: center;">
+                <div id="wheelResult" style="margin-top: 1.5rem; padding: 1rem 2rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: 12px; border: 2px solid rgba(255, 215, 0, 0.5); display: ${currentWheelWinner ? 'block' : 'none'}; text-align: center;">
                     <div style="color: #888; font-size: 0.85rem;">🏆 Winner:</div>
-                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.4rem; font-weight: bold;"></div>
+                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.4rem; font-weight: bold;">${currentWheelWinner || ''}</div>
                 </div>
                 
                 <!-- Items Count -->
@@ -3528,6 +3647,29 @@ function renderWheelPage() {
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Wheel History -->
+        <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); margin-top: 1.5rem;">
+            <h3 style="color: #fff; margin: 0 0 1rem 0;">📜 Wheel History</h3>
+            
+            ${wheelHistory.length === 0 ? 
+                '<p style="color: #666; text-align: center; padding: 1rem;">No wheel history yet.</p>' :
+                `<div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 300px; overflow-y: auto;">
+                    ${wheelHistory.map(wheel => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: rgba(40, 40, 60, 0.5); border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.15);">
+                            <div style="flex: 1;">
+                                <div style="color: #fff; font-weight: 600; font-size: 1rem;">${wheel.name}</div>
+                                <div style="color: #888; font-size: 0.8rem; margin-top: 0.25rem;">${new Date(wheel.endedAt).toLocaleDateString()} at ${new Date(wheel.endedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                            </div>
+                            <div style="padding: 0.5rem 1rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%); border-radius: 8px; border: 2px solid rgba(255, 215, 0, 0.5);">
+                                <div style="color: #888; font-size: 0.7rem;">🏆 Winner</div>
+                                <div style="color: #ffd700; font-weight: bold; font-size: 1rem;">${wheel.winner}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`
+            }
         </div>
     `;
     
@@ -3757,7 +3899,16 @@ function spinWheel() {
                     winningIndex: winningIndex,
                     completedAt: Date.now()
                 });
+                
+                // Save winner to current wheel
+                currentWheelWinner = wheelItems[winningIndex];
+                firebase.database().ref('users/' + currentUser.uid + '/currentWheel/winner').set(currentWheelWinner);
             }
+            
+            // Re-render to show End Wheel button
+            setTimeout(() => {
+                renderWheelPage();
+            }, 500);
         }
     }
     
@@ -3847,7 +3998,120 @@ function copyWheelOverlayUrl() {
 
 function saveWheelItems() {
     if (!currentUser) return;
+    
+    // Save to wheelItems for overlay
     firebase.database().ref('users/' + currentUser.uid + '/wheelItems').set(wheelItems);
+    
+    // Also save current wheel state
+    firebase.database().ref('users/' + currentUser.uid + '/currentWheel').set({
+        name: currentWheelName,
+        items: wheelItems,
+        winner: currentWheelWinner,
+        updatedAt: Date.now()
+    });
+    
+    console.log('🎡 Wheel items saved');
+}
+
+function createNewWheel() {
+    const input = document.getElementById('newWheelName');
+    const name = input.value.trim();
+    
+    if (!name) {
+        alert('Please enter a wheel name');
+        return;
+    }
+    
+    currentWheelName = name;
+    currentWheelWinner = null;
+    wheelItems = [];
+    
+    // Check for quickload selection
+    const quickloadSelect = document.getElementById('quickloadSelect');
+    if (quickloadSelect && quickloadSelect.value) {
+        if (quickloadSelect.value === 'all') {
+            // Load all unique names from history
+            const allNames = new Set();
+            wheelHistory.forEach(wheel => {
+                if (wheel.items && Array.isArray(wheel.items)) {
+                    wheel.items.forEach(n => allNames.add(n));
+                }
+            });
+            wheelItems = Array.from(allNames);
+        } else if (quickloadSelect.value.startsWith('wheel_')) {
+            // Load names from specific wheel
+            const wheelIndex = parseInt(quickloadSelect.value.replace('wheel_', ''));
+            if (wheelHistory[wheelIndex] && wheelHistory[wheelIndex].items) {
+                wheelItems = [...wheelHistory[wheelIndex].items];
+            }
+        }
+        console.log('🎡 Quickloaded', wheelItems.length, 'names');
+    }
+    
+    // Save to Firebase
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/currentWheel').set({
+            name: currentWheelName,
+            items: wheelItems,
+            winner: null,
+            createdAt: Date.now()
+        });
+        
+        // Set wheel items for overlay
+        firebase.database().ref('users/' + currentUser.uid + '/wheelItems').set(wheelItems);
+        
+        // Clear any previous spin result
+        firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').remove();
+    }
+    
+    console.log('🎡 Created new wheel:', currentWheelName);
+    renderWheelPage();
+}
+
+function endCurrentWheel() {
+    if (!currentWheelWinner) {
+        alert('Spin the wheel first to determine a winner!');
+        return;
+    }
+    
+    if (!confirm(`End wheel "${currentWheelName}" with winner "${currentWheelWinner}"?`)) {
+        return;
+    }
+    
+    // Save to history (include items for quickload feature)
+    const historyEntry = {
+        name: currentWheelName,
+        winner: currentWheelWinner,
+        items: [...wheelItems],
+        entries: wheelItems.length,
+        endedAt: Date.now()
+    };
+    
+    if (currentUser) {
+        // Push to wheel history
+        firebase.database().ref('users/' + currentUser.uid + '/wheelHistory').push(historyEntry);
+        
+        // Clear current wheel
+        firebase.database().ref('users/' + currentUser.uid + '/currentWheel').remove();
+        
+        // Clear wheel items for overlay
+        firebase.database().ref('users/' + currentUser.uid + '/wheelItems').set([]);
+        
+        // Clear spin result
+        firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').remove();
+    }
+    
+    // Add to local history
+    wheelHistory.unshift(historyEntry);
+    
+    // Reset state
+    currentWheelName = null;
+    currentWheelWinner = null;
+    wheelItems = [];
+    
+    console.log('🎡 Wheel ended and saved to history');
+    renderWheelPage();
+}
 }
 
 function openWheelOverlay() {
