@@ -3424,82 +3424,96 @@ function renderWheelPage() {
         '#F8B500', '#FF6F61', '#6B5B95', '#88B04B', '#F7CAC9'
     ];
     
+    // Generate OBS URL
+    const overlayUrl = currentUser ? 
+        window.location.origin + window.location.pathname.replace('index.html', '') + 'wheel-overlay.html?userId=' + currentUser.uid : '';
+    
     container.innerHTML = `
-        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
                 <h1 style="color: #fff; margin: 0;">🎡 Wheel Spinner</h1>
-                <p style="color: #888; margin-top: 0.5rem;">Spin to decide! Perfect for picking bonuses, games, or giveaways.</p>
+                <p style="color: #888; margin-top: 0.5rem;">Spin to decide! The OBS overlay syncs automatically.</p>
             </div>
-            <div style="display: flex; gap: 0.75rem;">
-                <button onclick="openWheelOverlay()" class="btn" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
-                    📺 Open OBS Overlay
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                <input type="text" value="${overlayUrl}" readonly style="width: 280px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.75rem;">
+                <button onclick="copyWheelOverlayUrl()" class="btn" style="padding: 0.5rem 1rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
+                    📋 Copy OBS URL
                 </button>
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 1fr 400px; gap: 2rem;">
-            <!-- Wheel Section -->
-            <div style="background: rgba(26, 26, 46, 0.95); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); display: flex; flex-direction: column; align-items: center;">
+        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;">
+            <!-- Left: Wheel (Smaller) -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); display: flex; flex-direction: column; align-items: center;">
                 
                 <!-- Wheel Container -->
-                <div style="position: relative; margin-bottom: 2rem;">
-                    <!-- Pointer -->
-                    <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 2.5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">▼</div>
-                    
-                    <!-- Wheel -->
-                    <canvas id="wheelCanvas" width="350" height="350" style="border-radius: 50%; box-shadow: 0 0 30px rgba(74, 158, 255, 0.3);"></canvas>
+                <div style="position: relative; margin-bottom: 1.5rem;">
+                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">▼</div>
+                    <canvas id="wheelCanvas" width="220" height="220" style="border-radius: 50%; box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);"></canvas>
                 </div>
                 
                 <!-- Spin Button -->
-                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 1rem 3rem; font-size: 1.3rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 0.75rem 2rem; font-size: 1.1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                     🎰 SPIN!
                 </button>
                 
                 <!-- Result Display -->
-                <div id="wheelResult" style="margin-top: 1.5rem; padding: 1rem 2rem; background: rgba(40, 40, 60, 0.6); border-radius: 12px; display: none;">
-                    <div style="color: #888; font-size: 0.9rem; margin-bottom: 0.25rem;">Winner:</div>
-                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.5rem; font-weight: bold;"></div>
+                <div id="wheelResult" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(40, 40, 60, 0.6); border-radius: 12px; display: none; text-align: center;">
+                    <div style="color: #888; font-size: 0.8rem;">Winner:</div>
+                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.2rem; font-weight: bold;"></div>
+                </div>
+                
+                <!-- Items Count -->
+                <div style="margin-top: 1rem; color: #888; font-size: 0.85rem;">
+                    ${wheelItems.length} items on wheel
                 </div>
             </div>
             
-            <!-- Items Management -->
-            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <!-- Add Items -->
+            <!-- Right: Items Management -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                
+                <!-- Add Single Item -->
                 <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">➕ Add Items</h3>
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1rem;">➕ Add Single Item</h3>
                     
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="wheelItemInput" placeholder="Enter item name..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem;">
-                        <button onclick="addWheelItem()" style="padding: 0.75rem 1.25rem; background: #4a9eff; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">Add</button>
+                        <input type="text" id="wheelItemInput" placeholder="Enter name..." style="flex: 1; padding: 0.6rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 0.9rem;">
+                        <button onclick="addWheelItem()" style="padding: 0.6rem 1rem; background: #4a9eff; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">Add</button>
                     </div>
                     
-                    <!-- Quick Add Options -->
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                        <button onclick="loadBonusGamesToWheel()" style="padding: 0.5rem 0.75rem; background: rgba(81, 207, 102, 0.2); border: 1px solid #51cf66; border-radius: 6px; color: #51cf66; cursor: pointer; font-size: 0.8rem;">
-                            🎰 Load Current Hunt Games
-                        </button>
-                        <button onclick="loadViewersToWheel()" style="padding: 0.5rem 0.75rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; border-radius: 6px; color: #667eea; cursor: pointer; font-size: 0.8rem;">
-                            👥 Add Viewers Manually
-                        </button>
-                        <button onclick="clearWheelItems()" style="padding: 0.5rem 0.75rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 6px; color: #ff6b6b; cursor: pointer; font-size: 0.8rem;">
-                            🗑️ Clear All
-                        </button>
-                    </div>
+                    <button onclick="loadBonusGamesToWheel()" style="width: 100%; padding: 0.6rem; background: rgba(81, 207, 102, 0.2); border: 1px solid #51cf66; border-radius: 6px; color: #51cf66; cursor: pointer; font-size: 0.85rem; margin-bottom: 0.5rem;">
+                        🎰 Load Current Hunt Games
+                    </button>
+                    
+                    <button onclick="clearWheelItems()" style="width: 100%; padding: 0.6rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 6px; color: #ff6b6b; cursor: pointer; font-size: 0.85rem;">
+                        🗑️ Clear All Items
+                    </button>
+                </div>
+                
+                <!-- Add Multiple Items -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1rem;">👥 Add Multiple (Bulk)</h3>
+                    
+                    <textarea id="bulkItemsInput" placeholder="Enter names, one per line:&#10;&#10;John&#10;Sarah&#10;Mike&#10;Emma" style="width: 100%; height: 120px; padding: 0.6rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #fff; font-size: 0.9rem; resize: none; font-family: inherit;"></textarea>
+                    
+                    <button onclick="addBulkItems()" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 0.75rem;">
+                        ➕ Add All Names
+                    </button>
                 </div>
                 
                 <!-- Items List -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); grid-column: span 2;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">📋 Items (${wheelItems.length})</h3>
+                        <h3 style="color: #fff; margin: 0; font-size: 1rem;">📋 Items on Wheel (${wheelItems.length})</h3>
                     </div>
                     
-                    <div style="flex: 1; overflow-y: auto; max-height: 350px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
                         ${wheelItems.length === 0 ? 
-                            '<p style="color: #666; text-align: center; padding: 2rem;">No items yet. Add some items to spin!</p>' :
+                            '<p style="color: #666; text-align: center; padding: 2rem; width: 100%;">No items yet. Add some items to spin!</p>' :
                             wheelItems.map((item, index) => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid ${wheelColors[index % wheelColors.length]};">
-                                    <span style="color: #fff; font-size: 0.95rem;">${item}</span>
-                                    <button onclick="removeWheelItem(${index})" style="background: rgba(255, 107, 107, 0.2); border: none; color: #ff6b6b; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">✕</button>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 20px; border-left: 3px solid ${wheelColors[index % wheelColors.length]};">
+                                    <span style="color: #fff; font-size: 0.85rem;">${item}</span>
+                                    <button onclick="removeWheelItem(${index})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1;">✕</button>
                                 </div>
                             `).join('')
                         }
@@ -3552,9 +3566,9 @@ function drawWheel() {
         ctx.stroke();
         
         ctx.fillStyle = '#666';
-        ctx.font = '16px Arial';
+        ctx.font = '14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Add items to spin!', centerX, centerY);
+        ctx.fillText('Add items!', centerX, centerY);
         return;
     }
     
@@ -3582,23 +3596,23 @@ function drawWheel() {
         ctx.rotate(startAngle + sliceAngle / 2);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px Arial';
+        ctx.font = 'bold 10px Arial';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 3;
         
         // Truncate long text
         let displayText = item;
-        if (displayText.length > 15) {
-            displayText = displayText.substring(0, 14) + '...';
+        if (displayText.length > 12) {
+            displayText = displayText.substring(0, 11) + '...';
         }
         
-        ctx.fillText(displayText, radius - 15, 4);
+        ctx.fillText(displayText, radius - 10, 3);
         ctx.restore();
     });
     
     // Draw center circle
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
     ctx.fillStyle = '#1a1a2e';
     ctx.fill();
     ctx.strokeStyle = '#4a9eff';
@@ -3626,13 +3640,23 @@ function spinWheel() {
     const sliceAngle = 360 / wheelItems.length;
     
     // Calculate rotation: multiple full spins + land on winning slice
-    // We need to rotate so the winning slice is at the TOP (where pointer is)
-    const extraSpins = 5 + Math.random() * 3; // 5-8 full rotations
-    const winningAngle = (winningIndex * sliceAngle) + (sliceAngle / 2); // Center of winning slice
-    const targetRotation = (extraSpins * 360) + (360 - winningAngle) + 270; // 270 offset because pointer is at top
+    const extraSpins = 5 + Math.random() * 3;
+    const winningAngle = (winningIndex * sliceAngle) + (sliceAngle / 2);
+    const targetRotation = (extraSpins * 360) + (360 - winningAngle) + 270;
+    
+    // Save spin state to Firebase for overlay sync
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').set({
+            spinning: true,
+            winningIndex: winningIndex,
+            targetRotation: targetRotation,
+            startTime: Date.now(),
+            duration: 5000
+        });
+    }
     
     let currentRotation = 0;
-    const duration = 5000; // 5 seconds
+    const duration = 5000;
     const startTime = Date.now();
     
     function animate() {
@@ -3651,7 +3675,7 @@ function spinWheel() {
         ctx.rotate((currentRotation * Math.PI) / 180);
         ctx.translate(-canvas.width / 2, -canvas.height / 2);
         
-        // Draw the wheel (reuse draw logic)
+        // Draw the wheel
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         const radius = Math.min(centerX, centerY) - 5;
@@ -3681,19 +3705,19 @@ function spinWheel() {
             ctx.rotate(startAngle + sliceAngleRad / 2);
             ctx.textAlign = 'right';
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 12px Arial';
+            ctx.font = 'bold 10px Arial';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 3;
             let displayText = item;
-            if (displayText.length > 15) {
-                displayText = displayText.substring(0, 14) + '...';
+            if (displayText.length > 12) {
+                displayText = displayText.substring(0, 11) + '...';
             }
-            ctx.fillText(displayText, radius - 15, 4);
+            ctx.fillText(displayText, radius - 10, 3);
             ctx.restore();
         });
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
         ctx.fillStyle = '#1a1a2e';
         ctx.fill();
         ctx.strokeStyle = '#4a9eff';
@@ -3714,8 +3738,18 @@ function spinWheel() {
             resultText.textContent = wheelItems[winningIndex];
             resultDiv.style.display = 'block';
             resultDiv.style.animation = 'none';
-            resultDiv.offsetHeight; // Trigger reflow
+            resultDiv.offsetHeight;
             resultDiv.style.animation = 'pulse 0.5s ease-out';
+            
+            // Update Firebase with result
+            if (currentUser) {
+                firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').set({
+                    spinning: false,
+                    winner: wheelItems[winningIndex],
+                    winningIndex: winningIndex,
+                    completedAt: Date.now()
+                });
+            }
         }
     }
     
@@ -3773,12 +3807,16 @@ function loadBonusGamesToWheel() {
     renderWheelPage();
 }
 
-function loadViewersToWheel() {
-    const viewers = prompt('Enter viewer names separated by commas:\\n\\nExample: John, Jane, Mike, Sarah');
+function addBulkItems() {
+    const textarea = document.getElementById('bulkItemsInput');
+    const text = textarea.value.trim();
     
-    if (!viewers) return;
+    if (!text) return;
     
-    const names = viewers.split(',').map(n => n.trim()).filter(n => n);
+    // Split by newlines and filter empty lines
+    const names = text.split('\n').map(n => n.trim()).filter(n => n);
+    
+    if (names.length === 0) return;
     
     names.forEach(name => {
         if (!wheelItems.includes(name)) {
@@ -3787,7 +3825,16 @@ function loadViewersToWheel() {
     });
     
     saveWheelItems();
+    textarea.value = '';
     renderWheelPage();
+}
+
+function copyWheelOverlayUrl() {
+    if (!currentUser) return;
+    const url = window.location.origin + window.location.pathname.replace('index.html', '') + 'wheel-overlay.html?userId=' + currentUser.uid;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('OBS URL copied!');
+    });
 }
 
 function saveWheelItems() {

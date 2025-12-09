@@ -24,7 +24,7 @@
         .wheel-container {
             background: rgba(26, 26, 46, 0.95);
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             border: 2px solid rgba(74, 158, 255, 0.3);
             display: flex;
@@ -34,57 +34,34 @@
 
         .wheel-title {
             color: #fff;
-            font-size: 1.5rem;
-            margin-bottom: 20px;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
             text-align: center;
         }
 
         .wheel-wrapper {
             position: relative;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .wheel-pointer {
             position: absolute;
-            top: -15px;
+            top: -12px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 2rem;
+            font-size: 1.5rem;
             z-index: 10;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
         #wheelCanvas {
             border-radius: 50%;
-            box-shadow: 0 0 30px rgba(74, 158, 255, 0.3);
-        }
-
-        .spin-button {
-            padding: 15px 50px;
-            font-size: 1.4rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 50px;
-            color: #fff;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
-            transition: all 0.3s;
-        }
-
-        .spin-button:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.7);
-        }
-
-        .spin-button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+            box-shadow: 0 0 25px rgba(74, 158, 255, 0.3);
         }
 
         .result-display {
-            margin-top: 20px;
-            padding: 15px 30px;
+            margin-top: 15px;
+            padding: 12px 25px;
             background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%);
             border-radius: 12px;
             border: 2px solid rgba(255, 215, 0, 0.5);
@@ -94,13 +71,13 @@
 
         .result-label {
             color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 5px;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
         }
 
         .result-text {
             color: #ffd700;
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
             text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
         }
@@ -116,16 +93,16 @@
             animation: pulse 0.5s ease-out;
         }
 
+        .items-count {
+            color: #888;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
         .loading {
             color: #888;
             text-align: center;
             padding: 50px;
-        }
-
-        .no-items {
-            color: #666;
-            text-align: center;
-            padding: 30px;
         }
     </style>
 </head>
@@ -135,17 +112,15 @@
         
         <div class="wheel-wrapper">
             <div class="wheel-pointer">▼</div>
-            <canvas id="wheelCanvas" width="300" height="300"></canvas>
+            <canvas id="wheelCanvas" width="280" height="280"></canvas>
         </div>
-        
-        <button id="spinButton" class="spin-button" onclick="spinWheel()">
-            🎰 SPIN!
-        </button>
         
         <div id="resultDisplay" class="result-display">
             <div class="result-label">🏆 Winner:</div>
             <div id="resultText" class="result-text"></div>
         </div>
+        
+        <div id="itemsCount" class="items-count">0 items</div>
     </div>
 
     <!-- Firebase -->
@@ -186,15 +161,23 @@
             firebase.database().ref('users/' + userId + '/wheelItems').on('value', (snapshot) => {
                 wheelItems = snapshot.val() || [];
                 drawWheel();
-                
-                const spinBtn = document.getElementById('spinButton');
-                if (spinBtn) {
-                    spinBtn.disabled = wheelItems.length < 2;
+                document.getElementById('itemsCount').textContent = wheelItems.length + ' items';
+            });
+            
+            // Listen for spin events
+            firebase.database().ref('users/' + userId + '/wheelSpin').on('value', (snapshot) => {
+                const spinData = snapshot.val();
+                if (spinData && spinData.spinning && !isSpinning) {
+                    // Start synced spin animation
+                    startSyncedSpin(spinData);
+                } else if (spinData && !spinData.spinning && spinData.winner) {
+                    // Show result if spin completed
+                    showResult(spinData.winner);
                 }
             });
         }
 
-        function drawWheel() {
+        function drawWheel(rotation = 0) {
             const canvas = document.getElementById('wheelCanvas');
             if (!canvas) return;
             
@@ -203,7 +186,14 @@
             const centerY = canvas.height / 2;
             const radius = Math.min(centerX, centerY) - 5;
             
+            ctx.save();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (rotation !== 0) {
+                ctx.translate(centerX, centerY);
+                ctx.rotate((rotation * Math.PI) / 180);
+                ctx.translate(-centerX, -centerY);
+            }
             
             if (wheelItems.length === 0) {
                 ctx.beginPath();
@@ -218,6 +208,7 @@
                 ctx.font = '14px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText('No items yet', centerX, centerY);
+                ctx.restore();
                 return;
             }
             
@@ -262,105 +253,56 @@
             ctx.strokeStyle = '#4a9eff';
             ctx.lineWidth = 3;
             ctx.stroke();
+            
+            ctx.restore();
         }
 
-        function spinWheel() {
-            if (isSpinning || wheelItems.length < 2) return;
-            
+        function startSyncedSpin(spinData) {
             isSpinning = true;
-            const spinBtn = document.getElementById('spinButton');
-            const resultDiv = document.getElementById('resultDisplay');
-            const resultText = document.getElementById('resultText');
             
-            spinBtn.disabled = true;
-            spinBtn.textContent = '🎰 Spinning...';
+            const resultDiv = document.getElementById('resultDisplay');
             resultDiv.classList.remove('show');
             
-            const canvas = document.getElementById('wheelCanvas');
-            const ctx = canvas.getContext('2d');
+            const targetRotation = spinData.targetRotation;
+            const duration = spinData.duration || 5000;
+            const serverStartTime = spinData.startTime;
             
-            const winningIndex = Math.floor(Math.random() * wheelItems.length);
-            const sliceAngle = 360 / wheelItems.length;
+            // Calculate how much time has passed since spin started
+            const elapsed = Date.now() - serverStartTime;
+            const remainingTime = Math.max(duration - elapsed, 100);
             
-            const extraSpins = 5 + Math.random() * 3;
-            const winningAngle = (winningIndex * sliceAngle) + (sliceAngle / 2);
-            const targetRotation = (extraSpins * 360) + (360 - winningAngle) + 270;
-            
-            let currentRotation = 0;
-            const duration = 5000;
             const startTime = Date.now();
+            const startRotation = (elapsed / duration) * targetRotation;
             
             function animate() {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
+                const now = Date.now();
+                const animElapsed = now - startTime;
+                const totalElapsed = elapsed + animElapsed;
+                const progress = Math.min(totalElapsed / duration, 1);
+                
+                // Easing function
                 const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentRotation = targetRotation * easeOut;
                 
-                currentRotation = targetRotation * easeOut;
-                
-                ctx.save();
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.translate(canvas.width / 2, canvas.height / 2);
-                ctx.rotate((currentRotation * Math.PI) / 180);
-                ctx.translate(-canvas.width / 2, -canvas.height / 2);
-                
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const radius = Math.min(centerX, centerY) - 5;
-                const sliceAngleRad = (2 * Math.PI) / wheelItems.length;
-                
-                wheelItems.forEach((item, index) => {
-                    const startAngle = index * sliceAngleRad;
-                    const endAngle = startAngle + sliceAngleRad;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(centerX, centerY);
-                    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-                    ctx.closePath();
-                    ctx.fillStyle = wheelColors[index % wheelColors.length];
-                    ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    
-                    ctx.save();
-                    ctx.translate(centerX, centerY);
-                    ctx.rotate(startAngle + sliceAngleRad / 2);
-                    ctx.textAlign = 'right';
-                    ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 11px Arial';
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-                    ctx.shadowBlur = 3;
-                    let displayText = item;
-                    if (displayText.length > 12) {
-                        displayText = displayText.substring(0, 11) + '...';
-                    }
-                    ctx.fillText(displayText, radius - 12, 4);
-                    ctx.restore();
-                });
-                
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
-                ctx.fillStyle = '#1a1a2e';
-                ctx.fill();
-                ctx.strokeStyle = '#4a9eff';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                ctx.restore();
+                drawWheel(currentRotation);
                 
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
                     isSpinning = false;
-                    spinBtn.disabled = false;
-                    spinBtn.textContent = '🎰 SPIN!';
-                    
-                    resultText.textContent = wheelItems[winningIndex];
-                    resultDiv.classList.add('show');
+                    // Result will be shown by Firebase listener
                 }
             }
             
             animate();
+        }
+
+        function showResult(winner) {
+            const resultDiv = document.getElementById('resultDisplay');
+            const resultText = document.getElementById('resultText');
+            
+            resultText.textContent = winner;
+            resultDiv.classList.add('show');
         }
     </script>
 </body>
