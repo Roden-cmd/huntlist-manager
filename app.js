@@ -4116,12 +4116,19 @@ function toggleSpinHistory() {
     const btn = document.getElementById('showHistoryBtn');
     
     if (panel && btn) {
-        if (panel.style.display === 'none') {
+        const isHidden = panel.style.display === 'none';
+        
+        if (isHidden) {
             panel.style.display = 'block';
             btn.textContent = '📜 Hide Winners';
         } else {
             panel.style.display = 'none';
             btn.textContent = `📜 Show Last ${Math.min(spinHistory.length, 5)} Winners`;
+        }
+        
+        // Save visibility state to Firebase for overlay
+        if (currentUser) {
+            firebase.database().ref('users/' + currentUser.uid + '/wheelSpinHistoryVisible').set(isHidden);
         }
     }
 }

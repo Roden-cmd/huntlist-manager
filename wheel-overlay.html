@@ -358,6 +358,15 @@
                     showWinner(spinData.winner, spinData.spinHistory);
                 }
             });
+            
+            // Listen for spin history visibility toggle
+            db.ref('users/' + userId + '/wheelSpinHistoryVisible').on('value', (snapshot) => {
+                const visible = snapshot.val();
+                const container = document.getElementById('spinHistoryContainer');
+                if (container) {
+                    container.style.display = visible ? 'block' : 'none';
+                }
+            });
         }
 
         function updateStatus(type, label, text) {
@@ -374,7 +383,7 @@
             hasWinner = true;
             updateStatus('winner', '🏆 Winner', winner);
             
-            // Update spin history display
+            // Update spin history data (but don't change visibility - controlled by button)
             updateSpinHistory(spinHistory);
             
             // Launch confetti
@@ -386,11 +395,12 @@
             const list = document.getElementById('spinHistoryList');
             
             if (!history || history.length === 0) {
-                container.style.display = 'none';
+                // Keep data empty but don't change visibility
+                if (list) list.innerHTML = '';
                 return;
             }
             
-            container.style.display = 'block';
+            // Only update the data, visibility is controlled by wheelSpinHistoryVisible
             list.innerHTML = history.slice().reverse().map((winner, i) => `
                 <span class="spin-history-item ${i === 0 ? 'latest' : ''}">${winner}</span>
             `).join('');
