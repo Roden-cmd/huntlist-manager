@@ -1571,16 +1571,11 @@ function updateGameDatabasePage() {
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <div>
                 <h1 style="color: #fff; margin: 0;">Game Database</h1>
-                <p style="color: #888; margin-top: 0.5rem;">Manage your favorite slots and track performance</p>
+                <p style="color: #888; margin-top: 0.5rem;">${gameDatabase.length.toLocaleString()} games loaded • Mark your favorites with ⭐</p>
             </div>
-            <div style="display: flex; gap: 0.75rem;">
-                <button onclick="loadStarterPack()" class="btn" style="padding: 0.75rem 1.5rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
-                    📦 Load All Casino Games
-                </button>
-                <button onclick="showAddGameModal()" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
-                    ➕ Add Game
-                </button>
-            </div>
+            <button onclick="showAddGameModal()" class="btn btn-primary" style="padding: 0.75rem 1.5rem;">
+                ➕ Add Game
+            </button>
         </div>
         
         <!-- Quick Stats -->
@@ -1605,32 +1600,19 @@ function updateGameDatabasePage() {
         
         <!-- Two Column Layout -->
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-            <!-- Saved Games -->
+            <!-- Favorite Games & Search -->
             <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">⭐ Saved Games (${gameDatabase.length})</h3>
-                <div style="max-height: 400px; overflow-y: auto;">
-                    ${gameDatabase.length === 0 ? 
-                        '<p style="color: #888; text-align: center; padding: 2rem;">No saved games yet. Add your favorite slots!</p>' :
-                        gameDatabase.map((game, index) => `
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.75rem; border-left: 3px solid ${game.favorite ? '#ffd700' : '#4a9eff'};">
-                                <div style="flex: 1;">
-                                    <div style="color: #fff; font-weight: bold;">${game.name} ${game.favorite ? '⭐' : ''}</div>
-                                    <div style="color: #888; font-size: 0.85rem;">${game.provider || 'Unknown Provider'} • Default Bet: €${(game.defaultBet || 1).toFixed(2)}</div>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="toggleFavoriteGame(${index})" style="background: rgba(255, 215, 0, 0.2); border: none; color: #ffd700; padding: 0.5rem; border-radius: 6px; cursor: pointer;" title="Toggle Favorite">
-                                        ${game.favorite ? '★' : '☆'}
-                                    </button>
-                                    <button onclick="editSavedGame(${index})" style="background: rgba(74, 158, 255, 0.2); border: none; color: #4a9eff; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;">
-                                        Edit
-                                    </button>
-                                    <button onclick="deleteSavedGame(${index})" style="background: rgba(255, 107, 107, 0.2); border: none; color: #ff6b6b; padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;">
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        `).join('')
-                    }
+                <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">⭐ Your Favorites (${gameDatabase.filter(g => g.favorite).length})</h3>
+                
+                <!-- Search Box -->
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="gameSearchInput" placeholder="Search ${gameDatabase.length.toLocaleString()} games..." 
+                           style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.7); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 0.9rem;"
+                           oninput="filterGameDatabase(this.value)">
+                </div>
+                
+                <div id="gameListContainer" style="max-height: 350px; overflow-y: auto;">
+                    ${renderFavoriteGames()}
                 </div>
             </div>
             
@@ -1653,9 +1635,6 @@ function updateGameDatabasePage() {
                                         <div style="color: ${profit >= 0 ? '#51cf66' : '#ff6b6b'}; font-weight: bold;">${profit >= 0 ? '+' : ''}€${profit.toFixed(2)}</div>
                                         <div style="color: #888; font-size: 0.8rem;">Avg: ${avgMult.toFixed(2)}x</div>
                                     </div>
-                                    <button onclick="addGameToDatabase('${game.displayName.replace(/'/g, "\\'")}')" style="background: rgba(81, 207, 102, 0.2); border: none; color: #51cf66; padding: 0.4rem 0.6rem; border-radius: 6px; cursor: pointer; margin-left: 0.75rem; font-size: 0.8rem;" title="Save to Database">
-                                        + Save
-                                    </button>
                                 </div>
                             `;
                         }).join('')
@@ -1681,6 +1660,67 @@ function getBestPerformer(gameStats) {
     });
     
     return best || '-';
+}
+
+function renderFavoriteGames() {
+    const favorites = gameDatabase.filter(g => g.favorite);
+    
+    if (favorites.length === 0) {
+        return '<p style="color: #888; text-align: center; padding: 2rem;">No favorites yet. Search for a game and click ⭐ to add it!</p>';
+    }
+    
+    return favorites.map(game => {
+        const index = gameDatabase.findIndex(g => g.name === game.name);
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid #ffd700;">
+                <div style="flex: 1;">
+                    <div style="color: #fff; font-weight: 500;">${game.name}</div>
+                    <div style="color: #888; font-size: 0.8rem;">${game.provider} • €${game.defaultBet.toFixed(2)}</div>
+                </div>
+                <button onclick="toggleFavoriteGame(${index})" style="background: rgba(255, 215, 0, 0.2); border: none; color: #ffd700; padding: 0.5rem; border-radius: 6px; cursor: pointer;" title="Remove from favorites">
+                    ★
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+function filterGameDatabase(searchTerm) {
+    const container = document.getElementById('gameListContainer');
+    if (!container) return;
+    
+    searchTerm = searchTerm.toLowerCase().trim();
+    
+    if (searchTerm.length < 2) {
+        // Show favorites only
+        container.innerHTML = renderFavoriteGames();
+        return;
+    }
+    
+    // Search all games
+    const matches = gameDatabase.filter(g => 
+        g.name.toLowerCase().includes(searchTerm)
+    ).slice(0, 20);
+    
+    if (matches.length === 0) {
+        container.innerHTML = '<p style="color: #888; text-align: center; padding: 1rem;">No games found</p>';
+        return;
+    }
+    
+    container.innerHTML = matches.map(game => {
+        const index = gameDatabase.findIndex(g => g.name === game.name);
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${game.favorite ? '#ffd700' : '#4a9eff'};">
+                <div style="flex: 1;">
+                    <div style="color: #fff; font-weight: 500;">${game.name}</div>
+                    <div style="color: #888; font-size: 0.8rem;">${game.provider} • €${game.defaultBet.toFixed(2)}</div>
+                </div>
+                <button onclick="toggleFavoriteGame(${index})" style="background: rgba(255, 215, 0, 0.2); border: none; color: #ffd700; padding: 0.5rem; border-radius: 6px; cursor: pointer;" title="${game.favorite ? 'Remove from favorites' : 'Add to favorites'}">
+                    ${game.favorite ? '★' : '☆'}
+                </button>
+            </div>
+        `;
+    }).join('');
 }
 
 function showAddGameModal(editIndex = null) {
@@ -1879,69 +1919,58 @@ function setupGameAutocomplete() {
     });
 }
 
-function loadStarterPack() {
-    // Show loading message
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Loading 11,000+ games...';
-    btn.disabled = true;
-    
-    // Fetch the casino games JSON
-    fetch('casino-games.json')
-        .then(response => {
-            if (!response.ok) throw new Error('Could not load games file');
-            return response.json();
-        })
-        .then(starterGames => {
-            // Count how many will be added
-            let addedCount = 0;
-            let skippedCount = 0;
-            
-            starterGames.forEach(function(game) {
-                const exists = gameDatabase.some(g => g.name.toLowerCase() === game.name.toLowerCase());
-                if (!exists) {
-                    gameDatabase.push({
-                        name: game.name,
-                        provider: game.provider,
-                        defaultBet: game.defaultBet,
-                        favorite: false,
-                        addedAt: new Date().toISOString()
-                    });
-                    addedCount++;
-                } else {
-                    skippedCount++;
-                }
-            });
-            
-            if (addedCount > 0) {
-                saveGameDatabase();
-                updateGameDatabasePage();
-            }
-            
-            alert('Casino Games loaded!\\n\\n✅ Added: ' + addedCount + ' games\\n⏭️ Skipped (already exists): ' + skippedCount + ' games\\n\\nTotal games in database: ' + gameDatabase.length);
-        })
-        .catch(error => {
-            console.error('Error loading games:', error);
-            alert('Error loading games. Make sure casino-games.json is uploaded to your repository.');
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        });
-}
-
 function saveGameDatabase() {
+    // We don't save to Firebase anymore - games come from casino-games.json
+    // Only save user's favorites
     if (!currentUser) return;
-    firebase.database().ref('users/' + currentUser.uid + '/gameDatabase').set(gameDatabase);
+    const favorites = gameDatabase.filter(g => g.favorite).map(g => g.name);
+    firebase.database().ref('users/' + currentUser.uid + '/gameFavorites').set(favorites);
 }
 
 function loadGameDatabase() {
     if (!currentUser) return;
     
-    firebase.database().ref('users/' + currentUser.uid + '/gameDatabase').once('value').then(function(snapshot) {
-        if (snapshot.exists()) {
-            gameDatabase = snapshot.val() || [];
-            console.log('📊 Game database loaded:', gameDatabase.length, 'games');
-        }
-    });
+    console.log('📊 Loading game database from casino-games.json...');
+    
+    // Always load from JSON file
+    fetch('casino-games.json')
+        .then(response => {
+            if (!response.ok) throw new Error('Could not load games file');
+            return response.json();
+        })
+        .then(games => {
+            gameDatabase = games.map(g => ({
+                name: g.name,
+                provider: g.provider,
+                defaultBet: g.defaultBet,
+                favorite: false
+            }));
+            
+            console.log('✅ Loaded', gameDatabase.length, 'games from casino-games.json');
+            
+            // Load user's favorites from Firebase
+            return firebase.database().ref('users/' + currentUser.uid + '/gameFavorites').once('value');
+        })
+        .then(snapshot => {
+            if (snapshot.exists()) {
+                const favorites = snapshot.val() || [];
+                // Mark favorites
+                favorites.forEach(favName => {
+                    const game = gameDatabase.find(g => g.name === favName);
+                    if (game) game.favorite = true;
+                });
+                console.log('⭐ Loaded', snapshot.val().length, 'favorites');
+            }
+            
+            // Update the game database page if we're on it
+            const gameDatabasePage = document.getElementById('game-databasePage');
+            if (gameDatabasePage && gameDatabasePage.classList.contains('active')) {
+                updateGameDatabasePage();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading game database:', error);
+        });
 }
 
 // ============================================================================
