@@ -3432,88 +3432,96 @@ function renderWheelPage() {
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
             <div>
                 <h1 style="color: #fff; margin: 0;">🎡 Wheel Spinner</h1>
-                <p style="color: #888; margin-top: 0.5rem;">Spin to decide! The OBS overlay syncs automatically.</p>
+                <p style="color: #888; margin-top: 0.5rem;">Add items below and click Save to sync with OBS overlay.</p>
             </div>
             <div style="display: flex; gap: 0.75rem; align-items: center;">
-                <input type="text" value="${overlayUrl}" readonly style="width: 280px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.75rem;">
-                <button onclick="copyWheelOverlayUrl()" class="btn" style="padding: 0.5rem 1rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea;">
-                    📋 Copy OBS URL
+                <button onclick="saveWheelItems()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">
+                    💾 Save to Overlay
+                </button>
+                <input type="text" value="${overlayUrl}" readonly id="obsUrlInput" style="width: 250px; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #888; font-size: 0.7rem;">
+                <button onclick="copyWheelOverlayUrl()" class="btn" style="padding: 0.5rem 0.75rem; background: rgba(102, 126, 234, 0.2); border: 1px solid #667eea; color: #667eea; font-size: 0.85rem;">
+                    📋 Copy
                 </button>
             </div>
         </div>
         
-        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;">
-            <!-- Left: Wheel (Smaller) -->
+        <div style="display: grid; grid-template-columns: 320px 1fr; gap: 1.5rem;">
+            <!-- Left: Wheel -->
             <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); display: flex; flex-direction: column; align-items: center;">
                 
                 <!-- Wheel Container -->
                 <div style="position: relative; margin-bottom: 1.5rem;">
-                    <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">▼</div>
-                    <canvas id="wheelCanvas" width="220" height="220" style="border-radius: 50%; box-shadow: 0 0 20px rgba(74, 158, 255, 0.3);"></canvas>
+                    <div style="position: absolute; top: -18px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">▼</div>
+                    <canvas id="wheelCanvas" width="260" height="260" style="border-radius: 50%; box-shadow: 0 0 25px rgba(74, 158, 255, 0.3);"></canvas>
                 </div>
                 
                 <!-- Spin Button -->
-                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 0.75rem 2rem; font-size: 1.1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                <button id="spinButton" onclick="spinWheel()" ${wheelItems.length < 2 ? 'disabled' : ''} style="padding: 1rem 2.5rem; font-size: 1.2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 50px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); transition: all 0.3s; ${wheelItems.length < 2 ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                     🎰 SPIN!
                 </button>
                 
                 <!-- Result Display -->
-                <div id="wheelResult" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(40, 40, 60, 0.6); border-radius: 12px; display: none; text-align: center;">
-                    <div style="color: #888; font-size: 0.8rem;">Winner:</div>
-                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.2rem; font-weight: bold;"></div>
+                <div id="wheelResult" style="margin-top: 1.5rem; padding: 1rem 2rem; background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 165, 0, 0.1) 100%); border-radius: 12px; border: 2px solid rgba(255, 215, 0, 0.5); display: none; text-align: center;">
+                    <div style="color: #888; font-size: 0.85rem;">🏆 Winner:</div>
+                    <div id="wheelResultText" style="color: #ffd700; font-size: 1.4rem; font-weight: bold;"></div>
                 </div>
                 
                 <!-- Items Count -->
-                <div style="margin-top: 1rem; color: #888; font-size: 0.85rem;">
+                <div style="margin-top: 1rem; color: #888; font-size: 0.9rem;">
                     ${wheelItems.length} items on wheel
                 </div>
             </div>
             
             <!-- Right: Items Management -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
                 
-                <!-- Add Single Item -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1rem;">➕ Add Single Item</h3>
+                <!-- Top Row: Add Single + Add Bulk -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                     
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="wheelItemInput" placeholder="Enter name..." style="flex: 1; padding: 0.6rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 0.9rem;">
-                        <button onclick="addWheelItem()" style="padding: 0.6rem 1rem; background: #4a9eff; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">Add</button>
+                    <!-- Add Single Item -->
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">➕ Add Single Item</h3>
+                        
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+                            <input type="text" id="wheelItemInput" placeholder="Enter name..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                            <button onclick="addWheelItem()" style="padding: 0.75rem 1.25rem; background: #4a9eff; border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; font-size: 1rem;">Add</button>
+                        </div>
+                        
+                        <button onclick="loadBonusGamesToWheel()" style="width: 100%; padding: 0.75rem; background: rgba(81, 207, 102, 0.2); border: 1px solid #51cf66; border-radius: 8px; color: #51cf66; cursor: pointer; font-size: 0.9rem; margin-bottom: 0.75rem;">
+                            🎰 Load Current Hunt Games
+                        </button>
+                        
+                        <button onclick="clearWheelItems()" style="width: 100%; padding: 0.75rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 8px; color: #ff6b6b; cursor: pointer; font-size: 0.9rem;">
+                            🗑️ Clear All Items
+                        </button>
                     </div>
                     
-                    <button onclick="loadBonusGamesToWheel()" style="width: 100%; padding: 0.6rem; background: rgba(81, 207, 102, 0.2); border: 1px solid #51cf66; border-radius: 6px; color: #51cf66; cursor: pointer; font-size: 0.85rem; margin-bottom: 0.5rem;">
-                        🎰 Load Current Hunt Games
-                    </button>
-                    
-                    <button onclick="clearWheelItems()" style="width: 100%; padding: 0.6rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 6px; color: #ff6b6b; cursor: pointer; font-size: 0.85rem;">
-                        🗑️ Clear All Items
-                    </button>
+                    <!-- Add Multiple Items -->
+                    <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
+                        <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">👥 Add Multiple (Bulk)</h3>
+                        
+                        <textarea id="bulkItemsInput" placeholder="Enter names, one per line:&#10;&#10;John&#10;Sarah&#10;Mike&#10;Emma&#10;Alex" style="width: 100%; height: 140px; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #fff; font-size: 0.95rem; resize: none; font-family: inherit;"></textarea>
+                        
+                        <button onclick="addBulkItems()" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 0.75rem; font-size: 0.95rem;">
+                            ➕ Add All Names
+                        </button>
+                    </div>
                 </div>
                 
-                <!-- Add Multiple Items -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2);">
-                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1rem;">👥 Add Multiple (Bulk)</h3>
-                    
-                    <textarea id="bulkItemsInput" placeholder="Enter names, one per line:&#10;&#10;John&#10;Sarah&#10;Mike&#10;Emma" style="width: 100%; height: 120px; padding: 0.6rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 8px; color: #fff; font-size: 0.9rem; resize: none; font-family: inherit;"></textarea>
-                    
-                    <button onclick="addBulkItems()" style="width: 100%; padding: 0.6rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 0.75rem;">
-                        ➕ Add All Names
-                    </button>
-                </div>
-                
-                <!-- Items List -->
-                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); grid-column: span 2;">
+                <!-- Items List (Full Width) -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); flex: 1; min-height: 250px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h3 style="color: #fff; margin: 0; font-size: 1rem;">📋 Items on Wheel (${wheelItems.length})</h3>
+                        <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">📋 Items on Wheel (${wheelItems.length})</h3>
+                        ${wheelItems.length > 0 ? `<span style="color: #888; font-size: 0.85rem;">Click ✕ to remove</span>` : ''}
                     </div>
                     
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; max-height: 200px; overflow-y: auto;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; max-height: 300px; overflow-y: auto; padding-right: 0.5rem;">
                         ${wheelItems.length === 0 ? 
-                            '<p style="color: #666; text-align: center; padding: 2rem; width: 100%;">No items yet. Add some items to spin!</p>' :
+                            '<p style="color: #666; text-align: center; padding: 3rem; width: 100%;">No items yet. Add names above to get started!</p>' :
                             wheelItems.map((item, index) => `
-                                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 20px; border-left: 3px solid ${wheelColors[index % wheelColors.length]};">
-                                    <span style="color: #fff; font-size: 0.85rem;">${item}</span>
-                                    <button onclick="removeWheelItem(${index})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1;">✕</button>
+                                <div style="display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 1rem; background: rgba(40, 40, 60, 0.6); border-radius: 25px; border-left: 4px solid ${wheelColors[index % wheelColors.length]};">
+                                    <span style="color: #fff; font-size: 0.95rem;">${item}</span>
+                                    <button onclick="removeWheelItem(${index})" style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1rem; padding: 0; line-height: 1; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">✕</button>
                                 </div>
                             `).join('')
                         }
@@ -3596,23 +3604,23 @@ function drawWheel() {
         ctx.rotate(startAngle + sliceAngle / 2);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 10px Arial';
+        ctx.font = 'bold 11px Arial';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 3;
         
         // Truncate long text
         let displayText = item;
-        if (displayText.length > 12) {
-            displayText = displayText.substring(0, 11) + '...';
+        if (displayText.length > 14) {
+            displayText = displayText.substring(0, 13) + '...';
         }
         
-        ctx.fillText(displayText, radius - 10, 3);
+        ctx.fillText(displayText, radius - 12, 4);
         ctx.restore();
     });
     
     // Draw center circle
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, 18, 0, 2 * Math.PI);
     ctx.fillStyle = '#1a1a2e';
     ctx.fill();
     ctx.strokeStyle = '#4a9eff';
@@ -3705,19 +3713,19 @@ function spinWheel() {
             ctx.rotate(startAngle + sliceAngleRad / 2);
             ctx.textAlign = 'right';
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 10px Arial';
+            ctx.font = 'bold 11px Arial';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
             ctx.shadowBlur = 3;
             let displayText = item;
-            if (displayText.length > 12) {
-                displayText = displayText.substring(0, 11) + '...';
+            if (displayText.length > 14) {
+                displayText = displayText.substring(0, 13) + '...';
             }
-            ctx.fillText(displayText, radius - 10, 3);
+            ctx.fillText(displayText, radius - 12, 4);
             ctx.restore();
         });
         
         ctx.beginPath();
-        ctx.arc(centerX, centerY, 15, 0, 2 * Math.PI);
+        ctx.arc(centerX, centerY, 18, 0, 2 * Math.PI);
         ctx.fillStyle = '#1a1a2e';
         ctx.fill();
         ctx.strokeStyle = '#4a9eff';
