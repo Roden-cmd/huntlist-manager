@@ -2890,8 +2890,28 @@ function showNextRoundSetup(nextRoundMatchups) {
     const roundName = getRoundName(round, activeTournament.size);
     
     const modalHTML = `
+        <style>
+            .next-round-modal-content::-webkit-scrollbar {
+                width: 8px;
+            }
+            .next-round-modal-content::-webkit-scrollbar-track {
+                background: rgba(30, 30, 50, 0.5);
+                border-radius: 4px;
+            }
+            .next-round-modal-content::-webkit-scrollbar-thumb {
+                background: linear-gradient(180deg, #4a9eff 0%, #667eea 100%);
+                border-radius: 4px;
+            }
+            .next-round-modal-content::-webkit-scrollbar-thumb:hover {
+                background: linear-gradient(180deg, #5aafff 0%, #778ffa 100%);
+            }
+            .next-round-modal-content {
+                scrollbar-width: thin;
+                scrollbar-color: #4a9eff rgba(30, 30, 50, 0.5);
+            }
+        </style>
         <div id="nextRoundModal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1001; align-items: center; justify-content: center; padding: 2rem;">
-            <div style="background: #1a1a2e; border-radius: 16px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem;">
+            <div class="next-round-modal-content" style="background: #1a1a2e; border-radius: 16px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem; border: 1px solid rgba(74, 158, 255, 0.2);">
                 <h2 style="color: #4a9eff; margin-bottom: 1rem;">🎉 Advancing to ${roundName}!</h2>
                 <p style="color: #888; margin-bottom: 2rem;">Enter game and bet amount for each player in the next round.</p>
                 
@@ -2908,7 +2928,7 @@ function showNextRoundSetup(nextRoundMatchups) {
                         </div>
                     `).join('')}
                     
-                    <button type="submit" class="btn btn-primary" style="width: 100%;">✓ Start ${roundName}</button>
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1rem;">✓ Start ${roundName}</button>
                 </form>
             </div>
         </div>
