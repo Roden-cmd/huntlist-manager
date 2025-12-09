@@ -2918,6 +2918,12 @@ function showNextRoundSetup(nextRoundMatchups) {
     modalDiv.innerHTML = modalHTML;
     document.body.appendChild(modalDiv);
     
+    // Setup autocomplete for all game inputs in the modal
+    nextRoundMatchups.forEach((matchup, mIndex) => {
+        setupNextRoundGameAutocomplete('nr_m' + mIndex + 'p1');
+        setupNextRoundGameAutocomplete('nr_m' + mIndex + 'p2');
+    });
+    
     document.getElementById('nextRoundForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -2935,6 +2941,68 @@ function showNextRoundSetup(nextRoundMatchups) {
     });
 }
 
+// Setup autocomplete for next round game inputs
+function setupNextRoundGameAutocomplete(prefix) {
+    const input = document.getElementById(prefix + 'Game');
+    const dropdown = document.getElementById(prefix + 'GameAutocomplete');
+    
+    if (!input || !dropdown) return;
+    
+    input.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        if (searchTerm.length < 2) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        // Search in game database
+        const matches = gameDatabase.filter(g => 
+            g.name.toLowerCase().includes(searchTerm)
+        ).slice(0, 8);
+        
+        if (matches.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+        
+        dropdown.innerHTML = matches.map(g => `
+            <div class="autocomplete-item" data-name="${g.name}" data-bet="${g.defaultBet}"
+                 style="padding: 0.5rem 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(74, 158, 255, 0.1);"
+                 onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'"
+                 onmouseout="this.style.background='transparent'">
+                <div style="color: #fff; font-size: 0.85rem;">${g.name}</div>
+                <div style="color: #666; font-size: 0.7rem;">${g.provider}</div>
+            </div>
+        `).join('');
+        
+        dropdown.style.display = 'block';
+        
+        // Add click handlers
+        dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const name = this.dataset.name;
+                const bet = this.dataset.bet;
+                
+                input.value = name;
+                dropdown.style.display = 'none';
+                
+                // Also fill in bet if empty
+                const betInput = document.getElementById(prefix + 'Bet');
+                if (betInput && !betInput.value) {
+                    betInput.value = bet;
+                }
+                betInput.focus();
+            });
+        });
+    });
+    
+    // Hide on blur
+    input.addEventListener('blur', function() {
+        setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+    });
+}
+
 function createNextRoundPlayerInput(player, matchIndex, playerNum) {
     const prefix = 'nr_m' + matchIndex + 'p' + playerNum;
     
@@ -2945,9 +3013,10 @@ function createNextRoundPlayerInput(player, matchIndex, playerNum) {
                 <div style="color: #fff; font-weight: bold;">${player.name}</div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                <div>
+                <div style="position: relative;">
                     <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Game *</label>
-                    <input type="text" id="${prefix}Game" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                    <input type="text" id="${prefix}Game" required autocomplete="off" placeholder="Type to search..." style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff;">
+                    <div id="${prefix}GameAutocomplete" class="game-autocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; background: #252540; border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 0 0 8px 8px; z-index: 1002;"></div>
                 </div>
                 <div>
                     <label style="display: block; color: #888; font-size: 0.9rem; margin-bottom: 0.3rem;">Bet *</label>
