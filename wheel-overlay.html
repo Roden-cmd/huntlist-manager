@@ -93,10 +93,21 @@
             animation: pulse 0.5s ease-out;
         }
 
-        .loading {
-            color: #888;
+        .debug-info {
+            color: #4a9eff;
+            font-size: 0.7rem;
+            margin-top: 10px;
             text-align: center;
-            padding: 50px;
+            max-width: 280px;
+            word-break: break-all;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
         }
     </style>
 </head>
@@ -113,6 +124,8 @@
             <div class="result-label">🏆 Winner:</div>
             <div id="resultText" class="result-text"></div>
         </div>
+        
+        <div id="debugInfo" class="debug-info">Loading...</div>
     </div>
 
     <!-- Firebase -->
@@ -120,6 +133,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <script>
+        const debugEl = document.getElementById('debugInfo');
+        
+        function log(msg, isError = false) {
+            console.log(msg);
+            debugEl.innerHTML = `<span class="${isError ? 'error' : ''}">${msg}</span>`;
+        }
+
         // Firebase config
         const firebaseConfig = {
             apiKey: "AIzaSyDGi3hhXdKfYwmkPmCTofHdlpPERap7kZU",
@@ -130,8 +150,6 @@
             appId: "1:991728013498:web:d111b2fcf5e7dc3e6a41db",
             databaseURL: "https://bonus-hunt-tracker-default-rtdb.europe-west1.firebasedatabase.app"
         };
-
-        firebase.initializeApp(firebaseConfig);
 
         let wheelItems = [];
         let isSpinning = false;
@@ -146,28 +164,48 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
+        log('User ID: ' + (userId || 'NOT FOUND'));
+
         if (!userId) {
-            document.body.innerHTML = '<div class="loading">No user ID provided. Add ?userId=YOUR_ID to URL</div>';
+            log('ERROR: No userId in URL!', true);
         } else {
-            // Listen for wheel items changes
-            firebase.database().ref('users/' + userId + '/wheelItems').on('value', (snapshot) => {
-                wheelItems = snapshot.val() || [];
-                if (!isSpinning) {
-                    drawWheel();
-                }
-            });
-            
-            // Listen for spin events
-            firebase.database().ref('users/' + userId + '/wheelSpin').on('value', (snapshot) => {
-                const spinData = snapshot.val();
-                if (spinData && spinData.spinning && !isSpinning) {
-                    // Start synced spin animation
-                    startSyncedSpin(spinData);
-                } else if (spinData && !spinData.spinning && spinData.winner) {
-                    // Show result if spin completed
-                    showResult(spinData.winner);
-                }
-            });
+            try {
+                log('Initializing Firebase...');
+                firebase.initializeApp(firebaseConfig);
+                log('Firebase initialized. Connecting to DB...');
+                
+                const db = firebase.database();
+                const itemsRef = db.ref('users/' + userId + '/wheelItems');
+                const spinRef = db.ref('users/' + userId + '/wheelSpin');
+                
+                log('Listening for data...');
+                
+                // Listen for wheel items changes
+                itemsRef.on('value', (snapshot) => {
+                    log('<span class="success">Data received!</span> Items: ' + (snapshot.val() ? snapshot.val().length : 0));
+                    wheelItems = snapshot.val() || [];
+                    if (!isSpinning) {
+                        drawWheel();
+                    }
+                }, (error) => {
+                    log('ERROR reading items: ' + error.message, true);
+                });
+                
+                // Listen for spin events
+                spinRef.on('value', (snapshot) => {
+                    const spinData = snapshot.val();
+                    if (spinData && spinData.spinning && !isSpinning) {
+                        startSyncedSpin(spinData);
+                    } else if (spinData && !spinData.spinning && spinData.winner) {
+                        showResult(spinData.winner);
+                    }
+                }, (error) => {
+                    log('ERROR reading spin: ' + error.message, true);
+                });
+                
+            } catch (e) {
+                log('INIT ERROR: ' + e.message, true);
+            }
         }
 
         function drawWheel(rotation = 0) {
@@ -261,10 +299,8 @@
             const duration = spinData.duration || 5000;
             const serverStartTime = spinData.startTime;
             
-            // Calculate how much time has passed since spin started
             const elapsed = Date.now() - serverStartTime;
             
-            // If spin already finished, just show result
             if (elapsed >= duration) {
                 isSpinning = false;
                 return;
@@ -278,7 +314,6 @@
                 const totalElapsed = elapsed + animElapsed;
                 const progress = Math.min(totalElapsed / duration, 1);
                 
-                // Easing function
                 const easeOut = 1 - Math.pow(1 - progress, 3);
                 const currentRotation = targetRotation * easeOut;
                 
@@ -300,10 +335,12 @@
             
             resultText.textContent = winner;
             resultDiv.classList.remove('show');
-            // Trigger reflow
             resultDiv.offsetHeight;
             resultDiv.classList.add('show');
         }
+        
+        // Draw empty wheel initially
+        drawWheel();
     </script>
 </body>
 </html>
