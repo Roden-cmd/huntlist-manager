@@ -338,6 +338,7 @@ function navigateTo(pageName) {
     if (pageName === 'tournaments') updateTournamentsPage();
     if (pageName === 'game-database') updateGameDatabasePage();
     if (pageName === 'wheel-spinner') updateWheelSpinnerPage();
+    if (pageName === 'bot-control') updateBotControlPage();
     if (pageName === 'settings') updateSettings();
     
     console.log('✅ Navigation complete');
@@ -3387,21 +3388,29 @@ let isSpinning = false;
 
 function updateWheelSpinnerPage() {
     const container = document.getElementById('wheelSpinnerContent');
-    if (!container) return;
+    if (!container) {
+        console.error('Wheel spinner container not found!');
+        return;
+    }
     
-    // Load saved wheel items
+    console.log('🎡 Loading wheel spinner page...');
+    
+    // Render page immediately with empty wheel
+    renderWheelPage();
+    
+    // Then load saved wheel items from Firebase
     if (currentUser) {
         firebase.database().ref('users/' + currentUser.uid + '/wheelItems').once('value').then(snapshot => {
             if (snapshot.exists()) {
                 wheelItems = snapshot.val() || [];
-                renderWheelPage();
             } else {
                 wheelItems = [];
-                renderWheelPage();
             }
+            console.log('🎡 Loaded', wheelItems.length, 'wheel items');
+            renderWheelPage();
+        }).catch(err => {
+            console.error('Error loading wheel items:', err);
         });
-    } else {
-        renderWheelPage();
     }
 }
 
@@ -3790,6 +3799,472 @@ function openWheelOverlay() {
     if (!currentUser) return;
     const url = window.location.origin + window.location.pathname.replace('index.html', '') + 'wheel-overlay.html?userId=' + currentUser.uid;
     window.open(url, '_blank', 'width=500,height=600');
+}
+
+// ============================================================================
+// BOT CONTROL & PREDICTIONS
+// ============================================================================
+
+let predictionState = {
+    status: 'inactive', // inactive, collecting, locked, results
+    entries: [],
+    result: null
+};
+
+function updateBotControlPage() {
+    const container = document.getElementById('botControlContent');
+    if (!container) return;
+    
+    // Load prediction state from Firebase
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/botControl').once('value').then(snapshot => {
+            const data = snapshot.val() || {};
+            predictionState = data.predictions || { status: 'inactive', entries: [], result: null };
+            renderBotControlPage();
+        });
+        
+        // Setup real-time listener for predictions
+        firebase.database().ref('users/' + currentUser.uid + '/botControl/predictions').on('value', snapshot => {
+            const data = snapshot.val();
+            if (data) {
+                predictionState = data;
+                updatePredictionDisplay();
+            }
+        });
+    } else {
+        renderBotControlPage();
+    }
+}
+
+function renderBotControlPage() {
+    const container = document.getElementById('botControlContent');
+    if (!container) return;
+    
+    const connectionCode = currentUser ? currentUser.uid : 'Not logged in';
+    
+    container.innerHTML = `
+        <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h1 style="color: #fff; margin: 0;">🤖 Bot Control</h1>
+                <p style="color: #888; margin-top: 0.5rem;">Control your chat bot extension and manage predictions.</p>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Left Column -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                
+                <!-- Connection Status -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">🔗 Extension Connection</h3>
+                    
+                    <div id="botConnectionStatus" style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: #666;" id="connectionDot"></div>
+                        <span style="color: #888;" id="connectionText">Checking connection...</span>
+                    </div>
+                    
+                    <div style="background: rgba(40, 40, 60, 0.3); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="color: #888; font-size: 0.85rem; margin-bottom: 0.5rem;">Your Connection Code:</div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" value="${connectionCode}" readonly style="flex: 1; padding: 0.5rem; background: rgba(20, 20, 30, 0.8); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #4a9eff; font-family: monospace; font-size: 0.8rem;">
+                            <button onclick="copyConnectionCode()" style="padding: 0.5rem 1rem; background: #4a9eff; border: none; border-radius: 6px; color: #fff; cursor: pointer;">📋</button>
+                        </div>
+                    </div>
+                    
+                    <div style="color: #666; font-size: 0.8rem;">
+                        <p style="margin: 0;">📌 To connect your extension:</p>
+                        <ol style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+                            <li>Open your chat bot extension</li>
+                            <li>Go to Settings/Huntlist tab</li>
+                            <li>Paste this code and click Connect</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <!-- Quick Chat Message -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">💬 Send Chat Message</h3>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="quickChatMessage" placeholder="Type message to send to chat..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff;">
+                        <button onclick="sendBotMessage()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">Send</button>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        <button onclick="sendQuickMessage('🎰 Bonus hunt starting soon!')" class="quick-msg-btn" style="padding: 0.4rem 0.8rem; background: rgba(74, 158, 255, 0.2); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #4a9eff; cursor: pointer; font-size: 0.8rem;">🎰 Hunt Starting</button>
+                        <button onclick="sendQuickMessage('💰 Opening bonuses now!')" class="quick-msg-btn" style="padding: 0.4rem 0.8rem; background: rgba(81, 207, 102, 0.2); border: 1px solid rgba(81, 207, 102, 0.3); border-radius: 6px; color: #51cf66; cursor: pointer; font-size: 0.8rem;">💰 Opening</button>
+                        <button onclick="sendQuickMessage('🎉 GG! Great hunt!')" class="quick-msg-btn" style="padding: 0.4rem 0.8rem; background: rgba(255, 215, 0, 0.2); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 6px; color: #ffd700; cursor: pointer; font-size: 0.8rem;">🎉 GG</button>
+                    </div>
+                </div>
+                
+                <!-- Chat Log -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); flex: 1;">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">📜 Recent Chat Activity</h3>
+                    <div id="chatLogContainer" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <p style="color: #666; text-align: center; padding: 1rem;">Chat log will appear here when connected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Predictions -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                
+                <!-- Prediction Control -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                    <h3 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.1rem;">🎯 Bonus Hunt Predictions</h3>
+                    
+                    <div id="predictionStatus" style="padding: 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 1rem; text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+                        <div style="color: #888; font-size: 1rem;" id="predictionStatusText">Predictions Inactive</div>
+                        <div style="color: #666; font-size: 0.85rem; margin-top: 0.25rem;" id="predictionCount">0 entries</div>
+                    </div>
+                    
+                    <!-- Prediction Controls -->
+                    <div id="predictionControls">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div>
+                                <label style="display: block; color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Starting Balance</label>
+                                <input type="number" id="predictionBalance" placeholder="500" value="${currentHunt?.hunt?.startingBalance || ''}" style="width: 100%; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff;">
+                            </div>
+                            <div>
+                                <label style="display: block; color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Total Bonuses</label>
+                                <input type="number" id="predictionGames" placeholder="25" value="${games?.length || ''}" style="width: 100%; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #fff;">
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button onclick="startPredictions()" id="startPredictionsBtn" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                                🎯 Start Predictions
+                            </button>
+                            <button onclick="lockPredictions()" id="lockPredictionsBtn" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); border: none; border-radius: 8px; color: #000; cursor: pointer; font-weight: bold;" disabled>
+                                🔒 Lock
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Prediction Entries -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(102, 126, 234, 0.2); flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="color: #fff; margin: 0; font-size: 1.1rem;">📋 Predictions</h3>
+                        <button onclick="addManualPrediction()" style="padding: 0.4rem 0.8rem; background: rgba(74, 158, 255, 0.2); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 6px; color: #4a9eff; cursor: pointer; font-size: 0.8rem;">+ Add Manual</button>
+                    </div>
+                    
+                    <div id="predictionEntriesList" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <p style="color: #666; text-align: center; padding: 2rem;">No predictions yet</p>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div id="predictionResultsSection" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.05) 100%); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 215, 0, 0.3); display: none;">
+                    <h3 style="color: #ffd700; margin: 0 0 1rem 0; font-size: 1.1rem;">🏆 Prediction Results</h3>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; color: #888; font-size: 0.85rem; margin-bottom: 0.3rem;">Final Total Win</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="number" id="finalTotalWin" placeholder="823.50" style="flex: 1; padding: 0.5rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 6px; color: #fff;">
+                            <button onclick="calculatePredictionWinners()" style="padding: 0.5rem 1rem; background: #ffd700; border: none; border-radius: 6px; color: #000; cursor: pointer; font-weight: bold;">Calculate Winners</button>
+                        </div>
+                    </div>
+                    
+                    <div id="predictionWinners"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Check extension connection status
+    checkExtensionConnection();
+    
+    // Load chat log
+    loadChatLog();
+    
+    // Update prediction display
+    updatePredictionDisplay();
+}
+
+function checkExtensionConnection() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl').once('value').then(snapshot => {
+        const data = snapshot.val() || {};
+        const dot = document.getElementById('connectionDot');
+        const text = document.getElementById('connectionText');
+        
+        if (data.extensionConnected && data.lastSeen) {
+            const lastSeen = Date.now() - data.lastSeen;
+            if (lastSeen < 60000) { // Within last minute
+                dot.style.background = '#51cf66';
+                text.style.color = '#51cf66';
+                text.textContent = 'Extension Connected ✓';
+            } else {
+                dot.style.background = '#ffd700';
+                text.style.color = '#ffd700';
+                text.textContent = 'Extension Inactive (last seen ' + Math.round(lastSeen / 60000) + 'm ago)';
+            }
+        } else {
+            dot.style.background = '#ff6b6b';
+            text.style.color = '#ff6b6b';
+            text.textContent = 'Extension Not Connected';
+        }
+    });
+}
+
+function copyConnectionCode() {
+    const code = currentUser ? currentUser.uid : '';
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Connection code copied!');
+    });
+}
+
+function sendBotMessage() {
+    const input = document.getElementById('quickChatMessage');
+    const text = input.value.trim();
+    
+    if (!text || !currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/sendMessage').set({
+        text: text,
+        timestamp: Date.now()
+    });
+    
+    input.value = '';
+}
+
+function sendQuickMessage(text) {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/sendMessage').set({
+        text: text,
+        timestamp: Date.now()
+    });
+}
+
+function loadChatLog() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/chatLog')
+        .orderByChild('timestamp')
+        .limitToLast(20)
+        .on('value', snapshot => {
+            const container = document.getElementById('chatLogContainer');
+            if (!container) return;
+            
+            const messages = [];
+            snapshot.forEach(child => {
+                messages.push(child.val());
+            });
+            
+            if (messages.length === 0) {
+                container.innerHTML = '<p style="color: #666; text-align: center; padding: 1rem;">No chat activity yet</p>';
+                return;
+            }
+            
+            container.innerHTML = messages.reverse().map(msg => `
+                <div style="padding: 0.5rem 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 6px;">
+                    <span style="color: #4a9eff; font-weight: bold;">${msg.username}:</span>
+                    <span style="color: #ddd;">${msg.message}</span>
+                </div>
+            `).join('');
+        });
+}
+
+function startPredictions() {
+    if (!currentUser) return;
+    
+    const balance = document.getElementById('predictionBalance').value || 0;
+    const gamesCount = document.getElementById('predictionGames').value || 0;
+    
+    predictionState = {
+        status: 'collecting',
+        huntInfo: {
+            balance: parseFloat(balance),
+            games: parseInt(gamesCount)
+        },
+        entries: [],
+        startedAt: Date.now()
+    };
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/predictions').set(predictionState);
+    
+    updatePredictionDisplay();
+}
+
+function lockPredictions() {
+    if (!currentUser) return;
+    
+    predictionState.status = 'locked';
+    predictionState.lockedAt = Date.now();
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/predictions').update({
+        status: 'locked',
+        lockedAt: Date.now()
+    });
+    
+    updatePredictionDisplay();
+}
+
+function updatePredictionDisplay() {
+    const statusText = document.getElementById('predictionStatusText');
+    const countText = document.getElementById('predictionCount');
+    const startBtn = document.getElementById('startPredictionsBtn');
+    const lockBtn = document.getElementById('lockPredictionsBtn');
+    const resultsSection = document.getElementById('predictionResultsSection');
+    const entriesList = document.getElementById('predictionEntriesList');
+    
+    if (!statusText) return;
+    
+    const entries = predictionState.entries || [];
+    const entriesArray = typeof entries === 'object' ? Object.values(entries) : entries;
+    
+    countText.textContent = entriesArray.length + ' entries';
+    
+    // Update entries list
+    if (entriesList) {
+        if (entriesArray.length === 0) {
+            entriesList.innerHTML = '<p style="color: #666; text-align: center; padding: 2rem;">No predictions yet</p>';
+        } else {
+            entriesList.innerHTML = entriesArray
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .map(entry => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: rgba(40, 40, 60, 0.5); border-radius: 6px;">
+                        <span style="color: #fff;">${entry.username}</span>
+                        <span style="color: #4a9eff; font-weight: bold;">€${entry.amount.toFixed(2)}</span>
+                    </div>
+                `).join('');
+        }
+    }
+    
+    switch (predictionState.status) {
+        case 'collecting':
+            statusText.textContent = '🟢 Collecting Predictions...';
+            statusText.style.color = '#51cf66';
+            if (startBtn) { startBtn.disabled = true; startBtn.textContent = '✓ Active'; }
+            if (lockBtn) lockBtn.disabled = false;
+            if (resultsSection) resultsSection.style.display = 'block';
+            break;
+            
+        case 'locked':
+            statusText.textContent = '🔒 Predictions Locked';
+            statusText.style.color = '#ffd700';
+            if (startBtn) { startBtn.disabled = true; startBtn.textContent = '🔒 Locked'; }
+            if (lockBtn) { lockBtn.disabled = true; lockBtn.textContent = '✓ Locked'; }
+            if (resultsSection) resultsSection.style.display = 'block';
+            break;
+            
+        case 'results':
+            statusText.textContent = '🏆 Results Announced';
+            statusText.style.color = '#ffd700';
+            if (startBtn) { startBtn.disabled = false; startBtn.textContent = '🎯 New Predictions'; }
+            if (lockBtn) { lockBtn.disabled = true; lockBtn.textContent = '🔒 Lock'; }
+            break;
+            
+        default:
+            statusText.textContent = 'Predictions Inactive';
+            statusText.style.color = '#888';
+            if (startBtn) { startBtn.disabled = false; startBtn.textContent = '🎯 Start Predictions'; }
+            if (lockBtn) { lockBtn.disabled = true; lockBtn.textContent = '🔒 Lock'; }
+            if (resultsSection) resultsSection.style.display = 'none';
+    }
+}
+
+function addManualPrediction() {
+    const username = prompt('Enter username:');
+    if (!username) return;
+    
+    const amount = prompt('Enter prediction amount (€):');
+    if (!amount || isNaN(parseFloat(amount))) return;
+    
+    if (!currentUser) return;
+    
+    const entry = {
+        username: username.trim(),
+        amount: parseFloat(amount),
+        timestamp: Date.now(),
+        manual: true
+    };
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/predictions/entries').push(entry);
+}
+
+function calculatePredictionWinners() {
+    const finalTotal = parseFloat(document.getElementById('finalTotalWin').value);
+    if (isNaN(finalTotal)) {
+        alert('Please enter the final total win amount');
+        return;
+    }
+    
+    const entries = predictionState.entries || {};
+    const entriesArray = typeof entries === 'object' ? Object.values(entries) : entries;
+    
+    if (entriesArray.length === 0) {
+        alert('No predictions to calculate');
+        return;
+    }
+    
+    // Calculate differences and sort
+    const results = entriesArray.map(entry => ({
+        ...entry,
+        diff: Math.abs(entry.amount - finalTotal)
+    })).sort((a, b) => a.diff - b.diff);
+    
+    const top3 = results.slice(0, 3);
+    
+    // Display winners
+    const winnersDiv = document.getElementById('predictionWinners');
+    winnersDiv.innerHTML = `
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <div style="color: #888; font-size: 0.9rem;">Final Total:</div>
+            <div style="color: #ffd700; font-size: 1.5rem; font-weight: bold;">€${finalTotal.toFixed(2)}</div>
+        </div>
+        
+        ${top3.map((winner, i) => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(40, 40, 60, 0.5); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : '#cd7f32'};">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.2rem;">${i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}</span>
+                    <span style="color: #fff; font-weight: bold;">${winner.username}</span>
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: #4a9eff;">€${winner.amount.toFixed(2)}</div>
+                    <div style="color: #888; font-size: 0.8rem;">off by €${winner.diff.toFixed(2)}</div>
+                </div>
+            </div>
+        `).join('')}
+        
+        <button onclick="announcePredictionWinners(${finalTotal})" style="width: 100%; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold; margin-top: 1rem;">
+            📢 Announce in Chat
+        </button>
+    `;
+    
+    // Save results
+    if (currentUser) {
+        firebase.database().ref('users/' + currentUser.uid + '/botControl/predictions').update({
+            status: 'results',
+            finalTotal: finalTotal,
+            winners: top3
+        });
+    }
+}
+
+function announcePredictionWinners(finalTotal) {
+    if (!currentUser || !predictionState.winners) return;
+    
+    const winners = predictionState.winners || [];
+    const top3 = winners.slice(0, 3);
+    
+    const announcement = `🎉🎉🎉 PREDICTION RESULTS! 🎉🎉🎉
+💰 Final Total: €${finalTotal.toFixed(2)}
+
+🥇 ${top3[0]?.username || '-'} - €${top3[0]?.amount.toFixed(2) || '-'} (off by €${top3[0]?.diff.toFixed(2) || '-'})
+🥈 ${top3[1]?.username || '-'} - €${top3[1]?.amount.toFixed(2) || '-'} (off by €${top3[1]?.diff.toFixed(2) || '-'})
+🥉 ${top3[2]?.username || '-'} - €${top3[2]?.amount.toFixed(2) || '-'} (off by €${top3[2]?.diff.toFixed(2) || '-'})
+
+GG to all who participated! 🎊`;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/botControl/sendMessage').set({
+        text: announcement,
+        timestamp: Date.now()
+    });
 }
 
 console.log('✅ Script loaded');
