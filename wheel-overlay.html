@@ -58,27 +58,64 @@
             box-shadow: 0 0 30px rgba(74, 158, 255, 0.4);
         }
 
-        .result-display {
+        .status-display {
             margin-top: 15px;
             padding: 12px 30px;
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%);
             border-radius: 12px;
-            border: 2px solid rgba(255, 215, 0, 0.6);
             text-align: center;
-            display: none;
-            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+            min-width: 200px;
         }
 
-        .result-label {
-            color: #ccc;
+        .status-display.waiting {
+            background: rgba(40, 40, 60, 0.6);
+            border: 2px solid rgba(74, 158, 255, 0.4);
+        }
+
+        .status-display.ready {
+            background: rgba(81, 207, 102, 0.2);
+            border: 2px solid rgba(81, 207, 102, 0.5);
+        }
+
+        .status-display.winner {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.2) 100%);
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+            animation: pulse 0.5s ease-out;
+        }
+
+        .status-label {
             font-size: 0.9rem;
             margin-bottom: 4px;
         }
 
-        .result-text {
+        .status-display.waiting .status-label {
+            color: #888;
+        }
+
+        .status-display.ready .status-label {
+            color: #51cf66;
+        }
+
+        .status-display.winner .status-label {
+            color: #ccc;
+        }
+
+        .status-text {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .status-display.waiting .status-text {
+            color: #4a9eff;
+        }
+
+        .status-display.ready .status-text {
+            color: #51cf66;
+        }
+
+        .status-display.winner .status-text {
             color: #ffd700;
             font-size: 1.6rem;
-            font-weight: bold;
             text-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
         }
 
@@ -86,28 +123,6 @@
             0% { transform: scale(1); }
             50% { transform: scale(1.05); }
             100% { transform: scale(1); }
-        }
-
-        .result-display.show {
-            display: block;
-            animation: pulse 0.5s ease-out;
-        }
-
-        .debug-info {
-            color: #4a9eff;
-            font-size: 0.7rem;
-            margin-top: 10px;
-            text-align: center;
-            max-width: 280px;
-            word-break: break-all;
-        }
-
-        .error {
-            color: #ff6b6b;
-        }
-
-        .success {
-            color: #51cf66;
         }
     </style>
 </head>
@@ -120,12 +135,10 @@
             <canvas id="wheelCanvas" width="300" height="300"></canvas>
         </div>
         
-        <div id="resultDisplay" class="result-display">
-            <div class="result-label">🏆 Winner:</div>
-            <div id="resultText" class="result-text"></div>
+        <div id="statusDisplay" class="status-display waiting">
+            <div class="status-label">⏳ Status</div>
+            <div id="statusText" class="status-text">Waiting for items...</div>
         </div>
-        
-        <div id="debugInfo" class="debug-info">Loading...</div>
     </div>
 
     <!-- Firebase -->
@@ -133,13 +146,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
     <script>
-        const debugEl = document.getElementById('debugInfo');
-        
-        function log(msg, isError = false) {
-            console.log(msg);
-            debugEl.innerHTML = `<span class="${isError ? 'error' : ''}">${msg}</span>`;
-        }
-
         // Firebase config - MUST MATCH YOUR MAIN APP
         const firebaseConfig = {
             apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
@@ -153,6 +159,8 @@
 
         let wheelItems = [];
         let isSpinning = false;
+        let hasWinner = false;
+        let previousItemCount = 0;
 
         const wheelColors = [
             '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
@@ -164,48 +172,65 @@
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId');
 
-        log('User ID: ' + (userId || 'NOT FOUND'));
-
         if (!userId) {
-            log('ERROR: No userId in URL!', true);
+            updateStatus('waiting', '⚠️ Error', 'No user ID in URL');
         } else {
-            try {
-                log('Initializing Firebase...');
-                firebase.initializeApp(firebaseConfig);
-                log('Firebase initialized. Connecting to DB...');
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+            
+            // Listen for wheel items changes
+            db.ref('users/' + userId + '/wheelItems').on('value', (snapshot) => {
+                const newItems = snapshot.val() || [];
+                const newCount = newItems.length;
                 
-                const db = firebase.database();
-                const itemsRef = db.ref('users/' + userId + '/wheelItems');
-                const spinRef = db.ref('users/' + userId + '/wheelSpin');
+                // Check if items were cleared or new items added (reset winner)
+                if (newCount === 0 || (newCount !== previousItemCount && hasWinner)) {
+                    hasWinner = false;
+                }
                 
-                log('Listening for data...');
+                previousItemCount = newCount;
+                wheelItems = newItems;
                 
-                // Listen for wheel items changes
-                itemsRef.on('value', (snapshot) => {
-                    log('<span class="success">Data received!</span> Items: ' + (snapshot.val() ? snapshot.val().length : 0));
-                    wheelItems = snapshot.val() || [];
-                    if (!isSpinning) {
-                        drawWheel();
+                if (!isSpinning) {
+                    drawWheel();
+                    
+                    // Update status based on state
+                    if (!hasWinner) {
+                        if (wheelItems.length === 0) {
+                            updateStatus('waiting', '⏳ Status', 'Waiting for items...');
+                        } else if (wheelItems.length === 1) {
+                            updateStatus('waiting', '⏳ Status', 'Adding more items...');
+                        } else {
+                            updateStatus('ready', '✅ Ready', wheelItems.length + ' items - Ready to spin!');
+                        }
                     }
-                }, (error) => {
-                    log('ERROR reading items: ' + error.message, true);
-                });
-                
-                // Listen for spin events
-                spinRef.on('value', (snapshot) => {
-                    const spinData = snapshot.val();
-                    if (spinData && spinData.spinning && !isSpinning) {
-                        startSyncedSpin(spinData);
-                    } else if (spinData && !spinData.spinning && spinData.winner) {
-                        showResult(spinData.winner);
-                    }
-                }, (error) => {
-                    log('ERROR reading spin: ' + error.message, true);
-                });
-                
-            } catch (e) {
-                log('INIT ERROR: ' + e.message, true);
-            }
+                }
+            });
+            
+            // Listen for spin events
+            db.ref('users/' + userId + '/wheelSpin').on('value', (snapshot) => {
+                const spinData = snapshot.val();
+                if (spinData && spinData.spinning && !isSpinning) {
+                    startSyncedSpin(spinData);
+                } else if (spinData && !spinData.spinning && spinData.winner) {
+                    showWinner(spinData.winner);
+                }
+            });
+        }
+
+        function updateStatus(type, label, text) {
+            const statusDiv = document.getElementById('statusDisplay');
+            const statusLabel = statusDiv.querySelector('.status-label');
+            const statusText = document.getElementById('statusText');
+            
+            statusDiv.className = 'status-display ' + type;
+            statusLabel.textContent = label;
+            statusText.textContent = text;
+        }
+
+        function showWinner(winner) {
+            hasWinner = true;
+            updateStatus('winner', '🏆 Winner', winner);
         }
 
         function drawWheel(rotation = 0) {
@@ -291,9 +316,9 @@
 
         function startSyncedSpin(spinData) {
             isSpinning = true;
+            hasWinner = false;
             
-            const resultDiv = document.getElementById('resultDisplay');
-            resultDiv.classList.remove('show');
+            updateStatus('waiting', '🎰 Spinning...', 'Good luck!');
             
             const targetRotation = spinData.targetRotation;
             const duration = spinData.duration || 5000;
@@ -328,19 +353,10 @@
             
             animate();
         }
-
-        function showResult(winner) {
-            const resultDiv = document.getElementById('resultDisplay');
-            const resultText = document.getElementById('resultText');
-            
-            resultText.textContent = winner;
-            resultDiv.classList.remove('show');
-            resultDiv.offsetHeight;
-            resultDiv.classList.add('show');
-        }
         
         // Draw empty wheel initially
         drawWheel();
+        updateStatus('waiting', '⏳ Status', 'Connecting...');
     </script>
 </body>
 </html>
