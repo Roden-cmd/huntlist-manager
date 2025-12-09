@@ -2036,8 +2036,8 @@ function updateSettings() {
 // TOURNAMENTS
 // ============================================================================
 
-// Random emojis for player avatars
-const playerEmojis = ['😀', '😎', '🤓', '😈', '👻', '🤖', '👾', '🦸', '🧙', '🧚', '🦹', '🥷', '👨‍🚀', '🧑‍🎤', '👩‍🎨', '🧑‍💻'];
+// Unique simple emojis for player avatars (exactly 12 for 8-player tournaments)
+const playerEmojis = ['🔥', '⚡', '💎', '🎯', '🚀', '💰', '👑', '🌟', '🎲', '💥', '🏆', '⭐'];
 
 let activeTournament = null;
 let tournamentHistory = [];
@@ -2503,7 +2503,10 @@ function setupTournamentSetupForm() {
                     <h4 style="color: #4a9eff; margin: 0 0 0.75rem 0; font-size: 0.95rem;">Player ${i + 1}</h4>
                     <div style="display: grid; gap: 0.5rem;">
                         <input type="text" id="player${i}Name" placeholder="Name" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
-                        <input type="text" id="player${i}Game" placeholder="Game" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                        <div style="position: relative;">
+                            <input type="text" id="player${i}Game" placeholder="Game (type to search)" required autocomplete="off" style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
+                            <div id="player${i}GameAutocomplete" class="game-autocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; background: #252540; border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 0 0 8px 8px; z-index: 1000;"></div>
+                        </div>
                         <input type="number" step="0.01" id="player${i}Bet" placeholder="Bet" required style="width: 100%; padding: 0.5rem; background: rgba(20, 20, 30, 0.6); border: 1px solid rgba(74, 158, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.9rem;">
                     </div>
                 </div>
@@ -2512,6 +2515,73 @@ function setupTournamentSetupForm() {
         
         html += '</div>';
         container.innerHTML = html;
+        
+        // Setup autocomplete for all game inputs
+        for (let i = 0; i < size; i++) {
+            setupTournamentGameAutocomplete(i);
+        }
+    }
+    
+    // Setup autocomplete for tournament game inputs
+    function setupTournamentGameAutocomplete(playerIndex) {
+        const input = document.getElementById('player' + playerIndex + 'Game');
+        const dropdown = document.getElementById('player' + playerIndex + 'GameAutocomplete');
+        
+        if (!input || !dropdown) return;
+        
+        input.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (searchTerm.length < 2) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            // Search in game database
+            const matches = gameDatabase.filter(g => 
+                g.name.toLowerCase().includes(searchTerm)
+            ).slice(0, 8);
+            
+            if (matches.length === 0) {
+                dropdown.style.display = 'none';
+                return;
+            }
+            
+            dropdown.innerHTML = matches.map(g => `
+                <div class="autocomplete-item" data-name="${g.name}" data-bet="${g.defaultBet}"
+                     style="padding: 0.5rem 0.75rem; cursor: pointer; border-bottom: 1px solid rgba(74, 158, 255, 0.1);"
+                     onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'"
+                     onmouseout="this.style.background='transparent'">
+                    <div style="color: #fff; font-size: 0.85rem;">${g.name}</div>
+                    <div style="color: #666; font-size: 0.7rem;">${g.provider}</div>
+                </div>
+            `).join('');
+            
+            dropdown.style.display = 'block';
+            
+            // Add click handlers
+            dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const name = this.dataset.name;
+                    const bet = this.dataset.bet;
+                    
+                    input.value = name;
+                    dropdown.style.display = 'none';
+                    
+                    // Also fill in bet if empty
+                    const betInput = document.getElementById('player' + playerIndex + 'Bet');
+                    if (betInput && !betInput.value) {
+                        betInput.value = bet;
+                    }
+                    betInput.focus();
+                });
+            });
+        });
+        
+        // Hide on blur
+        input.addEventListener('blur', function() {
+            setTimeout(() => { dropdown.style.display = 'none'; }, 150);
+        });
     }
     
     sizeSelect.addEventListener('change', generatePlayerSetupInputs);
