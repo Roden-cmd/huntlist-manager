@@ -395,6 +395,12 @@ function updateSidebarForRole() {
         adminMenuItem.style.display = currentUserRole === ROLES.ADMIN ? 'flex' : 'none';
     }
     
+    // Team - admin and streamer only (those who can manage team)
+    const teamMenuItem = document.querySelector('[data-page="team"]');
+    if (teamMenuItem) {
+        teamMenuItem.style.display = hasPermission('canManageTeam') ? 'flex' : 'none';
+    }
+    
     // Settings - admin and streamer only
     const settingsMenuItem = document.querySelector('[data-page="settings"]');
     if (settingsMenuItem) {
@@ -587,6 +593,7 @@ function navigateTo(pageName) {
     if (pageName === 'wheel-spinner') updateWheelSpinnerPage();
     if (pageName === 'bot-control') updateBotControlPage();
     if (pageName === 'settings') updateSettings();
+    if (pageName === 'team') updateTeamPage();
     if (pageName === 'admin') updateAdminPage();
     
     console.log('✅ Navigation complete');
@@ -2514,7 +2521,7 @@ function updateSettings() {
         };
     }
     
-    // Load team management
+    // Load team management (in settings - keeping for backwards compatibility)
     loadTeamManagement();
 }
 
@@ -2523,6 +2530,230 @@ function updateSettings() {
 // ============================================================================
 
 let streamerModerators = [];
+
+function updateTeamPage() {
+    const container = document.getElementById('teamPageContent');
+    if (!container) return;
+    
+    // Security check
+    if (!hasPermission('canManageTeam')) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 2rem;">You do not have permission to manage team.</div>';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+            <!-- Add Moderator -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h2 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.2rem;">➕ Add Moderator</h2>
+                
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="email" id="modEmailInputPage" placeholder="Enter moderator's email address..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                    <button onclick="addModeratorFromPage()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                        ➕ Add
+                    </button>
+                </div>
+                
+                <div style="background: rgba(74, 158, 255, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <h4 style="color: #4a9eff; margin: 0 0 0.5rem 0; font-size: 0.9rem;">💡 How it works:</h4>
+                    <ul style="color: #888; font-size: 0.85rem; margin: 0; padding-left: 1.25rem;">
+                        <li>Enter your moderator's email address</li>
+                        <li>They sign in using that email (Google account)</li>
+                        <li>They'll automatically be linked to your account</li>
+                        <li>They can then help manage your content!</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Moderator Permissions -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 165, 2, 0.2);">
+                <h2 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.2rem;">🔐 Moderator Permissions</h2>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #51cf66; font-size: 1.2rem;">✓</span>
+                        <span style="color: #fff;">Add games to bonus hunts</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #51cf66; font-size: 1.2rem;">✓</span>
+                        <span style="color: #fff;">Update game wins</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #51cf66; font-size: 1.2rem;">✓</span>
+                        <span style="color: #fff;">Manage tournaments</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #51cf66; font-size: 1.2rem;">✓</span>
+                        <span style="color: #fff;">Control wheel spinner</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-top: 1px solid rgba(255, 107, 107, 0.2); margin-top: 0.5rem; padding-top: 1rem;">
+                        <span style="color: #ff6b6b; font-size: 1.2rem;">✗</span>
+                        <span style="color: #888;">Cannot create/delete hunts</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #ff6b6b; font-size: 1.2rem;">✗</span>
+                        <span style="color: #888;">Cannot access settings</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;">
+                        <span style="color: #ff6b6b; font-size: 1.2rem;">✗</span>
+                        <span style="color: #888;">Cannot manage team</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Moderators List -->
+        <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2); margin-top: 1.5rem;">
+            <h2 style="color: #fff; margin: 0 0 1rem 0; font-size: 1.2rem;">👥 Your Moderators</h2>
+            <div id="moderatorsListPage">
+                <div style="color: #888; text-align: center; padding: 1rem;">Loading moderators...</div>
+            </div>
+        </div>
+    `;
+    
+    // Load existing moderators
+    loadModeratorsForPage();
+}
+
+function loadModeratorsForPage() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/moderators').once('value').then(function(snapshot) {
+        streamerModerators = [];
+        
+        if (snapshot.exists()) {
+            snapshot.forEach(function(child) {
+                streamerModerators.push({
+                    odId: child.key,
+                    ...child.val()
+                });
+            });
+        }
+        
+        renderModeratorsListPage();
+    });
+}
+
+function renderModeratorsListPage() {
+    const container = document.getElementById('moderatorsListPage');
+    if (!container) return;
+    
+    if (streamerModerators.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 3rem; background: rgba(40, 40, 60, 0.4); border-radius: 12px; border: 1px dashed rgba(74, 158, 255, 0.3);">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+                <div style="color: #fff; font-size: 1.1rem; margin-bottom: 0.5rem;">No moderators yet</div>
+                <div style="color: #888; font-size: 0.9rem;">Add a moderator by entering their email above</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="display: grid; gap: 0.75rem;">
+            ${streamerModerators.map(mod => `
+                <div style="display: flex; align-items: center; padding: 1rem 1.25rem; background: rgba(40, 40, 60, 0.5); border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.15);">
+                    <img src="${mod.photoURL || 'https://via.placeholder.com/45'}" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 1rem;">
+                    <div style="flex: 1;">
+                        <div style="color: #fff; font-weight: 600; font-size: 1rem;">${mod.displayName || 'Pending User'}</div>
+                        <div style="color: #888; font-size: 0.85rem;">${mod.email}</div>
+                    </div>
+                    <div style="margin-right: 1rem;">
+                        <span style="padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: bold; ${mod.uid ? 'background: rgba(81, 207, 102, 0.2); color: #51cf66; border: 1px solid rgba(81, 207, 102, 0.3);' : 'background: rgba(255, 165, 2, 0.2); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3);'}">
+                            ${mod.uid ? '✓ Active' : '⏳ Pending'}
+                        </span>
+                    </div>
+                    <div style="color: #666; font-size: 0.8rem; margin-right: 1rem;">
+                        Added ${new Date(mod.addedAt).toLocaleDateString()}
+                    </div>
+                    <button onclick="removeModeratorFromPage('${mod.odId}')" style="padding: 0.5rem 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 8px; color: #ff6b6b; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 107, 107, 0.3)'" onmouseout="this.style.background='rgba(255, 107, 107, 0.2)'">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function addModeratorFromPage() {
+    const input = document.getElementById('modEmailInputPage');
+    const email = input.value.trim().toLowerCase();
+    
+    if (!email) {
+        alert('Please enter an email address');
+        return;
+    }
+    
+    if (!email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    // Check if already added
+    if (streamerModerators.some(mod => mod.email.toLowerCase() === email)) {
+        alert('This moderator has already been added');
+        return;
+    }
+    
+    // Check if user exists in system
+    firebase.database().ref('users').orderByChild('profile/email').equalTo(email).once('value').then(function(snapshot) {
+        let modData = {
+            email: email,
+            addedAt: Date.now(),
+            addedBy: currentUser.uid
+        };
+        
+        if (snapshot.exists()) {
+            // User exists - get their info
+            snapshot.forEach(function(child) {
+                const userData = child.val();
+                modData.uid = child.key;
+                modData.displayName = userData.profile?.displayName || 'Unknown';
+                modData.photoURL = userData.profile?.photoURL || '';
+                
+                // Update the moderator's profile to link them to this streamer
+                firebase.database().ref('users/' + child.key + '/profile').update({
+                    role: ROLES.MODERATOR,
+                    streamerUid: currentUser.uid,
+                    streamerName: currentUser.displayName
+                });
+            });
+        }
+        
+        // Add to streamer's moderators list
+        firebase.database().ref('users/' + currentUser.uid + '/moderators').push(modData).then(function() {
+            input.value = '';
+            loadModeratorsForPage();
+            
+            if (modData.uid) {
+                alert('✅ Moderator added successfully! They can now help manage your content.');
+            } else {
+                alert('✅ Moderator invitation saved! Once they sign in with this email, they will be linked to your account.');
+            }
+        });
+    });
+}
+
+function removeModeratorFromPage(modId) {
+    if (!confirm('Remove this moderator? They will lose access to your content.')) return;
+    
+    // Get mod data first to update their profile
+    const mod = streamerModerators.find(m => m.odId === modId);
+    
+    if (mod && mod.uid) {
+        // Reset their role back to streamer (their own account)
+        firebase.database().ref('users/' + mod.uid + '/profile').update({
+            role: ROLES.STREAMER,
+            streamerUid: null,
+            streamerName: null
+        });
+    }
+    
+    // Remove from moderators list
+    firebase.database().ref('users/' + currentUser.uid + '/moderators/' + modId).remove().then(function() {
+        loadModeratorsForPage();
+    });
+}
 
 function loadTeamManagement() {
     const container = document.getElementById('teamManagementContent');
