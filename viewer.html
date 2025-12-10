@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer Dashboard - Hunt List Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(74, 158, 255, 0.2);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .streamer-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid #667eea;
+        }
+
+        .streamer-info h1 {
+            font-size: 1.5rem;
+            color: #fff;
+        }
+
+        .streamer-info p {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .live-badge {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            text-align: center;
+        }
+
+        .stat-card .icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .stat-card .label {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .stat-card.profit .value {
+            color: #51cf66;
+        }
+
+        .stat-card.loss .value {
+            color: #ff6b6b;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .section {
+            background: rgba(26, 26, 46, 0.95);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(74, 158, 255, 0.2);
+        }
+
+        .section h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .game-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .game-item {
+            display: grid;
+            grid-template-columns: 40px 1fr 80px 100px;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: rgba(40, 40, 60, 0.4);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .game-item.super-bonus {
+            border-left: 3px solid #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .game-number {
+            color: #666;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        .game-name {
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .game-name.super {
+            color: #ffd700;
+        }
+
+        .game-bet {
+            color: #888;
+            font-size: 0.9rem;
+            text-align: right;
+        }
+
+        .game-win {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .game-win.won {
+            color: #51cf66;
+        }
+
+        .game-win.pending {
+            color: #ffa502;
+        }
+
+        .tournament-bracket {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .match {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(40, 40, 60, 0.4);
+            border-radius: 8px;
+        }
+
+        .match .player {
+            flex: 1;
+            padding: 0.5rem;
+            background: rgba(60, 60, 80, 0.5);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .match .player.winner {
+            background: rgba(81, 207, 102, 0.2);
+            border: 1px solid #51cf66;
+        }
+
+        .match .vs {
+            color: #666;
+            font-size: 0.8rem;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .no-data .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+        }
+
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(74, 158, 255, 0.2);
+            border-top-color: #4a9eff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 16px;
+        }
+
+        .error-message .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-message h2 {
+            color: #ff6b6b;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message p {
+            color: #888;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(40, 40, 60, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(74, 158, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(74, 158, 255, 0.5);
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .game-item {
+                grid-template-columns: 30px 1fr 60px 80px;
+                gap: 0.5rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="content">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading viewer dashboard...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA4pWiG9SdHsoNv5xuMC3XRsiBfo2am1B0",
+            authDomain: "huntlist-manager.firebaseapp.com",
+            databaseURL: "https://huntlist-manager-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "huntlist-manager",
+            storageBucket: "huntlist-manager.firebasestorage.app",
+            messagingSenderId: "380684782952",
+            appId: "1:380684782952:web:814627bb865c3aff33dadd"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Get streamer ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const streamerId = urlParams.get('userId') || urlParams.get('streamer');
+
+        if (!streamerId) {
+            showError('No Streamer ID', 'Please provide a streamer ID in the URL. Example: viewer.html?userId=xxx');
+        } else {
+            // Track page view
+            trackPageView(streamerId);
+            loadStreamerData(streamerId);
+        }
+
+        function trackPageView(uid) {
+            // Increment page view counter
+            const viewRef = db.ref('users/' + uid + '/analytics/pageViews');
+            viewRef.transaction(function(currentViews) {
+                return (currentViews || 0) + 1;
+            });
+            
+            // Also track unique daily views
+            const today = new Date().toISOString().split('T')[0];
+            const dailyRef = db.ref('users/' + uid + '/analytics/dailyViews/' + today);
+            dailyRef.transaction(function(currentViews) {
+                return (currentViews || 0) + 1;
+            });
+        }
+
+        function showError(title, message) {
+            document.getElementById('content').innerHTML = `
+                <div class="error-message">
+                    <div class="icon">❌</div>
+                    <h2>${title}</h2>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function loadStreamerData(uid) {
+            // Load streamer profile
+            db.ref('users/' + uid + '/profile').once('value').then(function(profileSnap) {
+                if (!profileSnap.exists()) {
+                    showError('Streamer Not Found', 'This streamer does not exist or has not set up their account.');
+                    return;
+                }
+
+                const profile = profileSnap.val();
+                
+                // Load active hunt
+                db.ref('users/' + uid + '/activeHunt').on('value', function(huntSnap) {
+                    const huntData = huntSnap.val();
+                    
+                    // Load active tournament
+                    db.ref('users/' + uid + '/activeTournament').once('value').then(function(tournamentSnap) {
+                        const tournamentData = tournamentSnap.val();
+                        
+                        renderDashboard(profile, huntData, tournamentData);
+                    });
+                });
+            }).catch(function(error) {
+                console.error('Error loading data:', error);
+                showError('Error Loading Data', 'Could not load streamer data. Please try again later.');
+            });
+        }
+
+        function renderDashboard(profile, huntData, tournamentData) {
+            const hunt = huntData?.hunt;
+            const games = huntData?.games || [];
+            
+            // Calculate stats
+            const totalBet = games.reduce((sum, g) => sum + (g.bet || 0), 0);
+            const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
+            const profit = totalWin - (hunt?.startingBalance || 0);
+            const gamesPlayed = games.filter(g => g.win !== null && g.win !== undefined).length;
+            const gamesPending = games.length - gamesPlayed;
+            
+            // Find best multiplier
+            let bestMult = 0;
+            let bestGame = '';
+            games.forEach(g => {
+                if (g.win && g.bet) {
+                    const mult = g.win / g.bet;
+                    if (mult > bestMult) {
+                        bestMult = mult;
+                        bestGame = g.name;
+                    }
+                }
+            });
+
+            const hasActiveHunt = hunt && !hunt.isFinished;
+            const hasActiveTournament = tournamentData && !tournamentData.isFinished;
+
+            document.getElementById('content').innerHTML = `
+                <div class="header">
+                    <div class="header-left">
+                        <img src="${profile.photoURL || 'https://via.placeholder.com/60'}" class="streamer-photo" alt="Streamer">
+                        <div class="streamer-info">
+                            <h1>${profile.displayName || 'Streamer'}</h1>
+                            <p>Viewer Dashboard</p>
+                        </div>
+                    </div>
+                    ${hasActiveHunt ? '<div class="live-badge">🔴 HUNT LIVE</div>' : ''}
+                </div>
+
+                ${hasActiveHunt ? `
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="icon">🎰</div>
+                            <div class="value">${games.length}</div>
+                            <div class="label">Total Games</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="icon">💰</div>
+                            <div class="value">${hunt.currency || '€'}${(hunt.startingBalance || 0).toFixed(2)}</div>
+                            <div class="label">Starting Balance</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="icon">🏆</div>
+                            <div class="value">${hunt.currency || '€'}${totalWin.toFixed(2)}</div>
+                            <div class="label">Total Won</div>
+                        </div>
+                        <div class="stat-card ${profit >= 0 ? 'profit' : 'loss'}">
+                            <div class="icon">${profit >= 0 ? '📈' : '📉'}</div>
+                            <div class="value">${profit >= 0 ? '+' : ''}${hunt.currency || '€'}${profit.toFixed(2)}</div>
+                            <div class="label">Current Profit</div>
+                        </div>
+                    </div>
+
+                    <div class="main-content">
+                        <div class="section">
+                            <h2>🎰 ${hunt.name || 'Bonus Hunt'}</h2>
+                            <div class="game-list">
+                                ${games.length === 0 ? `
+                                    <div class="no-data">
+                                        <div class="icon">🎮</div>
+                                        <p>No games added yet</p>
+                                    </div>
+                                ` : games.map((game, index) => `
+                                    <div class="game-item ${game.superBonus ? 'super-bonus' : ''}">
+                                        <span class="game-number">${index + 1}.</span>
+                                        <span class="game-name ${game.superBonus ? 'super' : ''}">${game.superBonus ? '⭐ ' : ''}${game.name}</span>
+                                        <span class="game-bet">${hunt.currency || '€'}${game.bet.toFixed(2)}</span>
+                                        <span class="game-win ${game.win !== null && game.win !== undefined ? 'won' : 'pending'}">
+                                            ${game.win !== null && game.win !== undefined ? (hunt.currency || '€') + game.win.toFixed(2) : 'Pending'}
+                                        </span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="section">
+                            <h2>📊 Hunt Stats</h2>
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px;">
+                                    <span style="color: #888;">Games Opened</span>
+                                    <span style="color: #fff; font-weight: bold;">${gamesPlayed} / ${games.length}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px;">
+                                    <span style="color: #888;">Avg Bet</span>
+                                    <span style="color: #fff; font-weight: bold;">${hunt.currency || '€'}${games.length > 0 ? (totalBet / games.length).toFixed(2) : '0.00'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px;">
+                                    <span style="color: #888;">Required for Profit</span>
+                                    <span style="color: ${totalWin >= (hunt.startingBalance || 0) ? '#51cf66' : '#ffa502'}; font-weight: bold;">
+                                        ${hunt.currency || '€'}${Math.max(0, (hunt.startingBalance || 0) - totalWin).toFixed(2)}
+                                    </span>
+                                </div>
+                                ${bestMult > 0 ? `
+                                    <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border: 1px solid rgba(255, 215, 0, 0.3);">
+                                        <span style="color: #ffd700;">🏆 Best Multi</span>
+                                        <span style="color: #ffd700; font-weight: bold;">${bestMult.toFixed(2)}x</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${hasActiveTournament ? `
+                                <h2 style="margin-top: 1.5rem;">🏆 Active Tournament</h2>
+                                <div style="padding: 1rem; background: rgba(102, 126, 234, 0.1); border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.3); text-align: center;">
+                                    <div style="color: #667eea; font-weight: bold; font-size: 1.1rem;">${tournamentData.name || 'Tournament'}</div>
+                                    <div style="color: #888; font-size: 0.85rem; margin-top: 0.25rem;">${tournamentData.players?.length || 0} players</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                ` : `
+                    <div class="no-data" style="background: rgba(26, 26, 46, 0.95); padding: 3rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                        <div class="icon">😴</div>
+                        <h2 style="color: #fff; margin-bottom: 0.5rem;">No Active Hunt</h2>
+                        <p style="color: #888;">This streamer doesn't have an active bonus hunt right now.</p>
+                        <p style="color: #666; font-size: 0.85rem; margin-top: 1rem;">Check back later or watch the stream!</p>
+                    </div>
+                `}
+
+                <div style="text-align: center; margin-top: 2rem; color: #666; font-size: 0.85rem;">
+                    <p>Powered by Hunt List Manager</p>
+                    <p style="margin-top: 0.25rem;">Data updates in real-time</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

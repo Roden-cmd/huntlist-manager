@@ -15,8 +15,7 @@ let gameDatabase = [];
 const ROLES = {
     ADMIN: 'admin',
     STREAMER: 'streamer',
-    MODERATOR: 'moderator',
-    VIEWER: 'viewer'
+    MODERATOR: 'moderator'
 };
 
 // Role permissions
@@ -31,7 +30,8 @@ const PERMISSIONS = {
         canAccessSettings: true,
         canManageTeam: true,
         canViewAllUsers: true,
-        canViewLogs: true
+        canViewLogs: true,
+        canViewPublicDashboard: true
     },
     streamer: {
         canCreateHunt: true,
@@ -43,7 +43,8 @@ const PERMISSIONS = {
         canAccessSettings: true,
         canManageTeam: true,
         canViewAllUsers: false,
-        canViewLogs: false
+        canViewLogs: false,
+        canViewPublicDashboard: true
     },
     moderator: {
         canCreateHunt: false,
@@ -55,19 +56,8 @@ const PERMISSIONS = {
         canAccessSettings: false,
         canManageTeam: false,
         canViewAllUsers: false,
-        canViewLogs: false
-    },
-    viewer: {
-        canCreateHunt: false,
-        canEditHunt: false,
-        canDeleteHunt: false,
-        canAddGame: false,
-        canEditGame: false,
-        canDeleteGame: false,
-        canAccessSettings: false,
-        canManageTeam: false,
-        canViewAllUsers: false,
-        canViewLogs: false
+        canViewLogs: false,
+        canViewPublicDashboard: true
     }
 };
 
@@ -407,10 +397,10 @@ function updateSidebarForRole() {
         settingsMenuItem.style.display = hasPermission('canAccessSettings') ? 'flex' : 'none';
     }
     
-    // Game Database - everyone except viewer
+    // Game Database - everyone can see
     const gameDbMenuItem = document.querySelector('[data-page="game-database"]');
     if (gameDbMenuItem) {
-        gameDbMenuItem.style.display = currentUserRole !== ROLES.VIEWER ? 'flex' : 'none';
+        gameDbMenuItem.style.display = 'flex';
     }
     
     // Update role badge in sidebar
@@ -436,8 +426,7 @@ function updateRoleBadge() {
         const roleColors = {
             admin: { bg: '#ff4757', text: '#fff', label: 'ADMIN' },
             streamer: { bg: '#667eea', text: '#fff', label: 'STREAMER' },
-            moderator: { bg: '#ffa502', text: '#000', label: 'MOD' },
-            viewer: { bg: '#747d8c', text: '#fff', label: 'VIEWER' }
+            moderator: { bg: '#ffa502', text: '#000', label: 'MOD' }
         };
         
         const roleStyle = roleColors[currentUserRole] || roleColors.viewer;
@@ -608,6 +597,34 @@ function updateDashboard() {
     
     const container = document.getElementById('dashboardContent');
     if (!container) return;
+    
+    // Load page view analytics for streamers (not mods)
+    let pageViews = 0;
+    let todayViews = 0;
+    const dataUserId = getDataUserId();
+    
+    if (currentUserRole !== ROLES.MODERATOR) {
+        firebase.database().ref('users/' + dataUserId + '/analytics').once('value').then(function(snap) {
+            if (snap.exists()) {
+                const analytics = snap.val();
+                pageViews = analytics.pageViews || 0;
+                const today = new Date().toISOString().split('T')[0];
+                todayViews = analytics.dailyViews?.[today] || 0;
+                
+                // Update the page views display
+                const viewsElement = document.getElementById('dashboardPageViews');
+                if (viewsElement) {
+                    viewsElement.innerHTML = `
+                        <span style="font-size: 1.3rem;">👁️</span>
+                        <div>
+                            <div style="color: #888; font-size: 0.75rem;">Page Views</div>
+                            <div style="color: #4a9eff; font-weight: bold;">${pageViews.toLocaleString()} <span style="font-size: 0.75rem; color: #888;">(${todayViews} today)</span></div>
+                        </div>
+                    `;
+                }
+            }
+        });
+    }
     
     // Show moderator banner if applicable
     let modBanner = '';
@@ -919,6 +936,27 @@ function updateDashboard() {
             </div>
         </div>
         
+        <!-- Page Views Banner (Streamers Only) -->
+        ${currentUserRole !== ROLES.MODERATOR ? `
+        <div style="background: linear-gradient(135deg, rgba(74, 158, 255, 0.15) 0%, rgba(102, 126, 234, 0.1) 100%); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.3); margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div id="dashboardPageViews" style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.3rem;">👁️</span>
+                    <div>
+                        <div style="color: #888; font-size: 0.75rem;">Page Views</div>
+                        <div style="color: #4a9eff; font-weight: bold;">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <span style="color: #888; font-size: 0.85rem;">Share your viewer dashboard with your audience!</span>
+                <button onclick="copyViewerDashboardUrl()" style="padding: 0.5rem 1rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 8px; color: #4a9eff; cursor: pointer; font-size: 0.85rem;">
+                    📋 Copy Link
+                </button>
+            </div>
+        </div>
+        ` : ''}
+        
         <!-- Charts Row -->
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <!-- Profit Chart -->
@@ -1075,6 +1113,32 @@ function updateDashboard() {
     
     // Populate recent hunts list
     updateRecentHunts();
+}
+
+function copyViewerDashboardUrl() {
+    if (!currentUser) return;
+    
+    const viewerUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'viewer.html?userId=' + currentUser.uid;
+    
+    navigator.clipboard.writeText(viewerUrl).then(function() {
+        // Show temporary success
+        const btn = event.target;
+        const oldText = btn.innerHTML;
+        btn.innerHTML = '✓ Copied!';
+        btn.style.background = 'rgba(81, 207, 102, 0.3)';
+        btn.style.borderColor = '#51cf66';
+        btn.style.color = '#51cf66';
+        
+        setTimeout(function() {
+            btn.innerHTML = oldText;
+            btn.style.background = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }, 2000);
+    }).catch(function() {
+        // Fallback
+        prompt('Copy this URL:', viewerUrl);
+    });
 }
 
 function updateRecentHunts() {
@@ -2470,6 +2534,7 @@ function loadGameDatabase() {
 function updateSettings() {
     const huntInput = document.getElementById('obsLinkInput');
     const tournamentInput = document.getElementById('tournamentLinkInput');
+    const viewerInput = document.getElementById('viewerDashboardInput');
     
     if (!currentUser) return;
     
@@ -2483,6 +2548,12 @@ function updateSettings() {
     if (tournamentInput) {
         const tournamentUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'tournament-overlay.html?userId=' + currentUser.uid;
         tournamentInput.value = tournamentUrl;
+    }
+    
+    // Viewer dashboard
+    if (viewerInput) {
+        const viewerUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'viewer.html?userId=' + currentUser.uid;
+        viewerInput.value = viewerUrl;
     }
     
     // Copy hunt overlay button
@@ -2517,6 +2588,24 @@ function updateSettings() {
             setTimeout(function() {
                 tournamentBtn.textContent = oldText;
                 tournamentBtn.style.background = '';
+            }, 2000);
+        };
+    }
+    
+    // Copy viewer dashboard button
+    const viewerBtn = document.getElementById('copyViewerLink');
+    if (viewerBtn && viewerInput) {
+        viewerBtn.onclick = function() {
+            viewerInput.select();
+            document.execCommand('copy');
+            
+            const oldText = viewerBtn.textContent;
+            viewerBtn.textContent = '✓ Copied!';
+            viewerBtn.style.background = '#28a745';
+            
+            setTimeout(function() {
+                viewerBtn.textContent = oldText;
+                viewerBtn.style.background = '';
             }, 2000);
         };
     }
@@ -5657,9 +5746,9 @@ function updateAdminPage() {
                 <div style="color: #888; font-size: 0.9rem;">Moderators</div>
                 <div id="adminTotalMods" style="color: #ffa502; font-size: 2rem; font-weight: bold;">-</div>
             </div>
-            <div style="background: linear-gradient(135deg, rgba(116, 125, 140, 0.2) 0%, rgba(87, 96, 111, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(116, 125, 140, 0.3);">
-                <div style="color: #888; font-size: 0.9rem;">Viewers</div>
-                <div id="adminTotalViewers" style="color: #747d8c; font-size: 2rem; font-weight: bold;">-</div>
+            <div style="background: linear-gradient(135deg, rgba(74, 158, 255, 0.2) 0%, rgba(59, 130, 246, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.3);">
+                <div style="color: #888; font-size: 0.9rem;">👁️ Total Page Views</div>
+                <div id="adminTotalViews" style="color: #4a9eff; font-size: 2rem; font-weight: bold;">-</div>
             </div>
         </div>
         
@@ -5702,7 +5791,7 @@ function loadAdminData() {
     // Load all users
     firebase.database().ref('users').once('value').then(function(snapshot) {
         allUsers = [];
-        let streamers = 0, mods = 0, viewers = 0;
+        let streamers = 0, mods = 0, totalViews = 0;
         
         // First pass - collect all users and their moderators
         const userModsMap = {}; // uid -> moderators array
@@ -5717,6 +5806,10 @@ function loadAdminData() {
             // Count moderators for this user
             const modCount = userData.moderators ? Object.keys(userData.moderators).length : 0;
             
+            // Count page views
+            const pageViews = userData.analytics?.pageViews || 0;
+            totalViews += pageViews;
+            
             const user = {
                 uid: child.key,
                 displayName: profile.displayName || 'Unknown',
@@ -5726,14 +5819,14 @@ function loadAdminData() {
                 lastLogin: profile.lastLogin || null,
                 streamerUid: profile.streamerUid || null,
                 streamerName: profile.streamerName || null,
-                modCount: modCount
+                modCount: modCount,
+                pageViews: pageViews
             };
             
             allUsers.push(user);
             
-            if (user.role === 'streamer') streamers++;
+            if (user.role === 'streamer' || user.role === 'admin') streamers++;
             else if (user.role === 'moderator') mods++;
-            else if (user.role === 'viewer') viewers++;
         });
         
         // Second pass - resolve streamer names for moderators
@@ -5765,7 +5858,7 @@ function loadAdminData() {
             document.getElementById('adminTotalUsers').textContent = allUsers.length;
             document.getElementById('adminTotalStreamers').textContent = streamers;
             document.getElementById('adminTotalMods').textContent = mods;
-            document.getElementById('adminTotalViewers').textContent = viewers;
+            document.getElementById('adminTotalViews').textContent = totalViews.toLocaleString();
             
             // Render users table
             renderAdminUsersTable();
@@ -5795,8 +5888,7 @@ function renderAdminUsersTable() {
     const roleColors = {
         admin: '#ff4757',
         streamer: '#667eea',
-        moderator: '#ffa502',
-        viewer: '#747d8c'
+        moderator: '#ffa502'
     };
     
     container.innerHTML = filteredUsers.map(user => `
@@ -5807,15 +5899,15 @@ function renderAdminUsersTable() {
                 <div style="color: #888; font-size: 0.8rem;">${user.email}</div>
                 ${user.modCount > 0 ? `<div style="color: #ffa502; font-size: 0.75rem;">👥 ${user.modCount} moderator${user.modCount > 1 ? 's' : ''}</div>` : ''}
                 ${user.streamerName ? `<div style="color: #667eea; font-size: 0.75rem;">📺 Works for: ${user.streamerName}</div>` : ''}
+                ${user.pageViews > 0 ? `<div style="color: #4a9eff; font-size: 0.75rem;">👁️ ${user.pageViews.toLocaleString()} page views</div>` : ''}
             </div>
-            <span style="padding: 0.25rem 0.5rem; background: ${roleColors[user.role] || roleColors.viewer}; color: #fff; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+            <span style="padding: 0.25rem 0.5rem; background: ${roleColors[user.role] || '#667eea'}; color: #fff; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
                 ${user.role.toUpperCase()}
             </span>
             <select onchange="changeUserRole('${user.uid}', this.value)" style="padding: 0.4rem; background: rgba(40, 40, 60, 0.8); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 4px; color: #fff; cursor: pointer;">
                 <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
                 <option value="streamer" ${user.role === 'streamer' ? 'selected' : ''}>Streamer</option>
                 <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
-                <option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>Viewer</option>
             </select>
             ${user.modCount > 0 ? `
                 <button onclick="viewStreamerMods('${user.uid}')" style="padding: 0.4rem 0.8rem; background: rgba(255, 165, 2, 0.2); border: 1px solid #ffa502; border-radius: 4px; color: #ffa502; cursor: pointer;">
