@@ -134,12 +134,15 @@
             color: #fff;
             overflow: hidden;
             position: relative;
+            mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+            -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
         }
 
         .game-name-text {
             display: inline-block;
             white-space: nowrap;
             will-change: transform;
+            padding-right: 30px;
         }
 
         .game-name-text.scrolling {
@@ -498,14 +501,13 @@
                     
                     // Check if name is too long (more than 16 characters) and add scrolling
                     if (displayName.length > 16) {
-                        // For super bonus: just use spacing (star is already in displayName)
-                        // For normal: use diamond separator
-                        const separator = game.superBonus ? '                ' : '        ◆        ';
-                        // Exactly 2 copies for perfect -50% loop
-                        gameNameText.textContent = displayName + separator + displayName + separator;
+                        // Create seamless infinite scroll with proper spacing
+                        const spacer = '     •     ';
+                        // Two copies for perfect -50% loop
+                        gameNameText.textContent = displayName + spacer + displayName + spacer;
                         gameNameText.classList.add('scrolling');
-                        // Set animation duration based on text length (longer text = longer duration)
-                        const duration = Math.max(displayName.length * 0.3, 5);
+                        // Set animation duration based on text length (longer text = slower scroll for readability)
+                        const duration = Math.max(displayName.length * 0.4, 6);
                         gameNameText.style.animationDuration = duration + 's';
                     } else {
                         gameNameText.textContent = displayName;
