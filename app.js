@@ -319,13 +319,68 @@ function checkUserRole(user) {
                         resolve();
                     }
                 } else {
-                    // New user, default to streamer
-                    currentUserRole = ROLES.STREAMER;
-                    currentStreamerUid = user.uid;
-                    console.log('🆕 New user, defaulting to STREAMER');
-                    resolve();
+                    // New user - check if they have a pending moderator invitation
+                    checkPendingModeratorInvite(user).then(function(hasPendingInvite) {
+                        if (!hasPendingInvite) {
+                            // No invite, default to streamer
+                            currentUserRole = ROLES.STREAMER;
+                            currentStreamerUid = user.uid;
+                            console.log('🆕 New user, defaulting to STREAMER');
+                        }
+                        resolve();
+                    });
                 }
             });
+        });
+    });
+}
+
+// Check if new user has pending moderator invite
+function checkPendingModeratorInvite(user) {
+    return new Promise(function(resolve) {
+        const userEmail = user.email.toLowerCase();
+        
+        // Search all users for pending moderator invites with this email
+        firebase.database().ref('users').once('value').then(function(snapshot) {
+            let foundInvite = false;
+            
+            snapshot.forEach(function(streamerSnap) {
+                const streamerUid = streamerSnap.key;
+                const streamerData = streamerSnap.val();
+                
+                if (streamerData.moderators) {
+                    Object.keys(streamerData.moderators).forEach(function(modKey) {
+                        const mod = streamerData.moderators[modKey];
+                        
+                        // Found pending invite for this email
+                        if (mod.email.toLowerCase() === userEmail && !mod.uid) {
+                            foundInvite = true;
+                            console.log('🎉 Found pending moderator invite from streamer:', streamerUid);
+                            
+                            // Update the moderator entry with user info
+                            firebase.database().ref('users/' + streamerUid + '/moderators/' + modKey).update({
+                                uid: user.uid,
+                                displayName: user.displayName,
+                                photoURL: user.photoURL
+                            });
+                            
+                            // Set user's role as moderator
+                            firebase.database().ref('users/' + user.uid + '/profile').update({
+                                role: ROLES.MODERATOR,
+                                streamerUid: streamerUid,
+                                streamerName: streamerData.profile?.displayName || 'Unknown Streamer'
+                            });
+                            
+                            currentUserRole = ROLES.MODERATOR;
+                            currentStreamerUid = streamerUid;
+                            
+                            console.log('✅ User linked as moderator to streamer:', streamerUid);
+                        }
+                    });
+                }
+            });
+            
+            resolve(foundInvite);
         });
     });
 }
@@ -405,10 +460,13 @@ function onUserSignedOut() {
 function loadUserData() {
     if (!currentUser) return;
     
-    const userId = currentUser.uid;
+    // For moderators, load the streamer's data instead of their own
+    const dataUserId = (currentUserRole === ROLES.MODERATOR && currentStreamerUid) ? currentStreamerUid : currentUser.uid;
+    
+    console.log('📂 Loading data for user:', dataUserId, currentUserRole === ROLES.MODERATOR ? '(as moderator)' : '');
     
     // Load active hunt
-    firebase.database().ref('users/' + userId + '/activeHunt').once('value').then(function(snap) {
+    firebase.database().ref('users/' + dataUserId + '/activeHunt').once('value').then(function(snap) {
         if (snap.exists()) {
             const data = snap.val();
             currentHunt = data.hunt;
@@ -418,7 +476,7 @@ function loadUserData() {
     });
     
     // Load history
-    firebase.database().ref('users/' + userId + '/huntHistory').once('value').then(function(snap) {
+    firebase.database().ref('users/' + dataUserId + '/huntHistory').once('value').then(function(snap) {
         if (snap.exists()) {
             huntHistory = [];
             snap.forEach(function(child) {
@@ -439,7 +497,7 @@ function loadUserData() {
     loadGameDatabase();
     
     // Listen to changes
-    firebase.database().ref('users/' + userId + '/activeHunt').on('value', function(snap) {
+    firebase.database().ref('users/' + dataUserId + '/activeHunt').on('value', function(snap) {
         if (snap.exists()) {
             const data = snap.val();
             currentHunt = data.hunt;
@@ -456,7 +514,7 @@ function loadUserData() {
         }
     });
     
-    firebase.database().ref('users/' + userId + '/huntHistory').on('value', function(snap) {
+    firebase.database().ref('users/' + dataUserId + '/huntHistory').on('value', function(snap) {
         huntHistory = [];
         if (snap.exists()) {
             snap.forEach(function(child) {
@@ -480,6 +538,11 @@ function loadUserData() {
             updateBonusHuntsPage();
         }
     });
+}
+
+// Get the user ID to use for data operations (streamer's ID for mods)
+function getDataUserId() {
+    return (currentUserRole === ROLES.MODERATOR && currentStreamerUid) ? currentStreamerUid : currentUser.uid;
 }
 
 // ============================================================================
@@ -538,6 +601,37 @@ function updateDashboard() {
     
     const container = document.getElementById('dashboardContent');
     if (!container) return;
+    
+    // Show moderator banner if applicable
+    let modBanner = '';
+    if (currentUserRole === ROLES.MODERATOR && currentStreamerUid) {
+        firebase.database().ref('users/' + currentStreamerUid + '/profile/displayName').once('value').then(function(snap) {
+            const streamerName = snap.val() || 'your streamer';
+            const banner = document.getElementById('modBanner');
+            if (banner) {
+                banner.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 1.5rem;">🔧</span>
+                        <div>
+                            <div style="font-weight: bold; color: #fff;">Moderator Mode</div>
+                            <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">Managing content for <strong>${streamerName}</strong></div>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        modBanner = `
+            <div id="modBanner" style="background: linear-gradient(135deg, rgba(255, 165, 2, 0.3) 0%, rgba(255, 146, 43, 0.2) 100%); padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 165, 2, 0.5); margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span style="font-size: 1.5rem;">🔧</span>
+                    <div>
+                        <div style="font-weight: bold; color: #fff;">Moderator Mode</div>
+                        <div style="font-size: 0.85rem; color: rgba(255,255,255,0.8);">Loading streamer info...</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
     
     // Calculate bonus hunt stats
     const totalHunts = huntHistory.length;
@@ -727,6 +821,7 @@ function updateDashboard() {
     });
     
     container.innerHTML = `
+        ${modBanner}
         <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <div>
                 <h1 style="color: #fff; margin: 0;">Dashboard</h1>
@@ -1486,7 +1581,9 @@ function setupHuntFormListener() {
 function saveActiveHunt() {
     if (!currentUser || !currentHunt) return;
     
-    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set({
+    const userId = getDataUserId();
+    
+    firebase.database().ref('users/' + userId + '/activeHunt').set({
         hunt: currentHunt,
         games: games,
         updatedAt: new Date().toISOString()
@@ -1501,8 +1598,8 @@ function createHuntManagementView() {
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - currentHunt.startingBalance;
     
-    // Get the correct OBS URL
-    const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay.html?userId=' + currentUser.uid;
+    // Get the correct OBS URL (use streamer's ID for mods)
+    const obsUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '') + '/overlay.html?userId=' + getDataUserId();
     
     return `
         <div style="display: grid; grid-template-columns: 1fr 500px; gap: 2rem; padding: 1rem 2rem; min-height: 600px;">
@@ -1815,8 +1912,10 @@ function setupHuntManagementListeners() {
 function clearActiveHunt() {
     if (!currentUser) return;
     
+    const userId = getDataUserId();
+    
     // Clear from Firebase
-    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').remove()
+    firebase.database().ref('users/' + userId + '/activeHunt').remove()
         .then(function() {
             console.log('✅ Active hunt cleared from Firebase');
         })
@@ -1834,6 +1933,7 @@ function clearActiveHunt() {
 function finishHunt() {
     if (!currentUser || !currentHunt) return;
     
+    const userId = getDataUserId();
     const totalWin = games.reduce((sum, g) => sum + (g.win || 0), 0);
     const profit = totalWin - currentHunt.startingBalance;
     
@@ -1851,12 +1951,12 @@ function finishHunt() {
     
     console.log('💾 Saving finished hunt to Firebase:', huntData.hunt.name);
     
-    firebase.database().ref('users/' + currentUser.uid + '/activeHunt').set(huntData)
+    firebase.database().ref('users/' + userId + '/activeHunt').set(huntData)
     .then(function() {
         console.log('✅ Active hunt updated with isFinished flag');
         
         // Save to history immediately (active hunt stays in Firebase for OBS)
-        return firebase.database().ref('users/' + currentUser.uid + '/huntHistory').push({
+        return firebase.database().ref('users/' + userId + '/huntHistory').push({
             hunt: currentHunt,
             games: games,
             savedAt: new Date().toISOString(),
@@ -1872,7 +1972,7 @@ function finishHunt() {
         games = [];
         
         // Clear from Firebase
-        return firebase.database().ref('users/' + currentUser.uid + '/activeHunt').remove();
+        return firebase.database().ref('users/' + userId + '/activeHunt').remove();
     })
     .then(function() {
         console.log('✅ Active hunt cleared');
@@ -2413,6 +2513,187 @@ function updateSettings() {
             }, 2000);
         };
     }
+    
+    // Load team management
+    loadTeamManagement();
+}
+
+// ============================================================================
+// TEAM MANAGEMENT
+// ============================================================================
+
+let streamerModerators = [];
+
+function loadTeamManagement() {
+    const container = document.getElementById('teamManagementContent');
+    if (!container) return;
+    
+    // Only show for streamers and admins
+    const section = document.getElementById('teamManagementSection');
+    if (section) {
+        section.style.display = hasPermission('canManageTeam') ? 'block' : 'none';
+    }
+    
+    if (!hasPermission('canManageTeam')) return;
+    
+    container.innerHTML = `
+        <div style="margin-bottom: 1.5rem;">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="email" id="modEmailInput" placeholder="Enter moderator's email address..." style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                <button onclick="addModerator()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                    ➕ Add Moderator
+                </button>
+            </div>
+            <p style="color: #888; font-size: 0.85rem; margin: 0;">
+                💡 The moderator must sign in with this email first. Once added, they can manage your hunts, tournaments, and wheels.
+            </p>
+        </div>
+        
+        <div id="moderatorsList">
+            <div style="color: #888; text-align: center; padding: 1rem;">Loading moderators...</div>
+        </div>
+    `;
+    
+    // Load existing moderators
+    loadModerators();
+}
+
+function loadModerators() {
+    if (!currentUser) return;
+    
+    firebase.database().ref('users/' + currentUser.uid + '/moderators').once('value').then(function(snapshot) {
+        streamerModerators = [];
+        
+        if (snapshot.exists()) {
+            snapshot.forEach(function(child) {
+                streamerModerators.push({
+                    odId: child.key,
+                    ...child.val()
+                });
+            });
+        }
+        
+        renderModeratorsList();
+    });
+}
+
+function renderModeratorsList() {
+    const container = document.getElementById('moderatorsList');
+    if (!container) return;
+    
+    if (streamerModerators.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 2rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; border: 1px dashed rgba(74, 158, 255, 0.3);">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+                <div style="color: #888;">No moderators yet</div>
+                <div style="color: #666; font-size: 0.85rem;">Add a moderator by entering their email above</div>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = `
+        <div style="background: rgba(40, 40, 60, 0.4); border-radius: 8px; overflow: hidden;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 1rem; padding: 0.75rem 1rem; background: rgba(74, 158, 255, 0.1); border-bottom: 1px solid rgba(74, 158, 255, 0.2);">
+                <span style="color: #888; font-size: 0.85rem; font-weight: bold;">Name</span>
+                <span style="color: #888; font-size: 0.85rem; font-weight: bold;">Email</span>
+                <span style="color: #888; font-size: 0.85rem; font-weight: bold;">Status</span>
+                <span style="color: #888; font-size: 0.85rem; font-weight: bold;">Action</span>
+            </div>
+            ${streamerModerators.map(mod => `
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid rgba(74, 158, 255, 0.1); align-items: center;">
+                    <span style="color: #fff;">${mod.displayName || 'Pending...'}</span>
+                    <span style="color: #aaa;">${mod.email}</span>
+                    <span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; ${mod.uid ? 'background: #51cf66; color: #fff;' : 'background: #ffa502; color: #000;'}">
+                        ${mod.uid ? '✓ Active' : '⏳ Pending'}
+                    </span>
+                    <button onclick="removeModerator('${mod.odId}')" style="padding: 0.4rem 0.8rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 4px; color: #ff6b6b; cursor: pointer; font-size: 0.85rem;">
+                        🗑️ Remove
+                    </button>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function addModerator() {
+    const input = document.getElementById('modEmailInput');
+    const email = input.value.trim().toLowerCase();
+    
+    if (!email) {
+        alert('Please enter an email address');
+        return;
+    }
+    
+    if (!email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    // Check if already added
+    if (streamerModerators.some(mod => mod.email.toLowerCase() === email)) {
+        alert('This moderator has already been added');
+        return;
+    }
+    
+    // Check if user exists in system
+    firebase.database().ref('users').orderByChild('profile/email').equalTo(email).once('value').then(function(snapshot) {
+        let modData = {
+            email: email,
+            addedAt: Date.now(),
+            addedBy: currentUser.uid
+        };
+        
+        if (snapshot.exists()) {
+            // User exists - get their info
+            snapshot.forEach(function(child) {
+                const userData = child.val();
+                modData.uid = child.key;
+                modData.displayName = userData.profile?.displayName || 'Unknown';
+                modData.photoURL = userData.profile?.photoURL || '';
+                
+                // Update the moderator's profile to link them to this streamer
+                firebase.database().ref('users/' + child.key + '/profile').update({
+                    role: ROLES.MODERATOR,
+                    streamerUid: currentUser.uid,
+                    streamerName: currentUser.displayName
+                });
+            });
+        }
+        
+        // Add to streamer's moderators list
+        firebase.database().ref('users/' + currentUser.uid + '/moderators').push(modData).then(function() {
+            input.value = '';
+            loadModerators();
+            
+            if (modData.uid) {
+                alert('✅ Moderator added successfully! They can now help manage your content.');
+            } else {
+                alert('✅ Moderator invitation saved! Once they sign in with this email, they will be linked to your account.');
+            }
+        });
+    });
+}
+
+function removeModerator(modId) {
+    if (!confirm('Remove this moderator? They will lose access to your content.')) return;
+    
+    // Get mod data first to update their profile
+    const mod = streamerModerators.find(m => m.odId === modId);
+    
+    if (mod && mod.uid) {
+        // Reset their role back to streamer (their own account)
+        firebase.database().ref('users/' + mod.uid + '/profile').update({
+            role: ROLES.STREAMER,
+            streamerUid: null,
+            streamerName: null
+        });
+    }
+    
+    // Remove from moderators list
+    firebase.database().ref('users/' + currentUser.uid + '/moderators/' + modId).remove().then(function() {
+        loadModerators();
+    });
 }
 
 // ============================================================================
@@ -5192,9 +5473,18 @@ function loadAdminData() {
         allUsers = [];
         let streamers = 0, mods = 0, viewers = 0;
         
+        // First pass - collect all users and their moderators
+        const userModsMap = {}; // uid -> moderators array
+        const userDataMap = {}; // uid -> full user data
+        
         snapshot.forEach(function(child) {
             const userData = child.val();
             const profile = userData.profile || {};
+            
+            userDataMap[child.key] = userData;
+            
+            // Count moderators for this user
+            const modCount = userData.moderators ? Object.keys(userData.moderators).length : 0;
             
             const user = {
                 uid: child.key,
@@ -5203,7 +5493,9 @@ function loadAdminData() {
                 photoURL: profile.photoURL || '',
                 role: profile.role || 'streamer',
                 lastLogin: profile.lastLogin || null,
-                streamerUid: profile.streamerUid || null
+                streamerUid: profile.streamerUid || null,
+                streamerName: profile.streamerName || null,
+                modCount: modCount
             };
             
             allUsers.push(user);
@@ -5211,6 +5503,16 @@ function loadAdminData() {
             if (user.role === 'streamer') streamers++;
             else if (user.role === 'moderator') mods++;
             else if (user.role === 'viewer') viewers++;
+        });
+        
+        // Second pass - resolve streamer names for moderators
+        allUsers.forEach(function(user) {
+            if (user.role === 'moderator' && user.streamerUid) {
+                const streamerData = userDataMap[user.streamerUid];
+                if (streamerData && streamerData.profile) {
+                    user.streamerName = streamerData.profile.displayName || 'Unknown Streamer';
+                }
+            }
         });
         
         // Check admins
@@ -5272,6 +5574,8 @@ function renderAdminUsersTable() {
             <div style="flex: 1;">
                 <div style="color: #fff; font-weight: 600;">${user.displayName}</div>
                 <div style="color: #888; font-size: 0.8rem;">${user.email}</div>
+                ${user.modCount > 0 ? `<div style="color: #ffa502; font-size: 0.75rem;">👥 ${user.modCount} moderator${user.modCount > 1 ? 's' : ''}</div>` : ''}
+                ${user.streamerName ? `<div style="color: #667eea; font-size: 0.75rem;">📺 Works for: ${user.streamerName}</div>` : ''}
             </div>
             <span style="padding: 0.25rem 0.5rem; background: ${roleColors[user.role] || roleColors.viewer}; color: #fff; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
                 ${user.role.toUpperCase()}
@@ -5282,6 +5586,11 @@ function renderAdminUsersTable() {
                 <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
                 <option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>Viewer</option>
             </select>
+            ${user.modCount > 0 ? `
+                <button onclick="viewStreamerMods('${user.uid}')" style="padding: 0.4rem 0.8rem; background: rgba(255, 165, 2, 0.2); border: 1px solid #ffa502; border-radius: 4px; color: #ffa502; cursor: pointer;">
+                    👥 Mods
+                </button>
+            ` : ''}
             <button onclick="viewUserData('${user.uid}')" style="padding: 0.4rem 0.8rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; cursor: pointer;">
                 👁️ View
             </button>
@@ -5328,6 +5637,26 @@ function viewUserData(uid) {
         const tournamentCount = data.tournamentHistory ? Object.keys(data.tournamentHistory).length : 0;
         const hasActiveHunt = !!data.activeHunt;
         
+        // Get moderators if streamer
+        let modsInfo = '';
+        if (data.moderators) {
+            const mods = Object.values(data.moderators);
+            if (mods.length > 0) {
+                modsInfo = '\n\n👥 Moderators (' + mods.length + '):\n' + mods.map(m => 
+                    '• ' + (m.displayName || 'Pending') + ' (' + m.email + ') - ' + (m.uid ? '✓ Active' : '⏳ Pending')
+                ).join('\n');
+            }
+        }
+        
+        // Get streamer info if moderator
+        let streamerInfo = '';
+        if (user.role === 'moderator' && data.profile?.streamerUid) {
+            const streamer = allUsers.find(u => u.uid === data.profile.streamerUid);
+            if (streamer) {
+                streamerInfo = '\n\n📺 Works for: ' + streamer.displayName + ' (' + streamer.email + ')';
+            }
+        }
+        
         alert(`📊 User Data: ${user.displayName}
         
 Email: ${user.email}
@@ -5337,7 +5666,39 @@ Last Login: ${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Neve
 Stats:
 • Bonus Hunts: ${huntCount}
 • Tournaments: ${tournamentCount}
-• Active Hunt: ${hasActiveHunt ? 'Yes' : 'No'}
+• Active Hunt: ${hasActiveHunt ? 'Yes' : 'No'}${modsInfo}${streamerInfo}
+        `);
+    });
+}
+
+function viewStreamerMods(streamerUid) {
+    const streamer = allUsers.find(u => u.uid === streamerUid);
+    if (!streamer) return;
+    
+    firebase.database().ref('users/' + streamerUid + '/moderators').once('value').then(function(snapshot) {
+        if (!snapshot.exists()) {
+            alert('No moderators found for ' + streamer.displayName);
+            return;
+        }
+        
+        const mods = [];
+        snapshot.forEach(function(child) {
+            mods.push({
+                id: child.key,
+                ...child.val()
+            });
+        });
+        
+        // Create a modal/detailed view
+        const modsList = mods.map((m, i) => 
+            `${i + 1}. ${m.displayName || 'Pending'}\n   📧 ${m.email}\n   ${m.uid ? '✓ Active' : '⏳ Pending'}\n   Added: ${new Date(m.addedAt).toLocaleDateString()}`
+        ).join('\n\n');
+        
+        alert(`👥 Moderators for ${streamer.displayName}
+
+Total: ${mods.length} moderator${mods.length > 1 ? 's' : ''}
+
+${modsList}
         `);
     });
 }
