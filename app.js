@@ -4,10 +4,79 @@
 
 // Global state
 let currentUser = null;
+let currentUserRole = null; // 'admin', 'streamer', 'moderator', 'viewer'
+let currentStreamerUid = null; // For mods: the streamer they work for
 let currentHunt = null;
 let games = [];
 let huntHistory = [];
 let gameDatabase = [];
+
+// Role constants
+const ROLES = {
+    ADMIN: 'admin',
+    STREAMER: 'streamer',
+    MODERATOR: 'moderator',
+    VIEWER: 'viewer'
+};
+
+// Role permissions
+const PERMISSIONS = {
+    admin: {
+        canCreateHunt: true,
+        canEditHunt: true,
+        canDeleteHunt: true,
+        canAddGame: true,
+        canEditGame: true,
+        canDeleteGame: true,
+        canAccessSettings: true,
+        canManageTeam: true,
+        canViewAllUsers: true,
+        canViewLogs: true
+    },
+    streamer: {
+        canCreateHunt: true,
+        canEditHunt: true,
+        canDeleteHunt: true,
+        canAddGame: true,
+        canEditGame: true,
+        canDeleteGame: true,
+        canAccessSettings: true,
+        canManageTeam: true,
+        canViewAllUsers: false,
+        canViewLogs: false
+    },
+    moderator: {
+        canCreateHunt: false,
+        canEditHunt: true,
+        canDeleteHunt: false,
+        canAddGame: true,
+        canEditGame: true,
+        canDeleteGame: false,
+        canAccessSettings: false,
+        canManageTeam: false,
+        canViewAllUsers: false,
+        canViewLogs: false
+    },
+    viewer: {
+        canCreateHunt: false,
+        canEditHunt: false,
+        canDeleteHunt: false,
+        canAddGame: false,
+        canEditGame: false,
+        canDeleteGame: false,
+        canAccessSettings: false,
+        canManageTeam: false,
+        canViewAllUsers: false,
+        canViewLogs: false
+    }
+};
+
+// Check if user has permission
+function hasPermission(permission) {
+    if (!currentUserRole) return false;
+    const perms = PERMISSIONS[currentUserRole];
+    return perms ? perms[permission] === true : false;
+}
 
 // DOM Elements
 let loginScreen, mainApp, loadingOverlay;
@@ -168,44 +237,159 @@ function onUserSignedIn(user) {
     if (userEmail) userEmail.textContent = user.email;
     console.log('✅ User UI updated');
     
-    // Save profile to Firebase
-    console.log('Saving profile to Firebase...');
-    firebase.database().ref('users/' + user.uid + '/profile').set({
-        displayName: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL,
-        lastLogin: new Date().toISOString()
-    }).then(function() {
-        console.log('✅ Profile saved');
-    }).catch(function(error) {
-        console.error('❌ Profile save error:', error);
+    // Check user role first, then proceed
+    checkUserRole(user).then(function() {
+        // Save profile to Firebase (with role if new user)
+        console.log('Saving profile to Firebase...');
+        const profileData = {
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            lastLogin: new Date().toISOString()
+        };
+        
+        // Only set role if it's a new user (don't overwrite existing role)
+        firebase.database().ref('users/' + user.uid + '/profile').once('value').then(function(snap) {
+            if (!snap.exists() || !snap.val().role) {
+                // New user - default to streamer
+                profileData.role = ROLES.STREAMER;
+                currentUserRole = ROLES.STREAMER;
+            }
+            
+            firebase.database().ref('users/' + user.uid + '/profile').update(profileData).then(function() {
+                console.log('✅ Profile saved');
+            }).catch(function(error) {
+                console.error('❌ Profile save error:', error);
+            });
+        });
+        
+        // Load user data
+        console.log('Loading user data...');
+        loadUserData();
+        
+        // Update sidebar based on role
+        updateSidebarForRole();
+        
+        // Show app
+        console.log('Hiding login screen, showing main app...');
+        
+        if (loginScreen) {
+            loginScreen.style.display = 'none';
+            console.log('✅ Login screen hidden');
+        }
+        if (mainApp) {
+            mainApp.style.display = 'flex';
+            console.log('✅ Main app shown');
+        }
+        
+        console.log('Navigating to dashboard...');
+        navigateTo('dashboard');
+        console.log('✅ onUserSignedIn complete');
     });
+}
+
+// Check user role from Firebase
+function checkUserRole(user) {
+    return new Promise(function(resolve) {
+        // First check if user is admin
+        firebase.database().ref('admins/' + user.uid).once('value').then(function(adminSnap) {
+            if (adminSnap.exists() && adminSnap.val() === true) {
+                currentUserRole = ROLES.ADMIN;
+                currentStreamerUid = user.uid;
+                console.log('👑 User is ADMIN');
+                resolve();
+                return;
+            }
+            
+            // Check user's profile for role
+            firebase.database().ref('users/' + user.uid + '/profile/role').once('value').then(function(roleSnap) {
+                if (roleSnap.exists()) {
+                    currentUserRole = roleSnap.val();
+                    console.log('🎭 User role:', currentUserRole);
+                    
+                    // If moderator, get their streamer
+                    if (currentUserRole === ROLES.MODERATOR) {
+                        firebase.database().ref('users/' + user.uid + '/profile/streamerUid').once('value').then(function(streamerSnap) {
+                            currentStreamerUid = streamerSnap.val() || null;
+                            console.log('📺 Moderator works for streamer:', currentStreamerUid);
+                            resolve();
+                        });
+                    } else {
+                        currentStreamerUid = user.uid;
+                        resolve();
+                    }
+                } else {
+                    // New user, default to streamer
+                    currentUserRole = ROLES.STREAMER;
+                    currentStreamerUid = user.uid;
+                    console.log('🆕 New user, defaulting to STREAMER');
+                    resolve();
+                }
+            });
+        });
+    });
+}
+
+// Update sidebar visibility based on role
+function updateSidebarForRole() {
+    console.log('🎭 Updating sidebar for role:', currentUserRole);
     
-    // Load user data
-    console.log('Loading user data...');
-    loadUserData();
-    
-    // Show app
-    console.log('Hiding login screen, showing main app...');
-    console.log('loginScreen element:', loginScreen);
-    console.log('mainApp element:', mainApp);
-    
-    if (loginScreen) {
-        loginScreen.style.display = 'none';
-        console.log('✅ Login screen hidden');
+    // Admin panel - only for admins
+    const adminMenuItem = document.querySelector('[data-page="admin"]');
+    if (adminMenuItem) {
+        adminMenuItem.style.display = currentUserRole === ROLES.ADMIN ? 'flex' : 'none';
     }
-    if (mainApp) {
-        mainApp.style.display = 'flex';
-        console.log('✅ Main app shown');
+    
+    // Settings - admin and streamer only
+    const settingsMenuItem = document.querySelector('[data-page="settings"]');
+    if (settingsMenuItem) {
+        settingsMenuItem.style.display = hasPermission('canAccessSettings') ? 'flex' : 'none';
     }
     
-    console.log('Navigating to dashboard...');
-    navigateTo('dashboard');
-    console.log('✅ onUserSignedIn complete');
+    // Game Database - everyone except viewer
+    const gameDbMenuItem = document.querySelector('[data-page="game-database"]');
+    if (gameDbMenuItem) {
+        gameDbMenuItem.style.display = currentUserRole !== ROLES.VIEWER ? 'flex' : 'none';
+    }
+    
+    // Update role badge in sidebar
+    updateRoleBadge();
+}
+
+// Show role badge next to user name
+function updateRoleBadge() {
+    const roleBadge = document.getElementById('userRoleBadge');
+    if (!roleBadge) {
+        // Create badge if doesn't exist
+        const userInfo = document.querySelector('.user-info');
+        if (userInfo) {
+            const badge = document.createElement('span');
+            badge.id = 'userRoleBadge';
+            badge.style.cssText = 'font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; font-weight: bold;';
+            userInfo.appendChild(badge);
+        }
+    }
+    
+    const badge = document.getElementById('userRoleBadge');
+    if (badge) {
+        const roleColors = {
+            admin: { bg: '#ff4757', text: '#fff', label: 'ADMIN' },
+            streamer: { bg: '#667eea', text: '#fff', label: 'STREAMER' },
+            moderator: { bg: '#ffa502', text: '#000', label: 'MOD' },
+            viewer: { bg: '#747d8c', text: '#fff', label: 'VIEWER' }
+        };
+        
+        const roleStyle = roleColors[currentUserRole] || roleColors.viewer;
+        badge.style.backgroundColor = roleStyle.bg;
+        badge.style.color = roleStyle.text;
+        badge.textContent = roleStyle.label;
+    }
 }
 
 function onUserSignedOut() {
     currentUser = null;
+    currentUserRole = null;
+    currentStreamerUid = null;
     currentHunt = null;
     games = [];
     huntHistory = [];
@@ -340,6 +524,7 @@ function navigateTo(pageName) {
     if (pageName === 'wheel-spinner') updateWheelSpinnerPage();
     if (pageName === 'bot-control') updateBotControlPage();
     if (pageName === 'settings') updateSettings();
+    if (pageName === 'admin') updateAdminPage();
     
     console.log('✅ Navigation complete');
 }
@@ -4929,6 +5114,287 @@ GG to all who participated! 🎊`;
         text: announcement,
         timestamp: Date.now()
     });
+}
+
+// ============================================================================
+// ADMIN PANEL
+// ============================================================================
+
+function updateAdminPage() {
+    // Security check
+    if (currentUserRole !== ROLES.ADMIN) {
+        console.warn('⛔ Access denied to admin page');
+        navigateTo('dashboard');
+        return;
+    }
+    
+    const container = document.getElementById('adminContent');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(102, 126, 234, 0.3);">
+                <div style="color: #888; font-size: 0.9rem;">Total Users</div>
+                <div id="adminTotalUsers" style="color: #fff; font-size: 2rem; font-weight: bold;">-</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(81, 207, 102, 0.2) 0%, rgba(64, 192, 87, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(81, 207, 102, 0.3);">
+                <div style="color: #888; font-size: 0.9rem;">Streamers</div>
+                <div id="adminTotalStreamers" style="color: #51cf66; font-size: 2rem; font-weight: bold;">-</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(255, 165, 2, 0.2) 0%, rgba(255, 146, 43, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 165, 2, 0.3);">
+                <div style="color: #888; font-size: 0.9rem;">Moderators</div>
+                <div id="adminTotalMods" style="color: #ffa502; font-size: 2rem; font-weight: bold;">-</div>
+            </div>
+            <div style="background: linear-gradient(135deg, rgba(116, 125, 140, 0.2) 0%, rgba(87, 96, 111, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(116, 125, 140, 0.3);">
+                <div style="color: #888; font-size: 0.9rem;">Viewers</div>
+                <div id="adminTotalViewers" style="color: #747d8c; font-size: 2rem; font-weight: bold;">-</div>
+            </div>
+        </div>
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+            <!-- Users Table -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 style="color: #fff; margin: 0;">👥 All Users</h2>
+                    <button onclick="showAddUserModal()" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 6px; color: #fff; cursor: pointer; font-weight: bold;">
+                        ➕ Add User
+                    </button>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="adminUserSearch" placeholder="Search by name or email..." oninput="filterAdminUsers()" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff;">
+                </div>
+                <div id="adminUsersTable" style="max-height: 500px; overflow-y: auto;">
+                    <div style="color: #888; text-align: center; padding: 2rem;">Loading users...</div>
+                </div>
+            </div>
+            
+            <!-- Activity Log -->
+            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                <h2 style="color: #fff; margin: 0 0 1rem 0;">📋 Recent Activity</h2>
+                <div id="adminActivityLog" style="max-height: 500px; overflow-y: auto;">
+                    <div style="color: #888; text-align: center; padding: 2rem;">Loading activity...</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Load admin data
+    loadAdminData();
+}
+
+let allUsers = [];
+
+function loadAdminData() {
+    if (!currentUser || currentUserRole !== ROLES.ADMIN) return;
+    
+    // Load all users
+    firebase.database().ref('users').once('value').then(function(snapshot) {
+        allUsers = [];
+        let streamers = 0, mods = 0, viewers = 0;
+        
+        snapshot.forEach(function(child) {
+            const userData = child.val();
+            const profile = userData.profile || {};
+            
+            const user = {
+                uid: child.key,
+                displayName: profile.displayName || 'Unknown',
+                email: profile.email || '-',
+                photoURL: profile.photoURL || '',
+                role: profile.role || 'streamer',
+                lastLogin: profile.lastLogin || null,
+                streamerUid: profile.streamerUid || null
+            };
+            
+            allUsers.push(user);
+            
+            if (user.role === 'streamer') streamers++;
+            else if (user.role === 'moderator') mods++;
+            else if (user.role === 'viewer') viewers++;
+        });
+        
+        // Check admins
+        firebase.database().ref('admins').once('value').then(function(adminSnap) {
+            let admins = 0;
+            adminSnap.forEach(function(admin) {
+                if (admin.val() === true) {
+                    admins++;
+                    // Mark user as admin in our list
+                    const userIdx = allUsers.findIndex(u => u.uid === admin.key);
+                    if (userIdx >= 0) {
+                        allUsers[userIdx].role = 'admin';
+                        streamers--; // They were counted as streamer
+                    }
+                }
+            });
+            
+            // Update stats
+            document.getElementById('adminTotalUsers').textContent = allUsers.length;
+            document.getElementById('adminTotalStreamers').textContent = streamers;
+            document.getElementById('adminTotalMods').textContent = mods;
+            document.getElementById('adminTotalViewers').textContent = viewers;
+            
+            // Render users table
+            renderAdminUsersTable();
+        });
+    });
+    
+    // Load activity log
+    loadActivityLog();
+}
+
+function renderAdminUsersTable() {
+    const container = document.getElementById('adminUsersTable');
+    if (!container) return;
+    
+    const searchTerm = (document.getElementById('adminUserSearch')?.value || '').toLowerCase();
+    
+    const filteredUsers = allUsers.filter(user => 
+        user.displayName.toLowerCase().includes(searchTerm) ||
+        user.email.toLowerCase().includes(searchTerm)
+    );
+    
+    if (filteredUsers.length === 0) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 2rem;">No users found</div>';
+        return;
+    }
+    
+    const roleColors = {
+        admin: '#ff4757',
+        streamer: '#667eea',
+        moderator: '#ffa502',
+        viewer: '#747d8c'
+    };
+    
+    container.innerHTML = filteredUsers.map(user => `
+        <div style="display: flex; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; margin-bottom: 0.5rem; gap: 1rem;">
+            <img src="${user.photoURL || 'https://via.placeholder.com/40'}" style="width: 40px; height: 40px; border-radius: 50%;">
+            <div style="flex: 1;">
+                <div style="color: #fff; font-weight: 600;">${user.displayName}</div>
+                <div style="color: #888; font-size: 0.8rem;">${user.email}</div>
+            </div>
+            <span style="padding: 0.25rem 0.5rem; background: ${roleColors[user.role] || roleColors.viewer}; color: #fff; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">
+                ${user.role.toUpperCase()}
+            </span>
+            <select onchange="changeUserRole('${user.uid}', this.value)" style="padding: 0.4rem; background: rgba(40, 40, 60, 0.8); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 4px; color: #fff; cursor: pointer;">
+                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                <option value="streamer" ${user.role === 'streamer' ? 'selected' : ''}>Streamer</option>
+                <option value="moderator" ${user.role === 'moderator' ? 'selected' : ''}>Moderator</option>
+                <option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>Viewer</option>
+            </select>
+            <button onclick="viewUserData('${user.uid}')" style="padding: 0.4rem 0.8rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; cursor: pointer;">
+                👁️ View
+            </button>
+        </div>
+    `).join('');
+}
+
+function filterAdminUsers() {
+    renderAdminUsersTable();
+}
+
+function changeUserRole(uid, newRole) {
+    if (!confirm(`Change this user's role to ${newRole.toUpperCase()}?`)) {
+        loadAdminData(); // Refresh to reset dropdown
+        return;
+    }
+    
+    // If making admin, add to admins node
+    if (newRole === 'admin') {
+        firebase.database().ref('admins/' + uid).set(true);
+        firebase.database().ref('users/' + uid + '/profile/role').set('streamer'); // Admins are also streamers
+    } else {
+        // Remove from admins if they were admin
+        firebase.database().ref('admins/' + uid).remove();
+        firebase.database().ref('users/' + uid + '/profile/role').set(newRole);
+    }
+    
+    // Log activity
+    logAdminActivity('role_change', `Changed user role to ${newRole}`, uid);
+    
+    // Refresh
+    setTimeout(loadAdminData, 500);
+}
+
+function viewUserData(uid) {
+    const user = allUsers.find(u => u.uid === uid);
+    if (!user) return;
+    
+    // Load user's data
+    firebase.database().ref('users/' + uid).once('value').then(function(snapshot) {
+        const data = snapshot.val() || {};
+        
+        const huntCount = data.huntHistory ? Object.keys(data.huntHistory).length : 0;
+        const tournamentCount = data.tournamentHistory ? Object.keys(data.tournamentHistory).length : 0;
+        const hasActiveHunt = !!data.activeHunt;
+        
+        alert(`📊 User Data: ${user.displayName}
+        
+Email: ${user.email}
+Role: ${user.role.toUpperCase()}
+Last Login: ${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+
+Stats:
+• Bonus Hunts: ${huntCount}
+• Tournaments: ${tournamentCount}
+• Active Hunt: ${hasActiveHunt ? 'Yes' : 'No'}
+        `);
+    });
+}
+
+function loadActivityLog() {
+    const container = document.getElementById('adminActivityLog');
+    if (!container) return;
+    
+    firebase.database().ref('adminLogs').orderByChild('timestamp').limitToLast(50).once('value').then(function(snapshot) {
+        const logs = [];
+        snapshot.forEach(function(child) {
+            logs.push({ id: child.key, ...child.val() });
+        });
+        
+        logs.reverse(); // Most recent first
+        
+        if (logs.length === 0) {
+            container.innerHTML = '<div style="color: #888; text-align: center; padding: 2rem;">No activity yet</div>';
+            return;
+        }
+        
+        container.innerHTML = logs.map(log => `
+            <div style="padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid ${getLogColor(log.action)};">
+                <div style="color: #fff; font-size: 0.9rem;">${log.description}</div>
+                <div style="color: #888; font-size: 0.75rem; margin-top: 0.25rem;">
+                    ${new Date(log.timestamp).toLocaleString()} • by ${log.adminName || 'System'}
+                </div>
+            </div>
+        `).join('');
+    });
+}
+
+function getLogColor(action) {
+    const colors = {
+        'role_change': '#ffa502',
+        'user_created': '#51cf66',
+        'user_deleted': '#ff4757',
+        'login': '#4a9eff'
+    };
+    return colors[action] || '#888';
+}
+
+function logAdminActivity(action, description, targetUid = null) {
+    if (!currentUser) return;
+    
+    firebase.database().ref('adminLogs').push({
+        action: action,
+        description: description,
+        targetUid: targetUid,
+        adminUid: currentUser.uid,
+        adminName: currentUser.displayName,
+        timestamp: Date.now()
+    });
+}
+
+function showAddUserModal() {
+    alert('To add a new user:\n\n1. Have them sign in with Google\n2. They will automatically be created as a Streamer\n3. You can then change their role from this panel\n\nAlternatively, invite them by sharing the site URL.');
 }
 
 console.log('✅ Script loaded');
