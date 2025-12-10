@@ -134,26 +134,32 @@
             color: #fff;
             overflow: hidden;
             position: relative;
-            mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
-            -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+        }
+
+        .game-name-scroll-wrapper {
+            display: flex;
+            width: fit-content;
+            will-change: transform;
+        }
+
+        .game-name-scroll-wrapper.scrolling {
+            animation: scrollText linear infinite;
         }
 
         .game-name-text {
-            display: inline-block;
             white-space: nowrap;
-            will-change: transform;
-            padding-right: 30px;
+            flex-shrink: 0;
         }
 
-        .game-name-text.scrolling {
-            animation: scrollText linear infinite;
-            transform: translateZ(0);
-            backface-visibility: hidden;
+        .game-name-spacer {
+            white-space: nowrap;
+            flex-shrink: 0;
+            padding: 0 20px;
         }
 
         @keyframes scrollText {
-            0% { transform: translateX(0) translateZ(0); }
-            100% { transform: translateX(-50%) translateZ(0); }
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
         }
 
         .game-name.super-bonus {
@@ -492,28 +498,53 @@
                     const gameName = document.createElement('span');
                     gameName.className = 'game-name' + (game.superBonus ? ' super-bonus' : '');
                     
-                    const gameNameText = document.createElement('span');
-                    gameNameText.className = 'game-name-text';
-                    
                     // Add star prefix for super bonus
                     const starPrefix = game.superBonus ? '⭐ ' : '';
                     const displayName = starPrefix + game.name;
                     
                     // Check if name is too long (more than 16 characters) and add scrolling
                     if (displayName.length > 16) {
-                        // Create seamless infinite scroll with proper spacing
-                        const spacer = '     •     ';
-                        // Two copies for perfect -50% loop
-                        gameNameText.textContent = displayName + spacer + displayName + spacer;
-                        gameNameText.classList.add('scrolling');
-                        // Set animation duration based on text length (longer text = slower scroll for readability)
+                        // Create scroll wrapper with two identical copies
+                        const scrollWrapper = document.createElement('div');
+                        scrollWrapper.className = 'game-name-scroll-wrapper scrolling';
+                        
+                        // First text
+                        const text1 = document.createElement('span');
+                        text1.className = 'game-name-text';
+                        text1.textContent = displayName;
+                        
+                        // Spacer
+                        const spacer1 = document.createElement('span');
+                        spacer1.className = 'game-name-spacer';
+                        spacer1.textContent = '•';
+                        
+                        // Second text (duplicate for seamless loop)
+                        const text2 = document.createElement('span');
+                        text2.className = 'game-name-text';
+                        text2.textContent = displayName;
+                        
+                        // Spacer 2
+                        const spacer2 = document.createElement('span');
+                        spacer2.className = 'game-name-spacer';
+                        spacer2.textContent = '•';
+                        
+                        scrollWrapper.appendChild(text1);
+                        scrollWrapper.appendChild(spacer1);
+                        scrollWrapper.appendChild(text2);
+                        scrollWrapper.appendChild(spacer2);
+                        
+                        // Set animation duration based on text length
                         const duration = Math.max(displayName.length * 0.4, 6);
-                        gameNameText.style.animationDuration = duration + 's';
+                        scrollWrapper.style.animationDuration = duration + 's';
+                        
+                        gameName.appendChild(scrollWrapper);
                     } else {
+                        const gameNameText = document.createElement('span');
+                        gameNameText.className = 'game-name-text';
                         gameNameText.textContent = displayName;
+                        gameName.appendChild(gameNameText);
                     }
                     
-                    gameName.appendChild(gameNameText);
                     gameName.title = game.name;
                     
                     const gameBet = document.createElement('span');
