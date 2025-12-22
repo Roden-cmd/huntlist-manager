@@ -227,6 +227,117 @@ function onUserSignedIn(user) {
     if (userEmail) userEmail.textContent = user.email;
     console.log('✅ User UI updated');
     
+    // Check for invite parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite');
+    
+    if (inviteId) {
+        // Process invite first
+        processInvite(inviteId, user).then(function() {
+            continueSignIn(user);
+            // Clear invite from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        });
+    } else {
+        continueSignIn(user);
+    }
+}
+
+function processInvite(inviteId, user) {
+    return new Promise(function(resolve) {
+        firebase.database().ref('pendingInvites/' + inviteId).once('value').then(function(snapshot) {
+            if (!snapshot.exists()) {
+                console.log('Invite not found or already used');
+                resolve();
+                return;
+            }
+            
+            const invite = snapshot.val();
+            
+            // Check if email matches
+            if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
+                alert('⚠️ This invitation was sent to a different email address (' + invite.email + '). Please sign in with that email.');
+                resolve();
+                return;
+            }
+            
+            // Check if already processed
+            if (invite.status !== 'pending') {
+                console.log('Invite already processed');
+                resolve();
+                return;
+            }
+            
+            console.log('🎫 Processing invite:', invite);
+            
+            // Update user profile with invited role
+            const profileUpdate = {
+                role: invite.role === 'admin' ? ROLES.STREAMER : invite.role, // Admins stored in admins node
+                displayName: user.displayName,
+                email: user.email,
+                photoURL: user.photoURL,
+                lastLogin: new Date().toISOString()
+            };
+            
+            // If moderator, link to streamer
+            if (invite.role === 'moderator' && invite.streamerId) {
+                profileUpdate.streamerUid = invite.streamerId;
+                
+                // Get streamer name
+                firebase.database().ref('users/' + invite.streamerId + '/profile/displayName').once('value').then(function(streamerSnap) {
+                    profileUpdate.streamerName = streamerSnap.val() || 'Unknown Streamer';
+                    
+                    // Save profile
+                    firebase.database().ref('users/' + user.uid + '/profile').update(profileUpdate);
+                    
+                    // Add to streamer's moderators list
+                    firebase.database().ref('users/' + invite.streamerId + '/moderators').push({
+                        uid: user.uid,
+                        email: user.email,
+                        displayName: user.displayName,
+                        photoURL: user.photoURL,
+                        addedAt: Date.now(),
+                        addedBy: invite.invitedBy
+                    });
+                });
+            } else {
+                firebase.database().ref('users/' + user.uid + '/profile').update(profileUpdate);
+            }
+            
+            // If admin, add to admins node
+            if (invite.role === 'admin') {
+                firebase.database().ref('admins/' + user.uid).set(true);
+            }
+            
+            // Mark invite as completed
+            firebase.database().ref('pendingInvites/' + inviteId).update({
+                status: 'completed',
+                completedAt: Date.now(),
+                completedBy: user.uid
+            });
+            
+            // Log activity
+            firebase.database().ref('adminLogs').push({
+                action: 'invite_accepted',
+                description: `${user.email} accepted invite as ${invite.role}`,
+                targetUid: user.uid,
+                adminUid: invite.invitedBy,
+                adminName: invite.invitedByName,
+                timestamp: Date.now()
+            });
+            
+            console.log('✅ Invite processed successfully');
+            alert('🎉 Welcome! Your account has been set up as ' + invite.role.toUpperCase());
+            
+            resolve();
+        }).catch(function(error) {
+            console.error('Error processing invite:', error);
+            resolve();
+        });
+    });
+}
+
+function continueSignIn(user) {
     // Check user role first, then proceed
     checkUserRole(user).then(function() {
         // Save profile to Firebase (with role if new user)
@@ -5780,11 +5891,21 @@ function updateAdminPage() {
                 </div>
             </div>
             
-            <!-- Activity Log -->
-            <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
-                <h2 style="color: #fff; margin: 0 0 1rem 0;">📋 Recent Activity</h2>
-                <div id="adminActivityLog" style="max-height: 500px; overflow-y: auto;">
-                    <div style="color: #888; text-align: center; padding: 2rem;">Loading activity...</div>
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- Pending Invites -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 165, 2, 0.2);">
+                    <h2 style="color: #fff; margin: 0 0 1rem 0; font-size: 1rem;">⏳ Pending Invites</h2>
+                    <div id="pendingInvitesList" style="max-height: 200px; overflow-y: auto;">
+                        <div style="color: #888; text-align: center; padding: 1rem; font-size: 0.9rem;">Loading...</div>
+                    </div>
+                </div>
+                
+                <!-- Activity Log -->
+                <div style="background: rgba(26, 26, 46, 0.95); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(74, 158, 255, 0.2);">
+                    <h2 style="color: #fff; margin: 0 0 1rem 0;">📋 Recent Activity</h2>
+                    <div id="adminActivityLog" style="max-height: 280px; overflow-y: auto;">
+                        <div style="color: #888; text-align: center; padding: 2rem;">Loading activity...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -5878,6 +5999,73 @@ function loadAdminData() {
     
     // Load activity log
     loadActivityLog();
+    
+    // Load pending invites
+    loadPendingInvites();
+}
+
+let pendingInvites = [];
+
+function loadPendingInvites() {
+    firebase.database().ref('pendingInvites').orderByChild('status').equalTo('pending').once('value').then(function(snapshot) {
+        pendingInvites = [];
+        
+        snapshot.forEach(function(child) {
+            pendingInvites.push({
+                id: child.key,
+                ...child.val()
+            });
+        });
+        
+        renderPendingInvites();
+    });
+}
+
+function renderPendingInvites() {
+    const container = document.getElementById('pendingInvitesList');
+    if (!container) return;
+    
+    if (pendingInvites.length === 0) {
+        container.innerHTML = '<div style="color: #888; text-align: center; padding: 1rem; font-size: 0.9rem;">No pending invites</div>';
+        return;
+    }
+    
+    container.innerHTML = pendingInvites.map(invite => `
+        <div style="display: flex; align-items: center; padding: 0.75rem; background: rgba(40, 40, 60, 0.4); border-radius: 8px; margin-bottom: 0.5rem; gap: 0.75rem; border-left: 3px solid #ffa502;">
+            <div style="flex: 1;">
+                <div style="color: #fff; font-size: 0.9rem;">${invite.displayName || invite.email}</div>
+                <div style="color: #888; font-size: 0.75rem;">${invite.email}</div>
+            </div>
+            <span style="padding: 0.2rem 0.4rem; background: rgba(255, 165, 2, 0.2); color: #ffa502; border-radius: 4px; font-size: 0.7rem; font-weight: bold;">
+                ${invite.role.toUpperCase()}
+            </span>
+            <button onclick="copyInviteLinkById('${invite.id}')" style="padding: 0.3rem 0.5rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 4px; color: #4a9eff; cursor: pointer; font-size: 0.75rem;">
+                📋
+            </button>
+            <button onclick="cancelInvite('${invite.id}')" style="padding: 0.3rem 0.5rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 4px; color: #ff6b6b; cursor: pointer; font-size: 0.75rem;">
+                ✕
+            </button>
+        </div>
+    `).join('');
+}
+
+function copyInviteLinkById(inviteId) {
+    const inviteUrl = window.location.origin + window.location.pathname.replace('index.html', '') + '?invite=' + inviteId;
+    
+    navigator.clipboard.writeText(inviteUrl).then(function() {
+        alert('✅ Invite link copied!');
+    }).catch(function() {
+        prompt('Copy this invite link:', inviteUrl);
+    });
+}
+
+function cancelInvite(inviteId) {
+    if (!confirm('Cancel this invitation?')) return;
+    
+    firebase.database().ref('pendingInvites/' + inviteId).remove().then(function() {
+        loadPendingInvites();
+        logAdminActivity('invite_cancelled', 'Cancelled pending invite', null);
+    });
 }
 
 function renderAdminUsersTable() {
@@ -6089,7 +6277,218 @@ function logAdminActivity(action, description, targetUid = null) {
 }
 
 function showAddUserModal() {
-    alert('To add a new user:\n\n1. Have them sign in with Google\n2. They will automatically be created as a Streamer\n3. You can then change their role from this panel\n\nAlternatively, invite them by sharing the site URL.');
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'addUserModal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3); width: 500px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="color: #fff; margin: 0;">➕ Invite New User</h2>
+                <button onclick="closeAddUserModal()" style="background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Email Address *</label>
+                <input type="email" id="inviteEmail" placeholder="user@example.com" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Display Name (optional)</label>
+                <input type="text" id="inviteName" placeholder="John Doe" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Role</label>
+                <select id="inviteRole" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                    <option value="streamer">Streamer</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            
+            <div id="moderatorStreamerSelect" style="margin-bottom: 1.5rem; display: none;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Assign to Streamer *</label>
+                <select id="inviteStreamer" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                    <option value="">Select a streamer...</option>
+                    ${allUsers.filter(u => u.role === 'streamer' || u.role === 'admin').map(u => 
+                        `<option value="${u.uid}">${u.displayName} (${u.email})</option>`
+                    ).join('')}
+                </select>
+            </div>
+            
+            <div style="background: rgba(74, 158, 255, 0.1); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <p style="color: #4a9eff; margin: 0; font-size: 0.85rem;">
+                    📧 An invitation will be created. You can copy the invite link or send it via email.
+                </p>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closeAddUserModal()" style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="sendUserInvite()" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                    ✉️ Create Invite
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add role change listener
+    document.getElementById('inviteRole').addEventListener('change', function() {
+        const modSelect = document.getElementById('moderatorStreamerSelect');
+        modSelect.style.display = this.value === 'moderator' ? 'block' : 'none';
+    });
+    
+    // Focus email input
+    document.getElementById('inviteEmail').focus();
+}
+
+function closeAddUserModal() {
+    const modal = document.getElementById('addUserModal');
+    if (modal) modal.remove();
+}
+
+function sendUserInvite() {
+    const email = document.getElementById('inviteEmail').value.trim().toLowerCase();
+    const name = document.getElementById('inviteName').value.trim();
+    const role = document.getElementById('inviteRole').value;
+    const streamerId = document.getElementById('inviteStreamer')?.value;
+    
+    if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return;
+    }
+    
+    if (role === 'moderator' && !streamerId) {
+        alert('Please select a streamer for this moderator');
+        return;
+    }
+    
+    // Check if email already exists
+    const existingUser = allUsers.find(u => u.email.toLowerCase() === email);
+    if (existingUser) {
+        alert('A user with this email already exists');
+        return;
+    }
+    
+    // Create pending invite
+    const inviteData = {
+        email: email,
+        displayName: name || null,
+        role: role,
+        streamerId: role === 'moderator' ? streamerId : null,
+        invitedBy: currentUser.uid,
+        invitedByName: currentUser.displayName,
+        invitedAt: Date.now(),
+        status: 'pending'
+    };
+    
+    // Save to pendingInvites
+    firebase.database().ref('pendingInvites').push(inviteData).then(function(ref) {
+        const inviteId = ref.key;
+        
+        // Generate invite URL
+        const inviteUrl = window.location.origin + window.location.pathname.replace('index.html', '') + '?invite=' + inviteId;
+        
+        // Log activity
+        logAdminActivity('user_invited', `Invited ${email} as ${role}`, null);
+        
+        // Close modal and show success
+        closeAddUserModal();
+        
+        // Show invite link modal
+        showInviteLinkModal(email, inviteUrl, role);
+        
+        // Refresh admin data
+        loadAdminData();
+        loadPendingInvites();
+        
+    }).catch(function(error) {
+        console.error('Error creating invite:', error);
+        alert('Error creating invite. Please try again.');
+    });
+}
+
+function showInviteLinkModal(email, inviteUrl, role) {
+    const modal = document.createElement('div');
+    modal.id = 'inviteLinkModal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 2rem; border-radius: 16px; border: 1px solid rgba(81, 207, 102, 0.3); width: 550px; max-width: 90%;">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.5rem;">✅</div>
+                <h2 style="color: #51cf66; margin: 0;">Invitation Created!</h2>
+                <p style="color: #888; margin-top: 0.5rem;">Invite sent for <strong style="color: #fff;">${email}</strong> as <strong style="color: #667eea;">${role}</strong></p>
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Invite Link</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="inviteLinkInput" value="${inviteUrl}" readonly style="flex: 1; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #4a9eff; font-size: 0.9rem;">
+                    <button onclick="copyInviteLink()" style="padding: 0.75rem 1rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 8px; color: #4a9eff; cursor: pointer;">
+                        📋 Copy
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="sendInviteEmail('${email}', '${encodeURIComponent(inviteUrl)}', '${role}')" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                    ✉️ Open Email Client
+                </button>
+                <button onclick="closeInviteLinkModal()" style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; cursor: pointer;">
+                    Done
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+function closeInviteLinkModal() {
+    const modal = document.getElementById('inviteLinkModal');
+    if (modal) modal.remove();
+}
+
+function copyInviteLink() {
+    const input = document.getElementById('inviteLinkInput');
+    input.select();
+    document.execCommand('copy');
+    
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    btn.style.background = 'rgba(81, 207, 102, 0.3)';
+    btn.style.borderColor = '#51cf66';
+    btn.style.color = '#51cf66';
+    
+    setTimeout(function() {
+        btn.innerHTML = '📋 Copy';
+        btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
+    }, 2000);
+}
+
+function sendInviteEmail(email, inviteUrl, role) {
+    const subject = encodeURIComponent('You\'ve been invited to Hunt List Manager');
+    const body = encodeURIComponent(`Hi!
+
+You've been invited to join Hunt List Manager as a ${role}.
+
+Click the link below to sign in and activate your account:
+${decodeURIComponent(inviteUrl)}
+
+Just sign in with your Google account (${email}) and you'll be all set!
+
+Best regards,
+${currentUser.displayName || 'The Admin'}`);
+    
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
 }
 
 function copyAdminUid() {
