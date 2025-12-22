@@ -5733,6 +5733,17 @@ function updateAdminPage() {
     if (!container) return;
     
     container.innerHTML = `
+        <!-- Admin Info Banner -->
+        <div style="background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.3); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="color: #ff4757; font-weight: bold;">👑 Admin Mode</span>
+                <span style="color: #888; margin-left: 1rem;">Your UID: <code style="background: rgba(0,0,0,0.3); padding: 0.25rem 0.5rem; border-radius: 4px; color: #4a9eff; font-size: 0.85rem;">${currentUser?.uid || 'N/A'}</code></span>
+            </div>
+            <button onclick="copyAdminUid()" style="padding: 0.4rem 0.8rem; background: rgba(74, 158, 255, 0.2); border: 1px solid #4a9eff; border-radius: 6px; color: #4a9eff; cursor: pointer; font-size: 0.85rem;">
+                📋 Copy UID
+            </button>
+        </div>
+        
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
             <div style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(102, 126, 234, 0.3);">
                 <div style="color: #888; font-size: 0.9rem;">Total Users</div>
@@ -6079,6 +6090,16 @@ function logAdminActivity(action, description, targetUid = null) {
 
 function showAddUserModal() {
     alert('To add a new user:\n\n1. Have them sign in with Google\n2. They will automatically be created as a Streamer\n3. You can then change their role from this panel\n\nAlternatively, invite them by sharing the site URL.');
+}
+
+function copyAdminUid() {
+    if (!currentUser) return;
+    
+    navigator.clipboard.writeText(currentUser.uid).then(function() {
+        alert('✅ UID copied!\n\nTo make someone admin:\n1. Go to Firebase Console → Realtime Database\n2. Create node: admins/' + currentUser.uid + '\n3. Set value to: true');
+    }).catch(function() {
+        prompt('Copy this UID:', currentUser.uid);
+    });
 }
 
 console.log('✅ Script loaded');
