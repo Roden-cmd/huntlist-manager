@@ -4287,6 +4287,7 @@ let currentWheelWinner = null;
 let currentWheelTheme = 'default';
 let wheelHistory = [];
 let spinHistory = []; // Track recent spin winners for this wheel session
+let wheelFinalRotation = 0; // Store the final rotation after spin
 
 // Wheel theme color schemes with UI styling
 const wheelThemes = {
@@ -4746,6 +4747,14 @@ function drawWheel() {
     const sliceAngle = (2 * Math.PI) / wheelItems.length;
     const manyItems = wheelItems.length > 50; // Show text up to 50 items
     
+    // Apply stored rotation if we have a winner (wheel was spun)
+    ctx.save();
+    if (wheelFinalRotation > 0) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate((wheelFinalRotation * Math.PI) / 180);
+        ctx.translate(-centerX, -centerY);
+    }
+    
     // Draw slices
     wheelItems.forEach((item, index) => {
         const startAngle = index * sliceAngle;
@@ -4788,7 +4797,9 @@ function drawWheel() {
         }
     });
     
-    // Draw center circle - always show count
+    // Draw center circle - always show count (outside rotation)
+    ctx.restore(); // Restore before drawing center so it's not rotated
+    
     ctx.beginPath();
     ctx.arc(centerX, centerY, 25, 0, 2 * Math.PI);
     ctx.fillStyle = '#1a1a2e';
@@ -4945,6 +4956,9 @@ function spinWheel() {
             spinBtn.disabled = false;
             spinBtn.textContent = '🎰 SPIN!';
             
+            // Save the final rotation so wheel stays in position
+            wheelFinalRotation = currentRotation;
+            
             const winner = wheelItems[winningIndex];
             
             // Show result
@@ -4966,6 +4980,7 @@ function spinWheel() {
                     spinning: false,
                     winner: winner,
                     winningIndex: winningIndex,
+                    finalRotation: wheelFinalRotation,
                     spinHistory: spinHistory.slice(-5), // Keep last 5 for overlay
                     completedAt: Date.now()
                 });
@@ -4975,14 +4990,70 @@ function spinWheel() {
                 firebase.database().ref('users/' + currentUser.uid + '/currentWheel/winner').set(currentWheelWinner);
             }
             
-            // Re-render to show End Wheel button
-            setTimeout(() => {
-                renderWheelPage();
-            }, 500);
+            // Update spin history display without re-rendering whole wheel
+            updateSpinHistoryDisplay();
+            
+            // Show End Wheel button if not already visible
+            showEndWheelButton();
         }
     }
     
     animate();
+}
+
+// Update spin history display without redrawing wheel
+function updateSpinHistoryDisplay() {
+    const historyPanel = document.getElementById('spinHistoryPanel');
+    const historyBtn = document.getElementById('showHistoryBtn');
+    
+    if (spinHistory.length > 0) {
+        // Update button text
+        if (historyBtn) {
+            historyBtn.style.display = 'block';
+            if (historyPanel && historyPanel.style.display !== 'none') {
+                historyBtn.textContent = '📜 Hide Winners';
+            } else {
+                historyBtn.textContent = `📜 Show Last ${Math.min(spinHistory.length, 5)} Winners`;
+            }
+        }
+        
+        // Update panel content
+        if (historyPanel) {
+            historyPanel.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${spinHistory.slice(-5).reverse().map((winner, i) => `
+                        <span style="padding: 0.25rem 0.6rem; background: ${i === 0 ? 'rgba(255, 215, 0, 0.2)' : 'rgba(74, 158, 255, 0.1)'}; border-radius: 4px; font-size: 0.8rem; color: ${i === 0 ? '#ffd700' : '#aaa'};">${winner}</span>
+                    `).join('')}
+                </div>
+            `;
+        }
+    }
+}
+
+// Show End Wheel button without full redraw
+function showEndWheelButton() {
+    let endWheelContainer = document.getElementById('endWheelContainer');
+    if (!endWheelContainer) {
+        // Find where to insert it
+        const wheelControls = document.querySelector('#wheelPage .wheel-controls');
+        if (wheelControls) {
+            endWheelContainer = document.createElement('div');
+            endWheelContainer.id = 'endWheelContainer';
+            endWheelContainer.style.cssText = 'margin-top: 1rem; text-align: center;';
+            wheelControls.appendChild(endWheelContainer);
+        }
+    }
+    
+    if (endWheelContainer && currentWheelWinner) {
+        endWheelContainer.innerHTML = `
+            <button onclick="endCurrentWheel()" style="padding: 0.75rem 1.5rem; background: linear-gradient(135deg, #ffd700 0%, #ffb700 100%); border: none; border-radius: 8px; color: #1a1a2e; cursor: pointer; font-weight: bold; font-size: 1rem;">
+                🏆 End Wheel - Winner: ${currentWheelWinner}
+            </button>
+            <button onclick="removeWinnerFromWheel()" style="margin-left: 0.5rem; padding: 0.75rem 1rem; background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; border-radius: 8px; color: #ff6b6b; cursor: pointer;">
+                Remove Winner & Continue
+            </button>
+        `;
+    }
 }
 
 function addWheelItem() {
@@ -5010,6 +5081,7 @@ function removeWinnerFromWheel() {
     if (winnerIndex > -1) {
         wheelItems.splice(winnerIndex, 1);
         currentWheelWinner = null;
+        wheelFinalRotation = 0; // Reset rotation for fresh start
         saveWheelItems();
         
         // Update Firebase
@@ -5112,6 +5184,8 @@ function clearWheelItems() {
     if (!confirm('Clear all items from the wheel?')) return;
     
     wheelItems = [];
+    wheelFinalRotation = 0; // Reset rotation
+    currentWheelWinner = null;
     saveWheelItems();
     renderWheelPage();
 }
@@ -5282,6 +5356,7 @@ function createNewWheel() {
     currentWheelTheme = document.getElementById('wheelThemeSelect')?.value || 'default';
     wheelItems = [];
     spinHistory = []; // Reset spin history for new wheel
+    wheelFinalRotation = 0; // Reset rotation for new wheel
     
     // Check for quickload selection
     const quickloadSelect = document.getElementById('quickloadSelect');
