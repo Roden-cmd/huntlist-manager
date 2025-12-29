@@ -4825,16 +4825,29 @@ function spinWheel() {
     const sliceAngle = 360 / wheelItems.length;
     
     // Calculate rotation: multiple full spins + land on winning slice
+    // The pointer is at the TOP (270 degrees in canvas coordinates, or -90 degrees)
+    // Slice 0 starts at 0 degrees (right side / 3 o'clock)
+    // To get slice N to land under the top pointer:
+    // We need to rotate so the CENTER of slice N is at 270 degrees (top)
+    // Slice N's center is at: (N * sliceAngle) + (sliceAngle / 2)
+    // We want that to end up at 270 degrees after rotation
+    // So rotation needed = 270 - sliceCenter = 270 - (N * sliceAngle + sliceAngle/2)
+    
     const extraSpins = 5 + Math.random() * 3;
-    const winningAngle = (winningIndex * sliceAngle) + (sliceAngle / 2);
-    const targetRotation = (extraSpins * 360) + (360 - winningAngle) + 270;
+    const sliceCenterAngle = (winningIndex * sliceAngle) + (sliceAngle / 2);
+    // Rotate so this slice center ends up at top (270 degrees)
+    // Since we rotate clockwise (positive rotation), we need:
+    const targetRotation = (extraSpins * 360) + (270 - sliceCenterAngle);
+    
+    // Normalize to positive rotation (ensure we always spin forward)
+    const finalRotation = targetRotation < 0 ? targetRotation + (Math.ceil(-targetRotation / 360) * 360) : targetRotation;
     
     // Save spin state to Firebase for overlay sync
     if (currentUser) {
         firebase.database().ref('users/' + currentUser.uid + '/wheelSpin').set({
             spinning: true,
             winningIndex: winningIndex,
-            targetRotation: targetRotation,
+            targetRotation: finalRotation,
             startTime: Date.now(),
             duration: 5000
         });
@@ -4843,6 +4856,7 @@ function spinWheel() {
     let currentRotation = 0;
     const duration = 5000;
     const startTime = Date.now();
+    const animationTargetRotation = finalRotation;
     
     // Pre-calculate constants
     const centerX = canvas.width / 2;
@@ -4861,7 +4875,7 @@ function spinWheel() {
         // Easing function (ease out cubic)
         const easeOut = 1 - Math.pow(1 - progress, 3);
         
-        currentRotation = targetRotation * easeOut;
+        currentRotation = animationTargetRotation * easeOut;
         
         // Redraw wheel with rotation
         ctx.save();
