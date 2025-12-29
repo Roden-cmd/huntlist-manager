@@ -4196,21 +4196,37 @@ function editTournamentPlayer(matchIndex, playerNum) {
     const matchup = activeTournament.bracket[round - 1][matchIndex];
     const player = playerNum === 1 ? matchup.player1 : matchup.player2;
     
+    // Extended emoji list for tournaments
+    const tournamentEmojis = ['🔥', '⚡', '💎', '🎯', '🚀', '💰', '👑', '🌟', '🎲', '💥', '🏆', '⭐', '🎮', '🎰', '🃏', '🎪', '🎭', '🎨', '🎵', '🎸', '🎺', '🎻', '🥁', '🎬', '📺', '💻', '🖥️', '📱', '⌚', '💡', '🔮', '🧿', '💠', '🔷', '🔶', '🟣', '🟢', '🟡', '🔴', '🟠', '🦁', '🐯', '🦊', '🐺', '🦅', '🦈', '🐉', '🦄', '🐲', '👻', '💀', '👽', '🤖', '🎃', '🌈', '☀️', '🌙', '❄️', '🔥', '💧', '🌊', '⚡', '🌪️'];
+    
+    // Build emoji options
+    const emojiOptions = tournamentEmojis.map(e => 
+        `<div onclick="selectPlayerEmoji('${e}')" style="font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s; ${player.emoji === e ? 'background: rgba(74, 158, 255, 0.3); border: 2px solid #4a9eff;' : 'border: 2px solid transparent;'}" onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'" onmouseout="this.style.background='${player.emoji === e ? 'rgba(74, 158, 255, 0.3)' : 'transparent'}'">${e}</div>`
+    ).join('');
+    
     // Create edit modal
     const modal = document.createElement('div');
     modal.id = 'editPlayerModal';
     modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
     
     modal.innerHTML = `
-        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3); width: 400px; max-width: 90%;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3); width: 500px; max-width: 90%; max-height: 90vh; overflow-y: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 style="color: #fff; margin: 0;">✏️ Edit Player</h2>
                 <button onclick="closeEditPlayerModal()" style="background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
             </div>
             
             <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${player.emoji}</div>
-                <div style="color: #fff; font-weight: bold;">${player.name}</div>
+                <div id="selectedEmojiDisplay" style="font-size: 3rem; margin-bottom: 0.5rem;">${player.emoji}</div>
+                <input type="hidden" id="editPlayerEmoji" value="${player.emoji}">
+            </div>
+            
+            <!-- Emoji Picker -->
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Select Emoji</label>
+                <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 0.25rem; background: rgba(40, 40, 60, 0.4); padding: 0.75rem; border-radius: 8px; max-height: 150px; overflow-y: auto;">
+                    ${emojiOptions}
+                </div>
             </div>
             
             <div style="margin-bottom: 1rem;">
@@ -4218,14 +4234,10 @@ function editTournamentPlayer(matchIndex, playerNum) {
                 <input type="text" id="editPlayerName" value="${player.name}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
             </div>
             
-            <div style="margin-bottom: 1rem;">
-                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Emoji</label>
-                <input type="text" id="editPlayerEmoji" value="${player.emoji}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem; text-align: center;">
-            </div>
-            
-            <div style="margin-bottom: 1rem;">
+            <div style="margin-bottom: 1rem; position: relative;">
                 <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Game</label>
-                <input type="text" id="editPlayerGame" value="${player.game}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                <input type="text" id="editPlayerGame" value="${player.game}" placeholder="Start typing to search..." autocomplete="off" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+                <div id="editPlayerGameAutocomplete" style="display: none; position: absolute; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; background: #252540; border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 0 0 8px 8px; z-index: 1001;"></div>
             </div>
             
             <div style="margin-bottom: 1.5rem;">
@@ -4246,8 +4258,85 @@ function editTournamentPlayer(matchIndex, playerNum) {
     
     document.body.appendChild(modal);
     
+    // Setup game autocomplete
+    const gameInput = document.getElementById('editPlayerGame');
+    const autocompleteDiv = document.getElementById('editPlayerGameAutocomplete');
+    
+    gameInput.addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        
+        if (query.length < 2) {
+            autocompleteDiv.style.display = 'none';
+            return;
+        }
+        
+        // Search games from gameDatabase
+        let matches = [];
+        if (typeof gameDatabase !== 'undefined' && gameDatabase.length > 0) {
+            matches = gameDatabase
+                .filter(g => g.name.toLowerCase().startsWith(query))
+                .slice(0, 5);
+            
+            // If not enough starting matches, add contains matches
+            if (matches.length < 5) {
+                const containsMatches = gameDatabase
+                    .filter(g => !g.name.toLowerCase().startsWith(query) && g.name.toLowerCase().includes(query))
+                    .slice(0, 5 - matches.length);
+                matches = matches.concat(containsMatches);
+            }
+        }
+        
+        if (matches.length === 0) {
+            autocompleteDiv.style.display = 'none';
+            return;
+        }
+        
+        autocompleteDiv.innerHTML = matches.map(game => `
+            <div onclick="selectEditPlayerGame('${game.name.replace(/'/g, "\\'")}')" 
+                 style="padding: 0.75rem 1rem; cursor: pointer; border-bottom: 1px solid rgba(74, 158, 255, 0.1); transition: background 0.2s;"
+                 onmouseover="this.style.background='rgba(74, 158, 255, 0.2)'"
+                 onmouseout="this.style.background='transparent'">
+                <div style="color: #fff; font-weight: 500;">${game.name}</div>
+                <div style="color: #888; font-size: 0.8rem;">${game.provider || 'Unknown Provider'}</div>
+            </div>
+        `).join('');
+        
+        autocompleteDiv.style.display = 'block';
+    });
+    
+    // Close autocomplete when clicking outside
+    gameInput.addEventListener('blur', function() {
+        setTimeout(() => {
+            autocompleteDiv.style.display = 'none';
+        }, 200);
+    });
+    
     // Focus name input
     document.getElementById('editPlayerName').focus();
+}
+
+function selectPlayerEmoji(emoji) {
+    document.getElementById('editPlayerEmoji').value = emoji;
+    document.getElementById('selectedEmojiDisplay').textContent = emoji;
+    
+    // Update visual selection
+    const emojiGrid = document.querySelector('#editPlayerModal .grid');
+    if (emojiGrid) {
+        emojiGrid.querySelectorAll('div').forEach(div => {
+            if (div.textContent === emoji) {
+                div.style.background = 'rgba(74, 158, 255, 0.3)';
+                div.style.border = '2px solid #4a9eff';
+            } else {
+                div.style.background = 'transparent';
+                div.style.border = '2px solid transparent';
+            }
+        });
+    }
+}
+
+function selectEditPlayerGame(gameName) {
+    document.getElementById('editPlayerGame').value = gameName;
+    document.getElementById('editPlayerGameAutocomplete').style.display = 'none';
 }
 
 function closeEditPlayerModal() {
