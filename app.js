@@ -4831,27 +4831,30 @@ function spinWheel() {
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Calculate winning slice
-    const winningIndex = Math.floor(Math.random() * wheelItems.length);
-    const sliceAngle = 360 / wheelItems.length;
-    
-    // Calculate rotation: multiple full spins + land on winning slice
-    // The pointer is at the TOP (270 degrees in canvas coordinates, or -90 degrees)
-    // Slice 0 starts at 0 degrees (right side / 3 o'clock)
-    // To get slice N to land under the top pointer:
-    // We need to rotate so the CENTER of slice N is at 270 degrees (top)
-    // Slice N's center is at: (N * sliceAngle) + (sliceAngle / 2)
-    // We want that to end up at 270 degrees after rotation
-    // So rotation needed = 270 - sliceCenter = 270 - (N * sliceAngle + sliceAngle/2)
-    
+    // Generate random spin - we'll determine the winner from final position
     const extraSpins = 5 + Math.random() * 3;
-    const sliceCenterAngle = (winningIndex * sliceAngle) + (sliceAngle / 2);
-    // Rotate so this slice center ends up at top (270 degrees)
-    // Since we rotate clockwise (positive rotation), we need:
-    const targetRotation = (extraSpins * 360) + (270 - sliceCenterAngle);
+    const randomOffset = Math.random() * 360; // Random final position
+    const finalRotation = (extraSpins * 360) + randomOffset;
     
-    // Normalize to positive rotation (ensure we always spin forward)
-    const finalRotation = targetRotation < 0 ? targetRotation + (Math.ceil(-targetRotation / 360) * 360) : targetRotation;
+    // Determine which slice will be at the top (270°) after rotation
+    // After rotating R degrees clockwise, a slice that was at angle A is now at (A + R) % 360
+    // We need to find which slice's center ends up at 270°
+    // (sliceCenter + R) % 360 = 270
+    // sliceCenter = (270 - R % 360 + 360) % 360
+    const sliceAngleDeg = 360 / wheelItems.length;
+    const finalAngle = finalRotation % 360;
+    const angleAtTop = (270 - finalAngle + 360) % 360;
+    const winningIndex = Math.floor(angleAtTop / sliceAngleDeg) % wheelItems.length;
+    
+    console.log('🎰 Spin calculation:', {
+        finalRotation,
+        finalAngle,
+        angleAtTop,
+        sliceAngleDeg,
+        winningIndex,
+        winningItem: wheelItems[winningIndex],
+        totalItems: wheelItems.length
+    });
     
     // Save spin state to Firebase for overlay sync
     if (currentUser) {
