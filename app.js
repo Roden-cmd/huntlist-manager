@@ -3805,7 +3805,8 @@ function createRoundManagementView() {
                 <!-- Players side by side -->
                 <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
                     <!-- Player 1 -->
-                    <div style="text-align: center;">
+                    <div style="text-align: center; position: relative;">
+                        <button type="button" onclick="editTournamentPlayer(${matchIndex}, 1)" style="position: absolute; top: -5px; right: -5px; background: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; color: #ffc107; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center;">✏️</button>
                         <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${matchup.player1.emoji}</div>
                         <div style="color: #fff; font-weight: bold; font-size: 0.9rem;">${matchup.player1.name}</div>
                         <div style="color: #888; font-size: 0.75rem;">${matchup.player1.game}</div>
@@ -3817,7 +3818,8 @@ function createRoundManagementView() {
                     <div style="color: #666; font-size: 0.8rem; font-weight: bold;">VS</div>
                     
                     <!-- Player 2 -->
-                    <div style="text-align: center;">
+                    <div style="text-align: center; position: relative;">
+                        <button type="button" onclick="editTournamentPlayer(${matchIndex}, 2)" style="position: absolute; top: -5px; left: -5px; background: rgba(255, 193, 7, 0.3); border: 1px solid #ffc107; color: #ffc107; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 0.7rem; display: flex; align-items: center; justify-content: center;">✏️</button>
                         <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">${matchup.player2.emoji}</div>
                         <div style="color: #fff; font-weight: bold; font-size: 0.9rem;">${matchup.player2.name}</div>
                         <div style="color: #888; font-size: 0.75rem;">${matchup.player2.game}</div>
@@ -4187,6 +4189,104 @@ function finishTournament() {
     
     activeTournament = null;
     updateTournamentsPage();
+}
+
+function editTournamentPlayer(matchIndex, playerNum) {
+    const round = activeTournament.currentRound;
+    const matchup = activeTournament.bracket[round - 1][matchIndex];
+    const player = playerNum === 1 ? matchup.player1 : matchup.player2;
+    
+    // Create edit modal
+    const modal = document.createElement('div');
+    modal.id = 'editPlayerModal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+    
+    modal.innerHTML = `
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 2rem; border-radius: 16px; border: 1px solid rgba(74, 158, 255, 0.3); width: 400px; max-width: 90%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="color: #fff; margin: 0;">✏️ Edit Player</h2>
+                <button onclick="closeEditPlayerModal()" style="background: none; border: none; color: #888; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+            
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${player.emoji}</div>
+                <div style="color: #fff; font-weight: bold;">${player.name}</div>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Player Name</label>
+                <input type="text" id="editPlayerName" value="${player.name}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Emoji</label>
+                <input type="text" id="editPlayerEmoji" value="${player.emoji}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem; text-align: center;">
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Game</label>
+                <input type="text" id="editPlayerGame" value="${player.game}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+            </div>
+            
+            <div style="margin-bottom: 1.5rem;">
+                <label style="color: #888; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;">Bet Size (€)</label>
+                <input type="number" step="0.01" id="editPlayerBet" value="${player.bet}" style="width: 100%; padding: 0.75rem; background: rgba(40, 40, 60, 0.6); border: 1px solid rgba(74, 158, 255, 0.3); border-radius: 8px; color: #fff; font-size: 1rem;">
+            </div>
+            
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="closeEditPlayerModal()" style="flex: 1; padding: 0.75rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; color: #fff; cursor: pointer;">
+                    Cancel
+                </button>
+                <button onclick="saveEditedPlayer(${matchIndex}, ${playerNum})" style="flex: 1; padding: 0.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 8px; color: #fff; cursor: pointer; font-weight: bold;">
+                    💾 Save Changes
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Focus name input
+    document.getElementById('editPlayerName').focus();
+}
+
+function closeEditPlayerModal() {
+    const modal = document.getElementById('editPlayerModal');
+    if (modal) modal.remove();
+}
+
+function saveEditedPlayer(matchIndex, playerNum) {
+    const name = document.getElementById('editPlayerName').value.trim();
+    const emoji = document.getElementById('editPlayerEmoji').value.trim();
+    const game = document.getElementById('editPlayerGame').value.trim();
+    const bet = parseFloat(document.getElementById('editPlayerBet').value) || 0;
+    
+    if (!name) {
+        alert('Please enter a player name');
+        return;
+    }
+    
+    const round = activeTournament.currentRound;
+    const matchup = activeTournament.bracket[round - 1][matchIndex];
+    const player = playerNum === 1 ? matchup.player1 : matchup.player2;
+    
+    // Update player data
+    player.name = name;
+    player.emoji = emoji || '🎮';
+    player.game = game || 'TBD';
+    player.bet = bet;
+    
+    // Recalculate multiplier if win exists
+    if (player.win) {
+        player.multiplier = bet > 0 ? (player.win / bet) : 0;
+    }
+    
+    // Save and refresh
+    saveTournament();
+    closeEditPlayerModal();
+    updateTournamentsPage();
+    
+    console.log('✅ Player updated:', player);
 }
 
 function saveTournament() {
